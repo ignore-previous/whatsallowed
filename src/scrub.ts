@@ -13,14 +13,25 @@ const VALUE = String.raw`"[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")]+`;
 // Case-sensitive on purpose: -P is a port (mysql) or a prompt (sshpass), and the password -p can come after it.
 const LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
 const SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
+/** Matches the word in either case ("MySQL.exe" on Windows) while the rest of the pattern stays case-sensitive. */
+const anyCase = (word: string): string => word.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`);
+const MYSQL_NAMES = ["mysql", "mysqldump", "mysqladmin", "mysqlimport", "mysqlcheck", "mysqlshow", "mysqlslap", "mysqlsh", "mysql_upgrade", "mariadb", "mycli"]
+  .map(anyCase)
+  .join("|");
 // A lookbehind, so every attached -pPASSWORD after the command name is hidden, not only the first. A bare
-// "-p" (mysql asks for the password) or "-p word" (the word is a database name) is not a password.
-const MYSQL_P = new RegExp(String.raw`(?<=\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,500}\s-p)(?!\s)(?:${VALUE})`, "g");
+// "-p" (mysql asks for the password) or "-p word" (the word is a database name) is not a password. The second
+// pattern steps over quoted arguments, so a ; | or & inside quotes (mysql -e "select 1;") doesn't end the command.
+const MYSQL_P = new RegExp(String.raw`(?<=\b(?:${MYSQL_NAMES})\b[^|;&\n]{0,500}\s-p)(?!\s)(?:${VALUE})`, "g");
+const MYSQL_P_QUOTED = new RegExp(
+  String.raw`(?<=\b(?:${MYSQL_NAMES})\b(?:"[^"\n]{0,200}"|'[^'\n]{0,200}'|[^|;&\n'"]){0,500}\s-p)(?!\s)(?:${VALUE})`,
+  "g",
+);
 
 // Options whose name contains a credential word but whose next word is not a secret: flags that take no value
-// (--password-stdin, --passWithNoTests) and --author. Anything not listed here is still hidden.
+// (--password-stdin, --passWithNoTests) and --author. Anything not listed here, and any of these given an
+// explicit =value, is still hidden. Digits, underscores and dots count as part of the name (--api_key).
 const LONG_FLAG = new RegExp(
-  String.raw`(?!--?(?:[A-Za-z-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![A-Za-z-]))(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)`,
+  String.raw`(?!--?(?:[\w.-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![\w.-]|=))(--?[\w.-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[\w.-]{0,30})([=\s]\s{0,5})([^\s'")*]+)`,
   "gi",
 );
 // Only credential-like names match. A value that is not hidden is left unconsumed, so a credential inside it is still found.
@@ -43,6 +54,9 @@ const TOKEN_SHAPES = new RegExp(
   "g",
 );
 
+/** Control characters (escape codes, carriage returns) could redraw or clear the terminal, so each becomes "?". Tabs and newlines stay. */
+export const noControl = (text: string): string => text.replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g, "?");
+
 /**
  * Hide anything in a rule, command or finding that could be a credential: values of NAME=value assignments
  * where the name looks like a credential (quoted or not, and query parameters), Bearer and Basic tokens, auth
@@ -53,7 +67,8 @@ const TOKEN_SHAPES = new RegExp(
 export function scrub(text: string, limit = MAX_SHOWN): string {
   // Long text is cut first, and every repeat in the patterns below is bounded, so a hostile rule can't make
   // the scan slow.
-  const t = text.length > limit ? `${text.slice(0, limit)}…` : text;
+  const cut = text.length > limit ? `${text.slice(0, limit)}…` : text;
+  const t = noControl(cut);
   return t
     .replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2•••")
     .replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 •••")
@@ -64,6 +79,7 @@ export function scrub(text: string, limit = MAX_SHOWN): string {
     .replace(/\blogin\b[^|;&\n]{0,150}/gi, (seg) => seg.replace(LOGIN_P, "$1•••"))
     .replace(SSHPASS_P, "$1•••")
     .replace(MYSQL_P, "•••")
+    .replace(MYSQL_P_QUOTED, "•••")
     .replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1•••")
     .replace(/(\/\/)[^/\s@]{1,200}@/g, "$1•••@")
     // An address cut off by the length limit before its "@" may still be holding a password.

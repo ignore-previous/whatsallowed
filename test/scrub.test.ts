@@ -234,6 +234,33 @@ describe("finding titles are scrubbed", () => {
   });
 });
 
+describe("other user text is scrubbed too", () => {
+  it("hides a key in the name of a server removed since the baseline", () => {
+    const named = (name: string) => ({ "./.mcp.json": JSON.stringify({ mcpServers: { [name]: { command: "node", args: ["s.js"] } } }) });
+    const r = scanFiles({ "./.mcp.json": JSON.stringify({ mcpServers: {} }) }, named("gh TOKEN=hunter2hunter2"));
+    expect(r.notes.join(" ")).toContain("was removed since the baseline");
+    expect(r.notes.join(" ")).not.toContain("hunter2");
+  });
+  it("hides keys in mode values listed by --verbose", () => {
+    put(".claude/settings.json", JSON.stringify({ permissions: { defaultMode: "TOKEN=hunter2hunter2" } }));
+    put(".codex/config.toml", 'sandbox_mode = "TOKEN=hunter2hunter2"\napproval_policy = "sk-hunter2hunter2hunter2hunter2"\n');
+    const out = cli(["--verbose"]).out;
+    expect(out).toContain("defaultMode");
+    expect(out).toContain("sandbox_mode");
+    expect(out).not.toContain("hunter2");
+  });
+  it("turns control characters into ? so a name can't redraw the terminal", () => {
+    expect(scrub("x\u001b[2Jy\rz\u0007\u009b")).toBe("x?[2Jy?z??");
+    expect(scrub("tab\tand\nnewline")).toBe("tab\tand\nnewline");
+    put(".mcp.json", JSON.stringify({ mcpServers: { "x\u001b[2J\u001b[31mFAKE\r0 high": { command: "npx", args: ["some-pkg"] } } }));
+    for (const argv of [[], ["--details"], ["--verbose"]]) {
+      const out = cli(argv).out;
+      expect(out, argv.join(" ")).toContain("FAKE");
+      expect(out, argv.join(" ")).not.toMatch(/[\u001b\r]/);
+    }
+  });
+});
+
 describe("scrub: every mysql -p", () => {
   it("hides each attached password, not only the first", () => {
     const out = scrub("mysql -phunter2 -u root -pother shop");
@@ -252,6 +279,23 @@ describe("scrub: every mysql -p", () => {
     expect(scrub("mysql -u root -p shop")).toBe("mysql -u root -p shop");
     expect(scrub("mysql -p -u root")).toBe("mysql -p -u root");
     expect(scrub("mysql -p -pTOPWORD shop")).toBe("mysql -p -p••• shop");
+  });
+  it("steps over ; | and & inside quoted arguments", () => {
+    for (const s of ['mysql -e "select 1;" -u root -phunter2', "mysql -e 'a | b & c' -phunter2", 'mysqldump --where="id=1;" -phunter2 db']) {
+      expect(scrub(s), s).not.toContain("hunter2");
+    }
+    expect(scrub('mysql -e "select 1;" -u root -p shop')).toBe('mysql -e "select 1;" -u root -p shop');
+  });
+  it("covers the other MySQL clients, .exe names and any case", () => {
+    for (const s of ["mysqlsh -phunter2", "mysql_upgrade -phunter2", "mycli -phunter2", "mysqlshow -phunter2", "mariadb-admin -phunter2", "MySQL.exe -u root -phunter2", "C:/MySQL/bin/MYSQLDUMP.EXE -phunter2 db"]) {
+      expect(scrub(s), s).not.toContain("hunter2");
+    }
+    expect(scrub("mysql -P3306 -u root")).toBe("mysql -P3306 -u root");
+  });
+  it("is still fast on hostile input", () => {
+    const t0 = Date.now();
+    for (const s of ["mysql " + '"x" '.repeat(50_000) + "-pA", "mysql " + "'".repeat(100_000) + " -pA", "mysql -e " + '"'.repeat(100_000)]) scrub(s, 1_000_000);
+    expect(Date.now() - t0).toBeLessThan(2000);
   });
   it("does not touch -p outside a mysql command", () => {
     for (const s of ["mkdir -p a/b -p c", "echo mysql; mkdir -pX", "npx -p typescript tsc"]) expect(scrub(s)).toBe(s);
@@ -278,6 +322,16 @@ describe("scrub: long flags", () => {
   it("still hides values of password-like flags", () => {
     for (const s of ["--password hunter2", "--password=hunter2", "--passwd hunter2", "--token abc", "--api-key=abc", "--client-secret abc", "--auth-token abc", "--passphrase abc", "-token abc"]) {
       expect(scrub(`tool ${s}`), s).not.toMatch(/hunter2|abc/);
+    }
+  });
+  it("hides values of flags with underscores in their names", () => {
+    for (const s of ["--api_key=hunter2", "--access_token hunter2", "--client_secret=hunter2", "--db_password hunter2", "--AUTH_TOKEN=hunter2"]) {
+      expect(scrub(`tool ${s}`), s).not.toContain("hunter2");
+    }
+  });
+  it("hides an explicit =value even on flags that usually take none", () => {
+    for (const s of ["--password-stdin=hunter2", "--author=hunter2", "--passthrough=hunter2", "--api-key-stdin=hunter2", "--password-stdin_x=hunter2", "--password-stdin1=hunter2", "--password-stdin.x=hunter2"]) {
+      expect(scrub(`tool ${s}`), s).not.toContain("hunter2");
     }
   });
   it("does not hide the word after flags that are known to take no secret", () => {

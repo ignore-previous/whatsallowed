@@ -52,6 +52,15 @@ describe("config file over 1 MiB", () => {
     expect(r.out).not.toContain("Nothing was checked");
     expect(r.out).not.toContain("No high or medium findings");
   });
+  it("says so in the summary, and doesn't call the skipped areas empty", () => {
+    put(".claude/settings.json", padded());
+    for (const args of [[], ["--details"]]) {
+      const out = cli(args).out.replace(/\s+/g, " ");
+      expect(out, args.join(" ")).toContain("1 config file was too large to check, so it was skipped.");
+      expect(out, args.join(" ")).toContain("Nothing found in the files read for:");
+      expect(out, args.join(" ")).not.toContain("Nothing found for:");
+    }
+  });
   it("fails --fail-on at the levels a normal finding would", () => {
     put(".claude/settings.json", padded());
     for (const level of ["high", "medium", "info"]) expect(cli(["--fail-on", level]).code, level).toBe(1);

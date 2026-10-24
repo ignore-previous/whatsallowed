@@ -4525,6 +4525,8 @@ function formatSummary(s, opts) {
     lines.push(...write(`  Files: ${f5.total} read.${found.length ? ` ${found.join(", ")}.` : ""}`));
     if (missing.length) lines.push(...write(`  ${missing.join(", ")}: no files found.`));
   }
+  const skipped = s.files.unchecked;
+  if (skipped) lines.push(...write(`  ${plural2(skipped, "config file was", "config files were")} too large to check, so ${skipped === 1 ? "it was" : "they were"} skipped.`));
   const empty = [];
   for (const x of s.checks) {
     const hasFindings = Object.values(x.findings).some((n) => n > 0);
@@ -4537,7 +4539,7 @@ function formatSummary(s, opts) {
     if (opts.details) lines.push(...write(`    ${x.meaning}`, "dim"));
     if (opts.verbose) for (const item of x.items) lines.push(...write(`    - ${item}`, "dim"));
   }
-  if (empty.length) lines.push(...write(`Nothing found for: ${empty.join(", ")}.`, "dim"));
+  if (empty.length) lines.push(...write(`Nothing found${skipped ? " in the files read" : ""} for: ${empty.join(", ")}.`, "dim"));
   return [...lines, ""];
 }
 function formatText(r, opts) {

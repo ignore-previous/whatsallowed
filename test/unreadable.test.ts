@@ -46,6 +46,9 @@ describe("config file over 1 MiB", () => {
     expect(r.out).toContain("FILE-001");
     expect(r.out).toContain(".claude/settings.json");
     expect(r.out).toContain("too large to check");
+    expect(r.out).toContain("limit 1,048,576 bytes");
+    expect(r.out).toContain("0 read.");
+    expect(r.out).not.toContain("read: .");
     expect(r.out).not.toContain("Nothing was checked");
     expect(r.out).not.toContain("No high or medium findings");
   });

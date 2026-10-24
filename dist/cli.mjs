@@ -3914,7 +3914,7 @@ function checkSkills(m) {
 
 // src/scan.ts
 var CHECKS = [checkMode, checkAllow, checkDeny, checkEndpoint, checkHooks, checkMcp, checkDrift, checkSecrets, checkSkills];
-var mib = (n) => `${(n / (1024 * 1024)).toFixed(1)} MiB`;
+var size = (n) => n < 2 * 1024 * 1024 ? `${n.toLocaleString("en-US")} bytes` : `${(n / (1024 * 1024)).toFixed(1)} MiB`;
 function uncheckedFinding(u) {
   const shared = u.scope === "project" || u.scope === "local" || u.scope === "plugin";
   return make("FILE", {
@@ -3923,7 +3923,7 @@ function uncheckedFinding(u) {
     title: `${u.display} is too large to check`,
     file: u,
     line: 1,
-    match: `${mib(u.bytes)}, limit ${mib(MAX_BYTES)}`,
+    match: `${size(u.bytes)}, limit ${size(MAX_BYTES)}`,
     why: u.kind === "claude-json" ? "We skip config files over 1 MiB, so nothing in this one was checked, including its MCP servers. Claude Code grows this file as you use it, so it may be harmless." : "We skip config files over 1 MiB, so nothing in this one was checked. Real settings files are a few kilobytes. A padded file can hide risky settings from a check like this.",
     fix: "Open the file and find out why it is so big. Remove the padding or split the file, then run the check again."
   });
@@ -4456,7 +4456,7 @@ function formatSummary(s, opts) {
   if (f5.other) found.push(`other ${f5.other}`);
   const missing = tools.filter(([, n]) => n === 0).map(([t]) => t);
   lines.push(
-    `${pad("Files")}${f5.total} read: ${found.join(", ")}.${missing.length ? ` ${missing.length > 1 ? `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}` : missing[0]}: no files found.` : ""}`,
+    `${pad("Files")}${f5.total} read${found.length ? `: ${found.join(", ")}` : ""}.${missing.length ? ` ${missing.length > 1 ? `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}` : missing[0]}: no files found.` : ""}`,
     c("dim", `${indent}Settings, instruction files, skill scripts, and secrets files such as .env.`)
   );
   if (f5.unchecked) lines.push(`${pad("")}${plural2(f5.unchecked, "config file was", "config files were")} too large to check, so ${f5.unchecked === 1 ? "it was" : "they were"} skipped.`);

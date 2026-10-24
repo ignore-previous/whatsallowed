@@ -53,7 +53,7 @@ export function formatSummary(s: Summary, opts: { color: boolean; verbose?: bool
   if (f.other) found.push(`other ${f.other}`);
   const missing = tools.filter(([, n]) => n === 0).map(([t]) => t);
   lines.push(
-    `${pad("Files")}${f.total} read: ${found.join(", ")}.${missing.length ? ` ${missing.join(" or ")}: no files found.` : ""}`,
+    `${pad("Files")}${f.total} read: ${found.join(", ")}.${missing.length ? ` ${missing.length > 1 ? `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}` : missing[0]}: no files found.` : ""}`,
     c("dim", `${indent}Settings, instruction files, skill scripts, and secrets files such as .env.`),
   );
   for (const x of s.checks) {

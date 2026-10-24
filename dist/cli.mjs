@@ -3681,6 +3681,9 @@ function scan(opts) {
 // src/summary.ts
 var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 var cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+function scrub(text) {
+  return text.replace(/\b(Bearer|Basic)\s+[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(/(^|[\s('"])([A-Za-z_][A-Za-z0-9_]*)=([^\s'")]+)/g, "$1$2=\u2022\u2022\u2022").replace(/(--?[A-Za-z-]*(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]*)([= ])([^\s'")*]+)/gi, "$1$2\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]+@/g, "$1\u2022\u2022\u2022@");
+}
 var CLAUDE_MODES = ["plan", "dontAsk", "default", "acceptEdits", "auto", "bypassPermissions"];
 var CLAUDE_MEANING = {
   plan: "Claude Code can read files but not change them or run commands.",
@@ -3699,7 +3702,7 @@ var SANDBOX_MEANING = {
 var CODEX_APPROVAL = ["untrusted", "on-request", "on-failure", "never"];
 var APPROVAL_MEANING = {
   untrusted: "and Codex asks before running anything not on its trusted list.",
-  "on-request": "and Codex asks before going outside that.",
+  "on-request": "and Codex asks before going outside the sandbox.",
   "on-failure": "and Codex asks only when a command fails in the sandbox.",
   never: "and Codex never asks first."
 };
@@ -3707,11 +3710,13 @@ var rankIn = (list, v) => list.indexOf(v);
 function modeSummary(m, findings) {
   const items = [];
   let claude;
+  let ignoredModes = 0;
   for (const p of m.settings) {
     const mode = str(get(p.doc.value, "permissions", "defaultMode")) ?? str(get(p.doc.value, "defaultMode"));
     if (!mode) continue;
     const ignored = (mode === "bypassPermissions" || mode === "auto") && (p.file.scope === "project" || p.file.scope === "local");
     items.push(`Claude Code defaultMode "${mode}" (${p.file.display})${ignored ? ", ignored in a project file" : ""}`);
+    if (ignored) ignoredModes++;
     if (!ignored && rankIn(CLAUDE_MODES, mode) > rankIn(CLAUDE_MODES, claude ?? "")) claude = mode;
   }
   let sandbox;
@@ -3761,7 +3766,7 @@ function modeSummary(m, findings) {
     count: items.length,
     broadest: broad.join("; ") || void 0,
     text: `${plural(items.length, "mode setting", "mode settings")}.${broad.length ? ` Broadest: ${broad.join("; ")}.` : ""}`,
-    meaning: meaning.join(" ") || "Claude Code ignores these modes in project files, so your own setting or its default applies.",
+    meaning: meaning.join(" ") || (ignoredModes === items.length ? "Claude Code ignores these modes in project files, so your own setting or its default applies." : "This check doesn't recognise the mode values set here, so it can't say what they do."),
     items
   });
 }
@@ -3782,9 +3787,9 @@ function allowSummary(m, findings) {
   let dirs = 0;
   for (const p of m.settings) {
     for (const rule of strArr(get(p.doc.value, "permissions", "allow"))) {
-      items.push(`${rule} (${p.file.display})`);
+      items.push(`${scrub(rule)} (${p.file.display})`);
       const r = allowRank(rule);
-      if (r > best) best = r, broadest = rule;
+      if (r > best) best = r, broadest = scrub(rule);
     }
     dirs += strArr(get(p.doc.value, "permissions", "additionalDirectories")).length;
   }
@@ -3803,13 +3808,13 @@ function allowSummary(m, findings) {
     count: rules,
     broadest,
     text: `${plural(rules, "allow rule", "allow rules")}. Broadest: ${broadest}.${extra}`,
-    meaning: `Claude Code does what these rules match without asking you. ${wide ? `${plural(wide, "rule approves", "rules approve")} every command, a powerful program with any arguments, or any web address.` : "None approves every command, a powerful program with any arguments, or any web address."}`,
+    meaning: `Claude Code does what these match without asking. ${wide ? `${plural(wide, "rule approves", "rules approve")} every command, a powerful program with any arguments, or any web address.` : "None approves every command, a powerful program with any arguments, or any web address."}`,
     items
   });
 }
 function denySummary(m, findings) {
   const items = [];
-  for (const p of m.settings) for (const rule of strArr(get(p.doc.value, "permissions", "deny"))) items.push(`${rule} (${p.file.display})`);
+  for (const p of m.settings) for (const rule of strArr(get(p.doc.value, "permissions", "deny"))) items.push(`${scrub(rule)} (${p.file.display})`);
   const rules = plural(items.length, "deny rule", "deny rules");
   if (!projectUsesClaude(m)) {
     return base2("DENY", findings, {
@@ -3823,7 +3828,7 @@ function denySummary(m, findings) {
   const secrets = secretFilesToGuard(m);
   const open = findings.filter((f5) => f5.rule === "DENY-001").length;
   const where = "in the top two folder levels of this project";
-  const fileText = !secrets.length ? `No .env, key or credentials files ${where}.` : secrets.length === 1 ? `The 1 secrets file ${where} ${open ? "isn't" : "is"} blocked from reading.` : open ? `${open} of ${secrets.length} secrets files ${where} ${open === 1 ? "isn't" : "aren't"} blocked from reading.` : `All ${secrets.length} secrets files ${where} are blocked from reading.`;
+  const fileText = !secrets.length ? `No .env, key or credentials files ${where}.` : secrets.length === 1 ? `The 1 secrets file ${where} ${open ? "isn't" : "is"} covered by a deny rule.` : open ? `${open} of ${secrets.length} secrets files ${where} ${open === 1 ? "isn't" : "aren't"} covered by a deny rule.` : `All ${secrets.length} secrets files ${where} are covered by a deny rule.`;
   return base2("DENY", findings, {
     count: items.length,
     text: `${cap(rules)}. ${fileText}`,
@@ -3843,16 +3848,21 @@ function endpointSummary(m, findings) {
     });
   }
   const n = plural(files.length, "project settings file", "project settings files");
+  const redirects = findings.filter((f5) => f5.rule !== "ENDPOINT-004").length;
   return base2("ENDPOINT", findings, {
     count: files.length,
-    text: findings.length ? `${n}. ${plural(findings.length, "setting changes", "settings change")} where your requests go or which credentials they use.` : `${n}. None changes where your requests go or which credentials they use.`,
-    meaning: findings.length ? "A project setting can send your prompts and code somewhere other than the provider you chose." : "Your prompts and code go where your own settings send them.",
+    text: redirects ? `${n}. ${plural(redirects, "setting changes", "settings change")} where your requests go or which credentials they use.` : `${n}. None changes where your requests go or which credentials they use.`,
+    meaning: redirects ? "A project setting can send your prompts and code somewhere other than the provider you chose." : "Your prompts and code go where your own settings send them.",
     items
   });
 }
 var program = (h) => {
-  const w = shellWords(h.command ?? "")[0] ?? "";
-  return w.split(/[\\/]/).pop() ?? w;
+  const words = shellWords(h.command ?? "");
+  let i = 0;
+  while (i < words.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[i]) || words[i] === "env" && i === 0)) i++;
+  const w = words[i];
+  if (!w) return "(shell command)";
+  return w.split(/[\\/]/).pop() || w;
 };
 function hookSummary(m, findings) {
   const cmds = m.handlers.filter((h) => h.type === "command" && h.command);
@@ -3931,7 +3941,8 @@ function mcpSummary(m, findings) {
     if (r) {
       packages++;
       if (!r.pinned) unpinned++;
-      return `"${s.name}" (${where}): ${r.runner} ${r.pkg}`;
+      const pkg = /^[a-z][a-z0-9+.-]*:\/\//i.test(r.pkg) ? `package at ${parseUrl(r.pkg.replace(/^[a-z0-9.-]+\+/i, ""))?.host ?? "an unreadable address"}` : scrub(r.pkg);
+      return `"${s.name}" (${where}): ${r.runner} ${pkg}`;
     }
     return `"${s.name}" (${where}): local program`;
   });
@@ -3995,12 +4006,17 @@ function skillSummary(m, findings) {
   const scripts = m.ctx.files.filter((f5) => f5.kind === "script" && f5.text !== void 0 && !/\.min\.[cm]?js$/i.test(f5.path));
   const plugin = scripts.filter((f5) => f5.scope === "plugin").length;
   if (!scripts.length) {
-    return base2("SKILL", findings, { count: 0, text: "No skill or plugin scripts.", meaning: "No skill or plugin in these folders brings its own scripts.", items: [] });
+    return base2("SKILL", findings, {
+      count: 0,
+      text: "No skill, plugin or hooks-folder scripts.",
+      meaning: "No skill, plugin or hooks folder in the folders checked brings its own scripts.",
+      items: []
+    });
   }
   return base2("SKILL", findings, {
     count: scripts.length,
-    text: `${plural(scripts.length, "skill or plugin script", "skill and plugin scripts")}${plugin ? `, ${plugin} of them from plugins` : ""}.`,
-    meaning: `Your agent can run these when it uses a skill or plugin. ${findings.length ? `${plural(findings.length, "line downloads and runs code, runs an encoded payload or opens a reverse shell", "lines download and run code, run an encoded payload or open a reverse shell")}.` : "None downloads and runs code, runs an encoded payload or opens a reverse shell."}`,
+    text: `${plural(scripts.length, "skill, plugin or hooks-folder script", "skill, plugin and hooks-folder scripts")}${plugin ? `, ${plugin} of them from plugins` : ""}.`,
+    meaning: `Your agent can run these when it uses a skill or plugin, or when a hook fires. ${findings.length ? `${plural(findings.length, "line downloads and runs code, runs an encoded payload or opens a reverse shell", "lines download and run code, run an encoded payload or open a reverse shell")}.` : "None downloads and runs code, runs an encoded payload or opens a reverse shell."}`,
     items: scripts.map((f5) => f5.display)
   });
 }
@@ -4073,7 +4089,7 @@ function formatSummary(s, opts) {
   if (f5.other) found.push(`other ${f5.other}`);
   const missing = tools.filter(([, n]) => n === 0).map(([t]) => t);
   lines.push(
-    `${pad("Files")}${f5.total} read: ${found.join(", ")}.${missing.length ? ` ${missing.join(" or ")}: no files found.` : ""}`,
+    `${pad("Files")}${f5.total} read: ${found.join(", ")}.${missing.length ? ` ${missing.length > 1 ? `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}` : missing[0]}: no files found.` : ""}`,
     c("dim", `${indent}Settings, instruction files, skill scripts, and secrets files such as .env.`)
   );
   for (const x of s.checks) {

@@ -2250,7 +2250,7 @@ var MYSQL_P_QUOTED = new RegExp(
   "g"
 );
 var LONG_FLAG = new RegExp(
-  String.raw`(?!--?(?:[\w.-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![\w.-]|=))(--?[\w.-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[\w.-]{0,30})([=:\s]\s{0,5})("[^"\n]{0,200}"?|'[^'\n]{0,200}'?|[^\s'")*]+)`,
+  String.raw`(?!--?(?:[\w.-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![\w.-]|[=:]))(--?[\w.-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[\w.-]{0,30})([=:\s]\s{0,5})("[^"\n]{0,200}"?|'[^'\n]{0,200}'?|[^\s'")*]+)`,
   "gi"
 );
 var ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&:;,])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");

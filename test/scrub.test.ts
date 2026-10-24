@@ -286,15 +286,20 @@ describe("scrub: every mysql -p", () => {
     }
     expect(scrub('mysql -e "select 1;" -u root -p shop')).toBe('mysql -e "select 1;" -u root -p shop');
   });
+  it("steps over long and multi-line quoted SQL, and finds a quoted -p", () => {
+    for (const s of [`mysql -e "${"x".repeat(250)};" -phunter2`, `mysql -e '${"x".repeat(250)} | y' -phunter2`, 'mysql -e "select 1;\nselect 2;" -u root -phunter2', 'mysql -e "a;b" "-phunter2"']) {
+      expect(scrub(s, 500), s).not.toContain("hunter2");
+    }
+  });
   it("covers the other MySQL clients, .exe names and any case", () => {
-    for (const s of ["mysqlsh -phunter2", "mysql_upgrade -phunter2", "mycli -phunter2", "mysqlshow -phunter2", "mariadb-admin -phunter2", "MySQL.exe -u root -phunter2", "C:/MySQL/bin/MYSQLDUMP.EXE -phunter2 db"]) {
+    for (const s of ["mysqlsh -phunter2", "mysql_upgrade -phunter2", "mycli -phunter2", "mysqlshow -phunter2", "mariadb-admin -phunter2", "mysql5 -phunter2", "mysqlpump -phunter2", "mysqlbinlog -phunter2", "MySQL.exe -u root -phunter2", "C:/MySQL/bin/MYSQLDUMP.EXE -phunter2 db"]) {
       expect(scrub(s), s).not.toContain("hunter2");
     }
     expect(scrub("mysql -P3306 -u root")).toBe("mysql -P3306 -u root");
   });
   it("is still fast on hostile input", () => {
     const t0 = Date.now();
-    for (const s of ["mysql " + '"x" '.repeat(50_000) + "-pA", "mysql " + "'".repeat(100_000) + " -pA", "mysql -e " + '"'.repeat(100_000)]) scrub(s, 1_000_000);
+    for (const s of ["mysql " + '"x" '.repeat(50_000) + "-pA", "mysql " + "'".repeat(100_000) + " -pA", "mysql -e " + '"'.repeat(100_000), "mysql" + " -p".repeat(100_000), `mysql "${"x".repeat(500)}" -pA `.repeat(500)]) scrub(s, 1_000_000);
     expect(Date.now() - t0).toBeLessThan(2000);
   });
   it("does not touch -p outside a mysql command", () => {
@@ -322,6 +327,11 @@ describe("scrub: long flags", () => {
   it("still hides values of password-like flags", () => {
     for (const s of ["--password hunter2", "--password=hunter2", "--passwd hunter2", "--token abc", "--api-key=abc", "--client-secret abc", "--auth-token abc", "--passphrase abc", "-token abc"]) {
       expect(scrub(`tool ${s}`), s).not.toMatch(/hunter2|abc/);
+    }
+  });
+  it("hides quoted values and the --name:value form", () => {
+    for (const s of ['--api_key="hunter2"', '--password="hunter2 x"', "--token 'hunter2'", '--token "hunter2"', "--password:hunter2"]) {
+      expect(scrub(`tool ${s}`), s).not.toContain("hunter2");
     }
   });
   it("hides values of flags with underscores in their names", () => {

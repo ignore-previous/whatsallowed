@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const blocked = vi.hoisted(() => ({ names: [] as string[] }));
+const blocked = vi.hoisted(() => ({ names: [] as string[], stat: [] as [string, string][] }));
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
@@ -16,6 +16,12 @@ vi.mock("node:fs", async (importOriginal) => {
       if (blocked.names.some((n) => path.endsWith(n))) throw Object.assign(new Error(`EACCES: permission denied, open '${path}'`), { code: "EACCES" });
       return (actual.readFileSync as (...a: unknown[]) => unknown)(p, ...rest);
     }) as typeof actual.readFileSync,
+    statSync: ((p: unknown, ...rest: unknown[]) => {
+      const path = String(p).replaceAll("\\", "/");
+      const hit = blocked.stat.find(([n]) => path.endsWith(n));
+      if (hit) throw Object.assign(new Error(`${hit[1]}: stat '${path}'`), { code: hit[1] });
+      return (actual.statSync as (...a: unknown[]) => unknown)(p, ...rest);
+    }) as typeof actual.statSync,
   };
 });
 
@@ -42,6 +48,7 @@ function cli(argv: string[]): { code: number; out: string } {
 
 beforeEach(() => {
   blocked.names = [];
+  blocked.stat = [];
   root = mkdtempSync(join(tmpdir(), "wa-open-"));
   home = join(root, "home");
   project = join(home, "project");
@@ -59,6 +66,21 @@ describe("nodeFs.openError", () => {
     blocked.names = [".claude/settings.json"];
     expect(nodeFs.openError(file)).toBe("EACCES");
     expect(nodeFs.readText(file)).toBeUndefined();
+  });
+  it("returns the code when the file's folder can't be entered or the path loops", () => {
+    const file = join(project, ".claude/settings.json");
+    for (const code of ["EACCES", "EPERM", "ELOOP"]) {
+      blocked.stat = [[".claude/settings.json", code]];
+      expect(nodeFs.openError(file), code).toBe(code);
+    }
+    blocked.stat = [[".claude/settings.json", "ENOTDIR"]];
+    expect(nodeFs.openError(file)).toBeUndefined();
+  });
+  it("names a file whose folder can't be entered in the report", () => {
+    blocked.stat = [[".claude/settings.json", "EACCES"]];
+    const r = cli([]);
+    expect(r.code).toBe(1);
+    expect(r.out).toContain("Couldn't open ./.claude/settings.json, so it wasn't checked");
   });
   it("returns nothing for a missing file or a folder", () => {
     mkdirSync(join(project, "adir"), { recursive: true });

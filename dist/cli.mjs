@@ -1918,18 +1918,22 @@ var nodeFs = {
     }
   },
   openError(path2) {
+    const codeOf = (e) => {
+      const code = e?.code;
+      return typeof code === "string" && /^[A-Z0-9_]{2,20}$/.test(code) ? code : "UNKNOWN";
+    };
     try {
       const st = fs2.statSync(path2);
       if (!st.isFile() || st.size > MAX_BYTES) return void 0;
-    } catch {
-      return void 0;
+    } catch (e) {
+      const code = codeOf(e);
+      return code === "ENOENT" || code === "ENOTDIR" ? void 0 : code;
     }
     try {
       decodeText(fs2.readFileSync(path2));
       return void 0;
     } catch (e) {
-      const code = e?.code;
-      return typeof code === "string" && /^[A-Z0-9_]{2,20}$/.test(code) ? code : "UNKNOWN";
+      return codeOf(e);
     }
   },
   list(dir) {
@@ -2239,14 +2243,14 @@ var VALUE = String.raw`"[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")]+`;
 var LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
 var SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
 var anyCase = (word) => word.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`);
-var MYSQL_NAMES = ["mysql", "mysqldump", "mysqladmin", "mysqlimport", "mysqlcheck", "mysqlshow", "mysqlslap", "mysqlsh", "mysql_upgrade", "mariadb", "mycli"].map(anyCase).join("|");
-var MYSQL_P = new RegExp(String.raw`(?<=\b(?:${MYSQL_NAMES})\b[^|;&\n]{0,500}\s-p)(?!\s)(?:${VALUE})`, "g");
+var MYSQL_NAMES = String.raw`(?:${anyCase("mysql")}|${anyCase("mariadb")})\w{0,20}|${anyCase("mycli")}`;
+var MYSQL_P = new RegExp(String.raw`(?<=\b(?:${MYSQL_NAMES})\b[^|;&\n]{0,500}\s["']?-p)(?!\s)(?:${VALUE})`, "g");
 var MYSQL_P_QUOTED = new RegExp(
-  String.raw`(?<=\b(?:${MYSQL_NAMES})\b(?:"[^"\n]{0,200}"|'[^'\n]{0,200}'|[^|;&\n'"]){0,500}\s-p)(?!\s)(?:${VALUE})`,
+  String.raw`(?<=\b(?:${MYSQL_NAMES})\b(?:"[^"]{0,600}"|'[^']{0,600}'|[^|;&\n'"]){0,500}\s["']?-p)(?!\s)(?:${VALUE})`,
   "g"
 );
 var LONG_FLAG = new RegExp(
-  String.raw`(?!--?(?:[\w.-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![\w.-]|=))(--?[\w.-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[\w.-]{0,30})([=\s]\s{0,5})([^\s'")*]+)`,
+  String.raw`(?!--?(?:[\w.-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![\w.-]|=))(--?[\w.-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[\w.-]{0,30})([=:\s]\s{0,5})("[^"\n]{0,200}"?|'[^'\n]{0,200}'?|[^\s'")*]+)`,
   "gi"
 );
 var ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&:;,])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");

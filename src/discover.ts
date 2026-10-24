@@ -1,6 +1,6 @@
 import { type Fs, join, toPosix } from "./fsys.ts";
 import { gitIgnoresFile } from "./gitignore.ts";
-import type { ConfigFile, FileKind, Scope, Tool } from "./types.ts";
+import type { ConfigFile, FileKind, Scope, Tool, UncheckedFile } from "./types.ts";
 
 export type ScanMode = "all" | "user" | "project";
 
@@ -46,6 +46,18 @@ export function walk(fs: Fs, dir: string, maxDepth: number, budget = { left: MAX
   return out;
 }
 
+/** Settings and server files. One over the size limit is reported, since a padded file could hide what is in it. */
+export const CONFIG_KINDS = new Set<FileKind>([
+  "claude-settings",
+  "claude-json",
+  "mcp-json",
+  "codex-config",
+  "codex-hooks",
+  "cursor-mcp",
+  "plugin-hooks",
+  "plugin-manifest",
+]);
+
 const ENV_TEMPLATE = /^\.env\.(example|sample|template|dist)$/i;
 
 /** File names that usually hold secrets (DENY check). */
@@ -58,18 +70,26 @@ export function isSecretFileName(name: string): boolean {
 
 const hasShebang =(text: string | undefined): boolean => !!text && text.startsWith("#!");
 
-export function discover(opts: DiscoverOptions): { files: ConfigFile[]; projectEntries: string[] } {
+export function discover(opts: DiscoverOptions): { files: ConfigFile[]; projectEntries: string[]; unchecked: UncheckedFile[] } {
   const { fs, mode } = opts;
   const home = toPosix(opts.home);
   const project = toPosix(opts.project);
   const files: ConfigFile[] = [];
+  const unchecked: UncheckedFile[] = [];
   const seen = new Set<string>();
 
   const add = (path: string, tool: Tool, kind: FileKind, scope: Scope): void => {
     const p = toPosix(path);
     if (seen.has(p)) return;
     const text = fs.readText(p);
-    if (text === undefined) return;
+    if (text === undefined) {
+      const bytes = CONFIG_KINDS.has(kind) ? fs.oversize(p) : undefined;
+      if (bytes !== undefined) {
+        seen.add(p);
+        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, bytes });
+      }
+      return;
+    }
     seen.add(p);
     files.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, text });
   };
@@ -158,7 +178,7 @@ export function discover(opts: DiscoverOptions): { files: ConfigFile[]; projectE
       }
     }
   }
-  return { files, projectEntries };
+  return { files, projectEntries, unchecked };
 }
 
 /** Default places for managed settings on each OS. */

@@ -17,15 +17,53 @@ export function lineAt(text: string, offset: number): number {
   return line;
 }
 
-export function parseJson(text: string): Doc {
+/** Real config files nest a handful of levels. Anything deeper is refused, because the parser recurses and would overflow the stack. */
+export const MAX_NESTING = 128;
+
+export const TOO_DEEP = "nested too deeply to read";
+
+/** A document that could not be read at all. */
+export const unreadable = (error: string): Doc => ({ ok: false, value: undefined, error, lineOf: () => 1 });
+
+/** How deeply brackets nest in JSON text. Counts without recursing, ignores strings and comments, and stops once past the limit. */
+export function nestingDepth(text: string, limit = MAX_NESTING): number {
+  let depth = 0;
+  let deepest = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text.charCodeAt(i);
+    if (ch === 34) {
+      // A string: skip to its closing quote.
+      for (i++; i < text.length && text.charCodeAt(i) !== 34; i++) if (text.charCodeAt(i) === 92) i++;
+    } else if (ch === 47 && text.charCodeAt(i + 1) === 47) {
+      while (i < text.length && text.charCodeAt(i) !== 10) i++;
+    } else if (ch === 47 && text.charCodeAt(i + 1) === 42) {
+      const end = text.indexOf("*/", i + 2);
+      i = end === -1 ? text.length : end + 1;
+    } else if (ch === 123 || ch === 91) {
+      if (++depth > deepest && (deepest = depth) > limit) return deepest;
+    } else if ((ch === 125 || ch === 93) && depth > 0) depth--;
+  }
+  return deepest;
+}
+
+export function parseJson(raw: string): Doc {
+  const text = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
+  if (nestingDepth(text) > MAX_NESTING) return unreadable(TOO_DEEP);
   const errors: ParseError[] = [];
-  const root = parseTree(text, errors, { allowTrailingComma: true, disallowComments: false });
-  if (!root) return { ok: false, value: undefined, error: "not valid JSON", lineOf: () => 1 };
-  const value: unknown = getNodeValue(root);
+  let root: Node | undefined;
+  let value: unknown;
+  try {
+    root = parseTree(text, errors, { allowTrailingComma: true, disallowComments: false });
+    if (root) value = getNodeValue(root);
+  } catch (e) {
+    return unreadable(e instanceof RangeError ? TOO_DEEP : "not valid JSON");
+  }
+  if (!root) return unreadable("not valid JSON");
+  const first = errors[0];
   return {
     ok: errors.length === 0,
     value,
-    error: errors.length ? "JSON has syntax errors" : undefined,
+    error: first ? `JSON has syntax errors near line ${lineAt(text, first.offset)}` : undefined,
     lineOf(path) {
       for (let n = path.length; n >= 0; n--) {
         const node: Node | undefined = findNodeAtLocation(root, path.slice(0, n));
@@ -101,7 +139,8 @@ export function parseTomlDoc(text: string): Doc {
     const value = parseToml(text);
     return { ok: true, value, lineOf: (p) => tomlLine(text, p) };
   } catch (e) {
-    return { ok: false, value: undefined, error: "TOML has syntax errors", lineOf: (p) => tomlLine(text, p) };
+    const deep = e instanceof RangeError || /nested/i.test(e instanceof Error ? e.message : "");
+    return { ok: false, value: undefined, error: deep ? TOO_DEEP : "TOML has syntax errors", lineOf: (p) => tomlLine(text, p) };
   }
 }
 

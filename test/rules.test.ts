@@ -118,6 +118,8 @@ describe("rule fixtures", () => {
         expect(hit!.title.length).toBeGreaterThan(10);
         expect(hit!.why.length).toBeGreaterThan(20);
         expect(hit!.fix.length).toBeGreaterThan(10);
+        // Fix text is advice we wrote. If scrubbing had to hide something in it, a user would see ••• where advice belongs.
+        expect(hit!.fix).not.toContain("•••");
         expect(hit!.check).toBe(f.rule.split("-")[0]);
       });
       it("stays quiet on the near miss", () => {

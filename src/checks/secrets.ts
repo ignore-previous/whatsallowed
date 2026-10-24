@@ -94,6 +94,7 @@ function finding(file: ConfigFile, line: number, hit: SecretHit, where: string, 
     file,
     line,
     match: `${hit.kind}: ${mask(hit.value)}`,
+    masked: true,
     why:
       where === "instructions"
         ? "Instruction files are sent to the model with every request and are often committed and shared, so the key leaks to everyone who sees them."

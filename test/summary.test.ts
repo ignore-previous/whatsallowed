@@ -284,7 +284,7 @@ describe("summary: no secret values in items, broadest or text (review findings)
       settings({
         permissions: {
           allow: [
-            "Bash(FOO='QSECRET1' cmd)",
+            "Bash(FOO_TOKEN='QSECRET1' cmd)",
             'Bash(API_KEY="QSECRET2 with space" npm test)',
             "Bash(curl -u admin:QSECRET3 *)",
             "Bash(curl --user admin:QSECRET4 *)",
@@ -297,7 +297,7 @@ describe("summary: no secret values in items, broadest or text (review findings)
       }),
     );
     leaks(c, "QSECRET1", "QSECRET2", "with space", "QSECRET3", "QSECRET4", "QSECRET5", "QSECRET6", "QSECRET7", "QSECRET8");
-    expect(c.ALLOW.items).toContain("Bash(FOO=••• cmd) (./.claude/settings.json)");
+    expect(c.ALLOW.items).toContain("Bash(FOO_TOKEN=••• cmd) (./.claude/settings.json)");
     expect(c.ALLOW.items).toContain("Bash(curl -u admin:••• *) (./.claude/settings.json)");
   });
   it("skips quoted assignments and env options before a hook program", () => {

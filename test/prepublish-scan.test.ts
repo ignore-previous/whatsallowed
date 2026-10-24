@@ -49,6 +49,14 @@ describe("prepublish scan", () => {
     expect(r.out).not.toContain("Pat Example"); // identities are numbered, never printed
   });
 
+  it("fails on a bundle that names source files outside the repo", () => {
+    // esbuild writes each module's path as a comment; a linked node_modules makes those paths climb out of the repo.
+    const r = scan({ "cli.mjs": "// ../../other-checkout/node_modules/pkg/index.js\nvar a = 1;\n" });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain("cli.mjs: names a source path outside the repo");
+    expect(scan({ "cli.mjs": "// node_modules/pkg/index.js\n// src/cli.ts\nvar a = 1;\n" }).status).toBe(0);
+  });
+
   it("still fails on the real email from the global git config", () => {
     expect(scan({ "a.md": "mail pat.example@example.test" }).status).toBe(1);
   });

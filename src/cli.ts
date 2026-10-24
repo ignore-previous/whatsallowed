@@ -9,7 +9,7 @@ import { exitCodeFor, type FailOn, formatInventory, formatJson, formatRules, for
 import { scan } from "./scan.ts";
 
 const HELP = `${TOOL_NAME} ${TOOL_VERSION}: checks Claude Code, Codex and Cursor config for risky settings.
-A scan only reads files; "baseline" also writes its own baseline file. Makes no network calls and sends no telemetry.
+A scan only reads files; "baseline" also writes its own baseline file. Once installed, it makes no network calls and sends no telemetry.
 
 Usage:
   ${TOOL_NAME} [scan] [path]        Check the project at [path] (default: current folder) and your user config
@@ -29,7 +29,7 @@ Options:
   --no-color              No colour (NO_COLOR is also respected)
   --version, --help
 
-Exit codes: 0 no findings at or above --fail-on, 1 findings, 2 the tool couldn't run.
+Exit codes: 0 no findings at or above --fail-on, 1 findings at or above it, 2 the tool couldn't run.
 This is a configuration check, not a security assessment.
 `;
 

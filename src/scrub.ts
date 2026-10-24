@@ -5,16 +5,17 @@
 export const MAX_SHOWN = 300;
 
 /** Words in a name that mark it as holding a credential. Other NAME=value pairs (CC=gcc, NODE_ENV=test) stay readable. */
-const CREDENTIAL_WORD = "token|secret|passw|pwd|passphrase|(?<!by)pass|key|auth|cred|bearer|cookie|session|signature|jwt|private|dsn|salt|otp";
+const CREDENTIAL_WORD = "token|secret|passw|pwd|passphrase|(?<!by)pass|key|auth|cred|bearer|cookie|session|signature|jwt|private|dsn|salt|otp|webhook|(?<![a-z])pat(?![a-z])";
 
 /** A quoted value (cut off or not) or a bare one. Every repeat is bounded or stops at a character the pattern can't skip. */
 const VALUE = String.raw`"[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")]+`;
 
-const LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{1,5}))(?:${VALUE})`, "g");
-const SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "gi");
-const MYSQL_P = new RegExp(String.raw`(\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,100}?\s-p)(?!\s)(?:${VALUE})`, "gi");
+// Case-sensitive on purpose: -P is a port (mysql) or a prompt (sshpass), and the password -p can come after it.
+const LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
+const SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
+const MYSQL_P = new RegExp(String.raw`(\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,100}?\s-p)(?!\s)(?:${VALUE})`, "g");
 // Only credential-like names match. A value that is not hidden is left unconsumed, so a credential inside it is still found.
-const ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");
+const ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&:;,])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");
 
 const TOKEN_SHAPES = new RegExp(
   [
@@ -22,8 +23,12 @@ const TOKEN_SHAPES = new RegExp(
     "gh[pousr]_[A-Za-z0-9]{20,}",
     "github_pat_[A-Za-z0-9_]{20,}",
     "xox[abprs]-[A-Za-z0-9-]{10,}",
-    "AKIA[0-9A-Z]{16}",
+    "(?:AKIA|ASIA|ABIA|ACCA)[0-9A-Z]{16}",
     "AIza[0-9A-Za-z_-]{30,}",
+    "glpat-[A-Za-z0-9_-]{20,}",
+    "(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}",
+    "npm_[A-Za-z0-9]{30,}",
+    "hf_[A-Za-z0-9]{30,}",
     String.raw`eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}`,
   ].join("|"),
   "g",

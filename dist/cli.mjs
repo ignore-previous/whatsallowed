@@ -2210,20 +2210,24 @@ function defaultManagedDirs(platform) {
 
 // src/scrub.ts
 var MAX_SHOWN = 300;
-var CREDENTIAL_WORD = "token|secret|passw|pwd|passphrase|(?<!by)pass|key|auth|cred|bearer|cookie|session|signature|jwt|private|dsn|salt|otp";
+var CREDENTIAL_WORD = "token|secret|passw|pwd|passphrase|(?<!by)pass|key|auth|cred|bearer|cookie|session|signature|jwt|private|dsn|salt|otp|webhook|(?<![a-z])pat(?![a-z])";
 var VALUE = String.raw`"[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")]+`;
-var LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{1,5}))(?:${VALUE})`, "g");
-var SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "gi");
-var MYSQL_P = new RegExp(String.raw`(\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,100}?\s-p)(?!\s)(?:${VALUE})`, "gi");
-var ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");
+var LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
+var SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
+var MYSQL_P = new RegExp(String.raw`(\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,100}?\s-p)(?!\s)(?:${VALUE})`, "g");
+var ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&:;,])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");
 var TOKEN_SHAPES = new RegExp(
   [
     "sk-[A-Za-z0-9_-]{16,}",
     "gh[pousr]_[A-Za-z0-9]{20,}",
     "github_pat_[A-Za-z0-9_]{20,}",
     "xox[abprs]-[A-Za-z0-9-]{10,}",
-    "AKIA[0-9A-Z]{16}",
+    "(?:AKIA|ASIA|ABIA|ACCA)[0-9A-Z]{16}",
     "AIza[0-9A-Za-z_-]{30,}",
+    "glpat-[A-Za-z0-9_-]{20,}",
+    "(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}",
+    "npm_[A-Za-z0-9]{30,}",
+    "hf_[A-Za-z0-9]{30,}",
     String.raw`eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}`
   ].join("|"),
   "g"
@@ -3925,7 +3929,7 @@ function uncheckedFinding(u) {
     line: 1,
     match: `${size(u.bytes)}, limit ${size(MAX_BYTES)}`,
     why: u.kind === "claude-json" ? "We skip config files over 1 MiB, so nothing in this one was checked, including its MCP servers. Claude Code grows this file as you use it, so it may be harmless." : "We skip config files over 1 MiB, so nothing in this one was checked. Real settings files are a few kilobytes. A padded file can hide risky settings from a check like this.",
-    fix: "Open the file and find out why it is so big. Remove the padding or split the file, then run the check again."
+    fix: u.kind === "claude-json" ? "Check its MCP servers by hand with `claude mcp list`. Claude Code writes this file itself, so don't edit or split it by hand." : "Open the file and find out why it is so big. Remove the padding or split the file, then run the check again."
   });
 }
 var SEVERITY_RANK = { high: 3, medium: 2, info: 1 };

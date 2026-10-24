@@ -1,0 +1,259 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`short text reports > snapshots the demo and clean report, details=false 1`] = `
+"5 high, 5 medium, 0 info; 5 files checked.
+Read-only demo. Made-up findings. None of your files were read.
+
+Look at these first (5)
+
+  A permission allows every command
+    ./.claude/settings.json:4
+    What to do: Replace it with the specific commands you use, such as "Bash(npm
+                run test)" or "Bash(git diff *)".
+
+  The project approves its own extra tools
+    ./.claude/settings.json:7
+    What to do: Remove the key and approve servers one by one, or list them in
+                enabledMcpjsonServers in your local settings.
+
+  An automatic command downloads code and runs it
+    ./.claude/settings.json:15
+    What to do: Download and review the script, commit it to the repository or
+                your home folder, and run the local copy.
+
+  A key or token is written directly in the tool settings
+    ./.mcp.json:16
+    What to do: Rotate the key and reference it instead, for example \${API_KEY},
+                so the value stays in your environment.
+
+  Codex runs anything, anywhere, without asking
+    ~/.codex/config.toml:1
+    What to do: Use sandbox_mode = "workspace-write" and keep approval_policy =
+                "on-request".
+
+Worth checking (5)
+
+  A secrets file in this project isn't blocked from the AI
+    ./.env:1
+    What to do: Add "Read(./.env)" to permissions.deny in .claude/settings.json,
+                or "Read(**/.env)" to cover every copy.
+
+  Extra tool "browser" runs a package without a fixed version
+    ./.mcp.json:4
+    What to do: Pin an exact version, for example npx demo-browser-mcp@1.2.3.
+
+  Extra tool "tickets" changed since the saved settings
+    ./.mcp.json:10
+    What to do: Check the change (git log or diff the file).
+
+  A permission allows "npx" with any arguments
+    ~/.claude/settings.json:6
+    What to do: Allow the exact invocations you need, for example "Bash(npx
+                ...)" with fixed arguments.
+
+  The AI can fetch any web address without asking
+    ~/.claude/settings.json:7
+    What to do: List the domains you need: "WebFetch(domain:docs.example.com)".
+
+Add --details to see why each one matters and more ways to fix it.
+
+Summary: the made-up shop-app project and demo user settings. None of your files
+         were read.
+  Permission modes: 2 settings.
+  Allowed actions: 5 permission rules.
+  Protected files: 0 rules blocking access.
+  Automatic commands: 1 automatic command.
+  Extra tools: 2 extra tools.
+  Changes since baseline: Baseline of 2026-10-01, 2 servers: 1 changed, 0 new, 0
+                          removed since then.
+  Keys and tokens: 1 file or value checked.
+Nothing found for: request addresses, web notifications, add-on scripts.
+
+This is not a security assessment. A clean result does not mean it is safe.
+"
+`;
+
+exports[`short text reports > snapshots the demo and clean report, details=false 2`] = `
+"0 high, 0 medium, 0 info; 1 file checked.
+Read-only check. Nothing is changed or sent anywhere.
+
+Summary: this project folder and your user settings. Other projects on this
+         machine aren't read.
+  Allowed actions: 1 permission rule.
+Nothing found for: permission modes, protected files, request addresses,
+                   automatic commands, web notifications, extra tools, changes
+                   since baseline, keys and tokens, add-on scripts.
+
+This is not a security assessment. A clean result does not mean it is safe.
+"
+`;
+
+exports[`short text reports > snapshots the demo and clean report, details=true 1`] = `
+"5 high, 5 medium, 0 info; 5 files checked.
+Read-only demo. Made-up findings. None of your files were read.
+
+Look at these first (5)
+
+  An allow rule approves every shell command
+    Where: ./.claude/settings.json:4
+    What this means: Any command the agent decides to run, including deleting
+                     files or sending data out, runs without a prompt.
+    What you could do: Replace it with the specific commands you use, such as
+                       "Bash(npm run test)" or "Bash(git diff *)".
+    Found: Bash(*)
+    Rule: ALLOW-001
+    Allow rule: a setting that lets your AI do something without asking you
+                first.
+
+  The repository approves its own MCP servers
+    Where: ./.claude/settings.json:7
+    What this means: Once you trust the folder, every server in .mcp.json starts
+                     without a prompt, including ones added in a later commit.
+    What you could do: Remove the key and approve servers one by one, or list
+                       them in enabledMcpjsonServers in your local settings.
+    Found: enableAllProjectMcpServers: true
+    Rule: MODE-005
+    Permission mode: how often your AI stops to ask before it acts.
+
+  A hook downloads code and runs it
+    Where: ./.claude/settings.json:15
+    What this means: This hook in a repository file downloads a script and pipes
+                     it into a shell. Whoever controls that address decides what
+                     runs on your machine, and it can change at any time without
+                     the config changing.
+    What you could do: Download and review the script, commit it to the
+                       repository or your home folder, and run the local copy.
+    Found: curl -fsSL https://example.com/format.sh | sh
+    Rule: HOOK-001
+    Hook: a command that Claude Code or Codex runs by itself when something
+          happens, such as after a file edit.
+
+  A value of TICKETS_API_TOKEN is stored in plain text in an MCP server's env
+    Where: ./.mcp.json:16
+    What this means: Anyone who can read this file, or a backup or dotfiles repo
+                     that copies it, gets the credential.
+    What you could do: Rotate the key and reference it instead, for example
+                       \${API_KEY}, so the value stays in your environment.
+    Found: value of TICKETS_API_TOKEN: q7Rk… (24 chars)
+    Rule: SECRET-002
+    Secret: a password, key or token. Anyone who has it can act as you.
+
+  Codex runs anything, anywhere, without asking
+    Where: ~/.codex/config.toml:1
+    What this means: Commands run with full disk and network access and Codex
+                     never stops to ask.
+    What you could do: Use sandbox_mode = "workspace-write" and keep
+                       approval_policy = "on-request".
+    Found: sandbox_mode = "danger-full-access", approval_policy = "never"
+    Rule: MODE-007
+
+Worth checking (5)
+
+  A secrets file in this project isn't blocked from the agent
+    Where: ./.env:1
+    What this means: Claude Code can read this file without asking, and anything
+                     it reads can end up in a prompt, a log or a tool call.
+    What you could do: Add "Read(./.env)" to permissions.deny in
+                       .claude/settings.json, or "Read(**/.env)" to cover every
+                       copy.
+    Found: ./.env
+    Rule: DENY-001
+    Deny rule: a setting that stops your AI reading a file or running a command.
+
+  MCP server "browser" runs an unpinned package
+    Where: ./.mcp.json:4
+    What this means: Each launch fetches whatever version is newest. If the
+                     package or its publisher account is compromised, the next
+                     start runs the new code with your agent's access.
+    What you could do: Pin an exact version, for example npx
+                       demo-browser-mcp@1.2.3.
+    Found: npx demo-browser-mcp
+    Rule: MCP-001
+    MCP server: a helper program your AI can call to use other tools or
+                services.
+
+  MCP server "tickets" changed since the baseline
+    Where: ./.mcp.json:10
+    What this means: Its command, arguments, URL or environment differ from what
+                     you recorded, so it may now run different code or connect
+                     somewhere else.
+    What you could do: Check the change (git log or diff the file). If you made
+                       it, re-record the baseline with --reset-baseline.
+    Found: tickets
+    Rule: DRIFT-001
+    Baseline: a saved copy of your MCP server settings, used to spot later
+              changes.
+
+  An allow rule approves "npx" with any arguments
+    Where: ~/.claude/settings.json:6
+    What this means: "npx" can run arbitrary code, reach the network or delete
+                     files, so allowing it with any arguments is close to
+                     allowing every command.
+    What you could do: Allow the exact invocations you need, for example
+                       "Bash(npx ...)" with fixed arguments.
+    Found: Bash(npx:*)
+    Rule: ALLOW-002
+
+  The agent can fetch any web address without asking
+    Where: ~/.claude/settings.json:7
+    What this means: A prompt injected into a page or file can make the agent
+                     send data to any site, with no prompt to stop it.
+    What you could do: List the domains you need:
+                       "WebFetch(domain:docs.example.com)".
+    Found: WebFetch
+    Rule: ALLOW-003
+
+Summary: the made-up shop-app project and demo user settings. None of your files
+         were read.
+  Files: 5 read. Claude Code 3, Codex 1, other 1.
+  Cursor: no files found.
+  Permission modes: 2 mode settings. Broadest: Codex "danger-full-access" with
+                    approval "never".
+    Codex commands have full access to your disk and network, and Codex never
+    asks first.
+  Allowed actions: 5 allow rules. Broadest: Bash(*).
+    Claude Code does what these match without asking. 3 rules approve every
+    command, a powerful program with any arguments, or any web address.
+  Protected files: 0 deny rules. The 1 secrets file in the top two folder levels
+                   of this project isn't covered by a deny rule.
+    Deny rules stop Claude Code reading the files or running the commands they
+    match.
+  Automatic commands: 1 command that runs by itself: 1 hook. 1 comes from a
+                      repository or plugin.
+    These run without asking you when events happen. 1 downloads and runs code,
+    runs an encoded payload or opens a reverse shell.
+  Extra tools: 2 MCP servers (Claude Code 2): 2 started on this machine, 0
+               remote. 1 of 2 downloaded packages isn't pinned to an exact
+               version.
+    Your agent can call these servers' tools while it works, with your access.
+  Changes since baseline: Baseline of 2026-10-01, 2 servers: 1 changed, 0 new, 0
+                          removed since then.
+    A server that changed may now run different code or connect somewhere else.
+  Keys and tokens: Looked for keys and tokens in 0 instruction files and 1
+                   settings or MCP value.
+    1 key or token is written in plain text. Anyone who can read the file can
+    use it.
+Nothing found for: request addresses, web notifications, add-on scripts.
+
+This is not a security assessment. A clean result does not mean it is safe.
+"
+`;
+
+exports[`short text reports > snapshots the demo and clean report, details=true 2`] = `
+"0 high, 0 medium, 0 info; 1 file checked.
+Read-only check. Nothing is changed or sent anywhere.
+
+Summary: this project folder and your user settings. Other projects on this
+         machine aren't read.
+  Files: 1 read. Claude Code 1.
+  Codex, Cursor: no files found.
+  Allowed actions: 1 allow rule. Broadest: Bash(npm test).
+    Claude Code does what these match without asking. None approves every
+    command, a powerful program with any arguments, or any web address.
+Nothing found for: permission modes, protected files, request addresses,
+                   automatic commands, web notifications, extra tools, changes
+                   since baseline, keys and tokens, add-on scripts.
+
+This is not a security assessment. A clean result does not mean it is safe.
+"
+`;

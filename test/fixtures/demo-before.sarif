@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "whatsallowed",
+          "version": "0.2.1",
+          "rules": [
+            {
+              "id": "MODE-005",
+              "name": "MODE005",
+              "shortDescription": {
+                "text": "enableAllProjectMcpServers approves every project MCP server (high in a repository file, medium in user settings, info in local settings)."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "check": "MODE"
+              }
+            },
+            {
+              "id": "MODE-007",
+              "name": "MODE007",
+              "shortDescription": {
+                "text": "Codex sandbox_mode is danger-full-access (high with approval_policy never)."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "check": "MODE"
+              }
+            },
+            {
+              "id": "ALLOW-001",
+              "name": "ALLOW001",
+              "shortDescription": {
+                "text": "An allow rule approves every shell command (Bash, Bash(*), PowerShell)."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "check": "ALLOW"
+              }
+            },
+            {
+              "id": "ALLOW-002",
+              "name": "ALLOW002",
+              "shortDescription": {
+                "text": "An allow rule approves a shell, interpreter, package runner, privilege, remote-access or download tool with any arguments."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "check": "ALLOW"
+              }
+            },
+            {
+              "id": "ALLOW-003",
+              "name": "ALLOW003",
+              "shortDescription": {
+                "text": "WebFetch is allowed for every domain."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "check": "ALLOW"
+              }
+            },
+            {
+              "id": "DENY-001",
+              "name": "DENY001",
+              "shortDescription": {
+                "text": "A secrets file in a Claude Code project has no Read deny rule covering it."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "check": "DENY"
+              }
+            },
+            {
+              "id": "HOOK-001",
+              "name": "HOOK001",
+              "shortDescription": {
+                "text": "A hook or helper command downloads code and runs it."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "check": "HOOK"
+              }
+            },
+            {
+              "id": "MCP-001",
+              "name": "MCP001",
+              "shortDescription": {
+                "text": "An MCP server runs a package without an exact version."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "check": "MCP"
+              }
+            },
+            {
+              "id": "DRIFT-001",
+              "name": "DRIFT001",
+              "shortDescription": {
+                "text": "An MCP server's command, arguments, URL or env changed since the baseline."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "check": "DRIFT"
+              }
+            },
+            {
+              "id": "SECRET-002",
+              "name": "SECRET002",
+              "shortDescription": {
+                "text": "A credential is stored in an MCP server's env or headers, or a settings env block (high in repository files, medium in your own)."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "check": "SECRET"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ALLOW-001",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "An allow rule approves every shell command. Any command the agent decides to run, including deleting files or sending data out, runs without a prompt. Fix: Replace it with the specific commands you use, such as \"Bash(npm run test)\" or \"Bash(git diff *)\"."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".claude/settings.json",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "high",
+            "check": "ALLOW",
+            "match": "Bash(*)"
+          }
+        },
+        {
+          "ruleId": "MODE-005",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "The repository approves its own MCP servers. Once you trust the folder, every server in .mcp.json starts without a prompt, including ones added in a later commit. Fix: Remove the key and approve servers one by one, or list them in enabledMcpjsonServers in your local settings."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".claude/settings.json",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 7
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "high",
+            "check": "MODE",
+            "match": "enableAllProjectMcpServers: true"
+          }
+        },
+        {
+          "ruleId": "HOOK-001",
+          "ruleIndex": 6,
+          "level": "error",
+          "message": {
+            "text": "A hook downloads code and runs it. This hook in a repository file downloads a script and pipes it into a shell. Whoever controls that address decides what runs on your machine, and it can change at any time without the config changing. Fix: Download and review the script, commit it to the repository or your home folder, and run the local copy."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".claude/settings.json",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 15
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "high",
+            "check": "HOOK",
+            "match": "curl -fsSL https://example.com/format.sh | sh"
+          }
+        },
+        {
+          "ruleId": "SECRET-002",
+          "ruleIndex": 9,
+          "level": "error",
+          "message": {
+            "text": "A value of TICKETS_API_TOKEN is stored in plain text in an MCP server's env. Anyone who can read this file, or a backup or dotfiles repo that copies it, gets the credential. Fix: Rotate the key and reference it instead, for example ${API_KEY}, so the value stays in your environment."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".mcp.json",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 16
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "high",
+            "check": "SECRET",
+            "match": "value of TICKETS_API_TOKEN: q7Rk… (24 chars)"
+          }
+        },
+        {
+          "ruleId": "MODE-007",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "Codex runs anything, anywhere, without asking. Commands run with full disk and network access and Codex never stops to ask. Fix: Use sandbox_mode = \"workspace-write\" and keep approval_policy = \"on-request\"."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".codex/config.toml",
+                  "uriBaseId": "HOMEDIR"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "high",
+            "check": "MODE",
+            "match": "sandbox_mode = \"danger-full-access\", approval_policy = \"never\""
+          }
+        },
+        {
+          "ruleId": "DENY-001",
+          "ruleIndex": 5,
+          "level": "warning",
+          "message": {
+            "text": "A secrets file in this project isn't blocked from the agent. Claude Code can read this file without asking, and anything it reads can end up in a prompt, a log or a tool call. Fix: Add \"Read(./.env)\" to permissions.deny in .claude/settings.json, or \"Read(**/.env)\" to cover every copy."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".env",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "medium",
+            "check": "DENY",
+            "match": "./.env"
+          }
+        },
+        {
+          "ruleId": "MCP-001",
+          "ruleIndex": 7,
+          "level": "warning",
+          "message": {
+            "text": "MCP server \"browser\" runs an unpinned package. Each launch fetches whatever version is newest. If the package or its publisher account is compromised, the next start runs the new code with your agent's access. Fix: Pin an exact version, for example npx demo-browser-mcp@1.2.3."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".mcp.json",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "medium",
+            "check": "MCP",
+            "match": "npx demo-browser-mcp"
+          }
+        },
+        {
+          "ruleId": "DRIFT-001",
+          "ruleIndex": 8,
+          "level": "warning",
+          "message": {
+            "text": "MCP server \"tickets\" changed since the baseline. Its command, arguments, URL or environment differ from what you recorded, so it may now run different code or connect somewhere else. Fix: Check the change (git log or diff the file). If you made it, re-record the baseline with --reset-baseline."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".mcp.json",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 10
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "medium",
+            "check": "DRIFT",
+            "match": "tickets"
+          }
+        },
+        {
+          "ruleId": "ALLOW-002",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "An allow rule approves \"npx\" with any arguments. \"npx\" can run arbitrary code, reach the network or delete files, so allowing it with any arguments is close to allowing every command. Fix: Allow the exact invocations you need, for example \"Bash(npx ...)\" with fixed arguments."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".claude/settings.json",
+                  "uriBaseId": "HOMEDIR"
+                },
+                "region": {
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "medium",
+            "check": "ALLOW",
+            "match": "Bash(npx:*)"
+          }
+        },
+        {
+          "ruleId": "ALLOW-003",
+          "ruleIndex": 4,
+          "level": "warning",
+          "message": {
+            "text": "The agent can fetch any web address without asking. A prompt injected into a page or file can make the agent send data to any site, with no prompt to stop it. Fix: List the domains you need: \"WebFetch(domain:docs.example.com)\"."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".claude/settings.json",
+                  "uriBaseId": "HOMEDIR"
+                },
+                "region": {
+                  "startLine": 7
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "medium",
+            "check": "ALLOW",
+            "match": "WebFetch"
+          }
+        }
+      ]
+    }
+  ]
+}

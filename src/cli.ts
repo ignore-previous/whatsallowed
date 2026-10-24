@@ -25,6 +25,7 @@ Options:
   --fail-on <level>       Exit 1 if any finding is at or above: high (default), medium, info, never
   --baseline <file>       Baseline file (default ~/${BASELINE_DIR}/${BASELINE_FILE})
   --reset-baseline        With "baseline": replace an existing baseline
+  --details               Show explanations, suggested changes, rules and glossary
   --verbose               Show info notes in text output
   --no-color              No colour (NO_COLOR is also respected)
   --version, --help
@@ -42,13 +43,14 @@ interface Args {
   baseline?: string;
   reset: boolean;
   verbose: boolean;
+  details: boolean;
   color: boolean;
 }
 
 export class UsageError extends Error {}
 
 export function parseArgs(argv: string[], env: Record<string, string | undefined>): Args {
-  const a: Args = { command: "scan", mode: "all", format: "text", failOn: "high", reset: false, verbose: false, color: !env.NO_COLOR };
+  const a: Args = { command: "scan", mode: "all", format: "text", failOn: "high", reset: false, verbose: false, details: false, color: !env.NO_COLOR };
   let commandSet = false;
   const value = (i: number, flag: string): string => {
     const v = argv[i + 1];
@@ -92,6 +94,9 @@ export function parseArgs(argv: string[], env: Record<string, string | undefined
       case "--reset-baseline":
         a.reset = true;
         break;
+      case "--details":
+        a.details = true;
+        break;
       case "--verbose":
         a.verbose = true;
         break;
@@ -119,6 +124,7 @@ export interface Io {
   platform: string;
   env: Record<string, string | undefined>;
   isTty: boolean;
+  columns?: number;
 }
 
 export function run(argv: string[], io: Io): number {
@@ -139,7 +145,7 @@ export function run(argv: string[], io: Io): number {
     if (args.format === "sarif") return (io.err(`${TOOL_NAME}: demo prints text or JSON, not SARIF, so its made-up findings can't end up in code scanning.\n`), 2);
     const r = scanDemo(args.mode);
     if (args.format === "json") io.out(JSON.stringify({ demo: true, ...JSON.parse(formatJson(r)) }, null, 2) + "\n");
-    else io.out(DEMO_INTRO + formatText(r, { color: args.color && io.isTty, verbose: args.verbose, scopeText: DEMO_SCOPE[args.mode] }));
+    else io.out(formatText(r, { color: args.color && io.isTty, verbose: args.verbose, details: args.details, width: io.isTty ? (io.columns ?? 80) : 80, intro: DEMO_INTRO, scopeText: DEMO_SCOPE[args.mode] }));
     return 0;
   }
   try {
@@ -166,7 +172,7 @@ export function run(argv: string[], io: Io): number {
     if (args.command === "inventory") return (io.out(formatInventory(r)), 0);
     if (args.format === "json") io.out(formatJson(r));
     else if (args.format === "sarif") io.out(formatSarif(r));
-    else io.out(formatText(r, { color: args.color && io.isTty, verbose: args.verbose }));
+    else io.out(formatText(r, { color: args.color && io.isTty, verbose: args.verbose, details: args.details, width: io.isTty ? (io.columns ?? 80) : 80 }));
     return exitCodeFor(r.findings, args.failOn);
   } catch (e) {
     io.err(`${TOOL_NAME}: ${(e as Error).message}\n`);
@@ -188,6 +194,7 @@ if (isMain()) {
     platform: process.platform,
     env: process.env,
     isTty: !!process.stdout.isTTY,
+    columns: process.stdout.columns,
   });
   process.exitCode = code;
 }

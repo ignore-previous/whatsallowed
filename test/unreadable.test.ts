@@ -41,7 +41,7 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 describe("config file over 1 MiB", () => {
   it("is reported as FILE-001, not as a clean scan", () => {
     put(".claude/settings.json", padded());
-    const r = cli([]);
+    const r = cli(["--details"]);
     expect(r.code).toBe(1);
     expect(r.out).toContain("FILE-001");
     expect(r.out).toContain(".claude/settings.json");

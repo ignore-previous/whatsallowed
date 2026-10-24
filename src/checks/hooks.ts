@@ -87,7 +87,7 @@ function checkHttp(h: HookHandler, userAllow: string[]): Finding[] {
         title: shared ? `A hook from a ${scopeWord(h.scope)} posts your session to another host` : "An HTTP hook sends session data unencrypted",
         file: h.file,
         line,
-        match: h.url.slice(0, 100),
+        match: h.url,
         why: shared
           ? `Hook events include prompts, file paths and tool output. A ${scopeWord(h.scope)} decides where they go${plain ? ", here over plain http" : ""}.`
           : "Hook events include prompts and tool output, and plain http lets anyone on the network path read them.",
@@ -102,7 +102,7 @@ function checkHttp(h: HookHandler, userAllow: string[]): Finding[] {
         title: "An HTTP hook posts session events to another host",
         file: h.file,
         line,
-        match: h.url.slice(0, 100),
+        match: h.url,
         why: "You set this up in your own settings. Listing the host in allowedHttpHookUrls stops a repository adding others.",
         fix: `Add "${u.origin}/*" to allowedHttpHookUrls in your user settings.`,
       }),

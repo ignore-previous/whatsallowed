@@ -1,4 +1,5 @@
 import type { Doc, PathSeg } from "../parse.ts";
+import { scrub } from "../scrub.ts";
 import type { CheckId, ConfigFile, Finding, Scope, Severity } from "../types.ts";
 
 export interface FindingInput {
@@ -10,8 +11,15 @@ export interface FindingInput {
   match: string;
   why: string;
   fix: string;
+  /** The match is already masked by mask(), so scrub() must not rewrite it. */
+  masked?: boolean;
 }
 
+/** Longest match and fix text kept in a finding. */
+const MATCH_LIMIT = 100;
+const FIX_LIMIT = 300;
+
+/** Every finding passes through here, so match and fix never carry a credential into the output. */
 export const make = (check: CheckId, f: FindingInput): Finding => ({
   rule: f.rule,
   check,
@@ -19,9 +27,9 @@ export const make = (check: CheckId, f: FindingInput): Finding => ({
   title: f.title,
   file: f.file.display,
   line: f.line,
-  match: f.match,
+  match: f.masked ? f.match : scrub(f.match, MATCH_LIMIT),
   why: f.why,
-  fix: f.fix,
+  fix: scrub(f.fix, FIX_LIMIT),
 });
 
 /** Show enough of a secret to find it, never enough to use it. */

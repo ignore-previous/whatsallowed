@@ -23,7 +23,7 @@ To see a full report first, we recommend `npx whatsallowed demo`. It scans a mad
 It checks the project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). A scan only reads files and changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means and what you could do about it. You make any change yourself. A summary at the end shows what each of the ten checks looked at, including those that found nothing.
 
 ```
-whatsallowed 0.2.0. This is a read-only check: it changes nothing and sends nothing anywhere.
+whatsallowed 0.2.1. This is a read-only check: it changes nothing and sends nothing anywhere.
 
 2 things to look at in the 2 files checked. 1 needs attention first.
 
@@ -56,6 +56,8 @@ Summary: this project folder and your user settings. Other projects on this mach
 The file, line and rule ID are on each finding's last line, for when you want to look it up. The summary has one row per check, with a count and what it means. Lower-priority notes and the full list behind each summary count are hidden unless you add `--verbose`. For scripts and other tools, `--format json` gives the same findings in a stable, machine-readable form (and `--format sarif` for GitHub code scanning).
 
 Exit code 0 means nothing at or above the `--fail-on` level (default `high`). 1 means findings at or above the `--fail-on` level, and 2 means the tool couldn't run.
+
+A config file over 1 MiB isn't read. It is reported as `FILE-001` (high in a repository, local or plugin file; medium in your own), so it counts toward the exit code and never reads as clean. A file we can read only in part, or not at all because it is binary, nested too deeply or the wrong shape, is named in a note instead. UTF-16 files are read as text.
 
 ## Commands
 
@@ -98,7 +100,7 @@ Then ask Claude to "check my agent config". The plugin runs the same bundled CLI
 
 ## What it checks
 
-Ten checks, 35 rules: [docs/checks.md](docs/checks.md). The vendor docs each check relies on: [docs/config-surface.md](docs/config-surface.md).
+Ten checks, 36 rules: [docs/checks.md](docs/checks.md). One rule, `FILE-001`, isn't tied to a check: it flags a config file over 1 MiB that we couldn't read. The vendor docs each check relies on: [docs/config-surface.md](docs/config-surface.md).
 
 | Check | Looks for |
 |---|---|

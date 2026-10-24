@@ -1,5 +1,6 @@
 import { toPosix } from "./fsys.ts";
-import { type Doc, get, isObj, parseJson, parseTomlDoc, type PathSeg, str, strArr } from "./parse.ts";
+import { type Doc, get, isObj, parseJson, parseTomlDoc, type PathSeg, str, strArr, unreadable } from "./parse.ts";
+import { shapeProblems } from "./shape.ts";
 import type { ConfigFile, ScanContext, Scope, Tool } from "./types.ts";
 
 /** A parsed config file. */
@@ -170,15 +171,35 @@ function collectHandlers(p: Parsed): HookHandler[] {
   return out;
 }
 
+const topLevelWord = (v: unknown): string =>
+  Array.isArray(v) ? "a list" : v === null ? "empty (null)" : typeof v === "string" ? "text" : typeof v === "number" ? "a number" : "true or false";
+
+/** Read one file. Anything we can't read in full gets a note, so a skipped file never looks clean. */
+function readOne(file: ConfigFile, text: string, notes: string[]): Doc {
+  const skip = (reason: string): Doc => {
+    notes.push(`${file.display}: ${reason}, skipped`);
+    return unreadable(reason);
+  };
+  if (text.includes("\u0000")) return skip("looks like a binary file, not text");
+  const doc = file.kind === "codex-config" ? parseTomlDoc(text) : parseJson(text);
+  if (doc.value === undefined) return skip(doc.error ?? "could not be parsed");
+  if (!isObj(doc.value)) return skip(`the top level is ${topLevelWord(doc.value)}, not an object`);
+  if (!doc.ok) {
+    notes.push(`${file.display}: couldn't fully read this file, ${doc.error ?? "it has syntax errors"}. Only the part that could be read was checked.`);
+  }
+  const problems = shapeProblems(file.kind, doc.value);
+  if (problems.length) {
+    notes.push(`${file.display}: couldn't fully read this file: ${problems.join("; ")}. Those settings were ignored.`);
+  }
+  return doc;
+}
+
 export function buildModel(ctx: ScanContext): Model {
   const parsed: Parsed[] = [];
   for (const file of ctx.files) {
     if (file.text === undefined) continue;
-    if (JSON_KINDS.has(file.kind)) parsed.push({ file, doc: parseJson(file.text) });
-    else if (file.kind === "codex-config") parsed.push({ file, doc: parseTomlDoc(file.text) });
-  }
-  for (const p of parsed) {
-    if (!p.doc.ok && p.doc.value === undefined) ctx.notes.push(`${p.file.display}: ${p.doc.error ?? "could not be parsed"}, skipped`);
+    if (!JSON_KINDS.has(file.kind) && file.kind !== "codex-config") continue;
+    parsed.push({ file, doc: readOne(file, file.text, ctx.notes) });
   }
   const settings = parsed.filter((p) => p.file.kind === "claude-settings");
   const codex = parsed.filter((p) => p.file.kind === "codex-config");

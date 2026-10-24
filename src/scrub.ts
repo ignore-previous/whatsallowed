@@ -13,7 +13,16 @@ const VALUE = String.raw`"[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")]+`;
 // Case-sensitive on purpose: -P is a port (mysql) or a prompt (sshpass), and the password -p can come after it.
 const LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
 const SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
-const MYSQL_P = new RegExp(String.raw`(\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,100}?\s-p)(?!\s)(?:${VALUE})`, "g");
+// A lookbehind, so every attached -pPASSWORD after the command name is hidden, not only the first. A bare
+// "-p" (mysql asks for the password) or "-p word" (the word is a database name) is not a password.
+const MYSQL_P = new RegExp(String.raw`(?<=\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,500}\s-p)(?!\s)(?:${VALUE})`, "g");
+
+// Options whose name contains a credential word but whose next word is not a secret: flags that take no value
+// (--password-stdin, --passWithNoTests) and --author. Anything not listed here is still hidden.
+const LONG_FLAG = new RegExp(
+  String.raw`(?!--?(?:[A-Za-z-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![A-Za-z-]))(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)`,
+  "gi",
+);
 // Only credential-like names match. A value that is not hidden is left unconsumed, so a credential inside it is still found.
 const ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&:;,])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");
 
@@ -37,8 +46,8 @@ const TOKEN_SHAPES = new RegExp(
 /**
  * Hide anything in a rule, command or finding that could be a credential: values of NAME=value assignments
  * where the name looks like a credential (quoted or not, and query parameters), Bearer and Basic tokens, auth
- * and API-key header values, values of --token/--key/--password style flags, the password after a login's -p,
- * sshpass -p or an attached mysql -pPASSWORD, user:password after -u or --user, keys in well-known token
+ * and API-key header values, values of --token/--key/--password style flags (except ones that take no value, such as --password-stdin), the password after a login's -p,
+ * sshpass -p or any attached mysql -pPASSWORD, user:password after -u or --user, keys in well-known token
  * formats, and the user and password part of an address.
  */
 export function scrub(text: string, limit = MAX_SHOWN): string {
@@ -49,12 +58,12 @@ export function scrub(text: string, limit = MAX_SHOWN): string {
     .replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2•••")
     .replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 •••")
     .replace(ASSIGNMENT, "$1$2=•••")
-    .replace(/(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)/gi, "$1$2•••")
+    .replace(LONG_FLAG, "$1$2•••")
     // Commands where -p is a password: "docker login -p pw", "sshpass -p pw", "mysql -ppw". Elsewhere -p is
     // something else (npx -p pkg, mkdir -p dir), so it is left alone.
     .replace(/\blogin\b[^|;&\n]{0,150}/gi, (seg) => seg.replace(LOGIN_P, "$1•••"))
     .replace(SSHPASS_P, "$1•••")
-    .replace(MYSQL_P, "$1•••")
+    .replace(MYSQL_P, "•••")
     .replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1•••")
     .replace(/(\/\/)[^/\s@]{1,200}@/g, "$1•••@")
     // An address cut off by the length limit before its "@" may still be holding a password.

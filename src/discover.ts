@@ -46,7 +46,7 @@ export function walk(fs: Fs, dir: string, maxDepth: number, budget = { left: MAX
   return out;
 }
 
-/** Settings and server files. One over the size limit is reported, since a padded file could hide what is in it. */
+/** Settings and server files. One over the size limit, or one that can't be opened, is reported, since a padded or locked file could hide what is in it. */
 export const CONFIG_KINDS = new Set<FileKind>([
   "claude-settings",
   "claude-json",
@@ -83,10 +83,18 @@ export function discover(opts: DiscoverOptions): { files: ConfigFile[]; projectE
     if (seen.has(p)) return;
     const text = fs.readText(p);
     if (text === undefined) {
-      const bytes = CONFIG_KINDS.has(kind) ? fs.oversize(p) : undefined;
+      if (!CONFIG_KINDS.has(kind)) return;
+      const bytes = fs.oversize(p);
       if (bytes !== undefined) {
         seen.add(p);
-        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, bytes });
+        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, reason: "too-large", bytes });
+        return;
+      }
+      // A file that is there but can't be opened must not read as "nothing here".
+      const error = fs.openError(p);
+      if (error !== undefined) {
+        seen.add(p);
+        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, reason: "unopenable", error });
       }
       return;
     }

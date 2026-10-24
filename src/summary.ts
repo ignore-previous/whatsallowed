@@ -354,9 +354,10 @@ function mcpSummary(m: Model, findings: Finding[]): CheckSummary {
   const items = servers.map((s) => {
     const url = str(s.def.url) ?? str(s.def.serverUrl) ?? str(s.def.httpUrl);
     const where = `${TOOL_LABEL[s.tool] ?? s.tool}, ${s.file.display}`;
+    const name = scrub(s.name);
     if (url && s.def.command === undefined) {
       remote++;
-      return `"${s.name}" (${where}): remote, ${parseUrl(url)?.host ?? "unreadable address"}`;
+      return `"${name}" (${where}): remote, ${parseUrl(url)?.host ?? "unreadable address"}`;
     }
     const r = findRunner(launchOf(s));
     if (r) {
@@ -364,9 +365,9 @@ function mcpSummary(m: Model, findings: Finding[]): CheckSummary {
       if (!r.pinned) unpinned++;
       // A package given as an address can carry a token or password: show only its host.
       const pkg = /^[a-z][a-z0-9+.-]*:\/\//i.test(r.pkg) ? `package at ${parseUrl(r.pkg.replace(/^[a-z0-9.-]+\+/i, ""))?.host ?? "an unreadable address"}` : scrub(r.pkg);
-      return `"${s.name}" (${where}): ${r.runner} ${pkg}`;
+      return `"${name}" (${where}): ${r.runner} ${pkg}`;
     }
-    return `"${s.name}" (${where}): local program`;
+    return `"${name}" (${where}): local program`;
   });
   const local = servers.length - remote;
   const tools = Object.entries(

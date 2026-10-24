@@ -1917,6 +1917,21 @@ var nodeFs = {
       return void 0;
     }
   },
+  openError(path2) {
+    try {
+      const st = fs2.statSync(path2);
+      if (!st.isFile() || st.size > MAX_BYTES) return void 0;
+    } catch {
+      return void 0;
+    }
+    try {
+      decodeText(fs2.readFileSync(path2));
+      return void 0;
+    } catch (e) {
+      const code = e?.code;
+      return typeof code === "string" && /^[A-Z0-9_]{2,20}$/.test(code) ? code : "UNKNOWN";
+    }
+  },
   list(dir) {
     try {
       return fs2.readdirSync(dir, { withFileTypes: true }).map((d) => ({ name: d.name, isDir: d.isDirectory() }));
@@ -1925,14 +1940,16 @@ var nodeFs = {
     }
   }
 };
-function memFs(files) {
+function memFs(files, opts = {}) {
   const norm = {};
   for (const [k, v] of Object.entries(files)) norm[toPosix(k)] = v;
+  const blocked = new Set((opts.unopenable ?? []).map(toPosix));
   return {
     readText: (p) => {
       const t = norm[toPosix(p)];
       return t !== void 0 && t.length > MAX_BYTES ? void 0 : t;
     },
+    openError: (p) => blocked.has(toPosix(p)) ? "EACCES" : void 0,
     oversize: (p) => {
       const t = norm[toPosix(p)];
       return t !== void 0 && t.length > MAX_BYTES ? t.length : void 0;
@@ -2114,10 +2131,17 @@ function discover(opts) {
     if (seen.has(p)) return;
     const text = fs3.readText(p);
     if (text === void 0) {
-      const bytes = CONFIG_KINDS.has(kind) ? fs3.oversize(p) : void 0;
+      if (!CONFIG_KINDS.has(kind)) return;
+      const bytes = fs3.oversize(p);
       if (bytes !== void 0) {
         seen.add(p);
-        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, bytes });
+        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, reason: "too-large", bytes });
+        return;
+      }
+      const error = fs3.openError(p);
+      if (error !== void 0) {
+        seen.add(p);
+        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, reason: "unopenable", error });
       }
       return;
     }
@@ -2214,7 +2238,11 @@ var CREDENTIAL_WORD = "token|secret|passw|pwd|passphrase|(?<!by)pass|key|auth|cr
 var VALUE = String.raw`"[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")]+`;
 var LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
 var SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
-var MYSQL_P = new RegExp(String.raw`(\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,100}?\s-p)(?!\s)(?:${VALUE})`, "g");
+var MYSQL_P = new RegExp(String.raw`(?<=\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,500}\s-p)(?!\s)(?:${VALUE})`, "g");
+var LONG_FLAG = new RegExp(
+  String.raw`(?!--?(?:[A-Za-z-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![A-Za-z-]))(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)`,
+  "gi"
+);
 var ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&:;,])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");
 var TOKEN_SHAPES = new RegExp(
   [
@@ -2234,17 +2262,18 @@ var TOKEN_SHAPES = new RegExp(
 );
 function scrub(text, limit = MAX_SHOWN) {
   const t = text.length > limit ? `${text.slice(0, limit)}\u2026` : text;
-  return t.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(ASSIGNMENT, "$1$2=\u2022\u2022\u2022").replace(/(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)/gi, "$1$2\u2022\u2022\u2022").replace(/\blogin\b[^|;&\n]{0,150}/gi, (seg) => seg.replace(LOGIN_P, "$1\u2022\u2022\u2022")).replace(SSHPASS_P, "$1\u2022\u2022\u2022").replace(MYSQL_P, "$1\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]{1,200}@/g, "$1\u2022\u2022\u2022@").replace(/(\/\/)[^/\s@]{1,200}…$/, "$1\u2022\u2022\u2022\u2026").replace(TOKEN_SHAPES, "\u2022\u2022\u2022");
+  return t.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(ASSIGNMENT, "$1$2=\u2022\u2022\u2022").replace(LONG_FLAG, "$1$2\u2022\u2022\u2022").replace(/\blogin\b[^|;&\n]{0,150}/gi, (seg) => seg.replace(LOGIN_P, "$1\u2022\u2022\u2022")).replace(SSHPASS_P, "$1\u2022\u2022\u2022").replace(MYSQL_P, "\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]{1,200}@/g, "$1\u2022\u2022\u2022@").replace(/(\/\/)[^/\s@]{1,200}…$/, "$1\u2022\u2022\u2022\u2026").replace(TOKEN_SHAPES, "\u2022\u2022\u2022");
 }
 
 // src/checks/util.ts
 var MATCH_LIMIT = 100;
 var FIX_LIMIT = 300;
+var TITLE_LIMIT = 500;
 var make = (check, f5) => ({
   rule: f5.rule,
   check,
   severity: f5.severity,
-  title: f5.title,
+  title: scrub(f5.title, TITLE_LIMIT),
   file: f5.file.display,
   line: f5.line,
   match: f5.masked ? f5.match : scrub(f5.match, MATCH_LIMIT),
@@ -3915,13 +3944,26 @@ var CHECKS = [checkMode, checkAllow, checkDeny, checkEndpoint, checkHooks, check
 var size = (n) => n < 2 * 1024 * 1024 ? `${n.toLocaleString("en-US")} bytes` : `${(n / (1024 * 1024)).toFixed(1)} MiB`;
 function uncheckedFinding(u) {
   const shared = u.scope === "project" || u.scope === "local" || u.scope === "plugin";
+  if (u.reason === "unopenable") {
+    return make("FILE", {
+      rule: "FILE-002",
+      severity: shared ? "high" : "medium",
+      title: `Couldn't open ${u.display}, so it wasn't checked`,
+      file: u,
+      line: 1,
+      match: `the file is there but could not be opened (${u.error ?? "UNKNOWN"})`,
+      why: "We couldn't open this config file, often because of its permissions, so nothing in it was checked. A file that can't be read can hide risky settings from a check like this.",
+      fix: "Make sure you can read the file, then run the check again. If it isn't yours, ask whoever owns it to look at it."
+    });
+  }
+  const bytes = u.bytes ?? 0;
   return make("FILE", {
     rule: "FILE-001",
     severity: shared ? "high" : "medium",
     title: `${u.display} is too large to check`,
     file: u,
     line: 1,
-    match: `${size(u.bytes)}, limit ${size(MAX_BYTES)}`,
+    match: `${size(bytes)}, limit ${size(MAX_BYTES)}`,
     why: u.kind === "claude-json" ? "We skip config files over 1 MiB, so nothing in this one was checked, including its MCP servers. Claude Code grows this file as you use it, so it may be harmless." : "We skip config files over 1 MiB, so nothing in this one was checked. Real settings files are a few kilobytes. A padded file can hide risky settings from a check like this.",
     fix: u.kind === "claude-json" ? "Check its MCP servers by hand with `claude mcp list`. Claude Code writes this file itself, so don't edit or split it by hand." : "Open the file and find out why it is so big. Remove the padding or split the file, then run the check again."
   });
@@ -4001,7 +4043,7 @@ var DEMO_INTRO = "Read-only demo. Made-up findings. None of your files were read
 
 // src/name.ts
 var TOOL_NAME = "whatsallowed";
-var TOOL_VERSION = "0.2.1";
+var TOOL_VERSION = "0.2.2";
 var BASELINE_DIR = ".whatsallowed";
 var BASELINE_FILE = "baseline.json";
 
@@ -4042,7 +4084,8 @@ var RULES2 = [
   { id: "SKILL-001", check: "SKILL", severity: "high", summary: "A skill, plugin or hooks-folder script downloads code and runs it." },
   { id: "SKILL-002", check: "SKILL", severity: "high", summary: "A skill, plugin or hooks-folder script runs an encoded payload." },
   { id: "SKILL-003", check: "SKILL", severity: "high", summary: "A skill, plugin or hooks-folder script opens a reverse shell." },
-  { id: "FILE-001", check: "FILE", severity: "high", summary: "A config file is over 1 MiB, so it wasn't read and nothing in it was checked (high in a repository, local or plugin file; medium in your own)." }
+  { id: "FILE-001", check: "FILE", severity: "high", summary: "A config file is over 1 MiB, so it wasn't read and nothing in it was checked (high in a repository, local or plugin file; medium in your own)." },
+  { id: "FILE-002", check: "FILE", severity: "high", summary: "A config file exists but couldn't be opened (for example, no permission), so nothing in it was checked (high in a repository, local or plugin file; medium in your own)." }
 ];
 var ruleById = new Map(RULES2.map((r) => [r.id, r]));
 
@@ -4300,18 +4343,19 @@ function mcpSummary(m, findings) {
   const items = servers2.map((s) => {
     const url = str(s.def.url) ?? str(s.def.serverUrl) ?? str(s.def.httpUrl);
     const where = `${TOOL_LABEL[s.tool] ?? s.tool}, ${s.file.display}`;
+    const name = scrub(s.name);
     if (url && s.def.command === void 0) {
       remote++;
-      return `"${s.name}" (${where}): remote, ${parseUrl(url)?.host ?? "unreadable address"}`;
+      return `"${name}" (${where}): remote, ${parseUrl(url)?.host ?? "unreadable address"}`;
     }
     const r = findRunner(launchOf(s));
     if (r) {
       packages++;
       if (!r.pinned) unpinned++;
       const pkg = /^[a-z][a-z0-9+.-]*:\/\//i.test(r.pkg) ? `package at ${parseUrl(r.pkg.replace(/^[a-z0-9.-]+\+/i, ""))?.host ?? "an unreadable address"}` : scrub(r.pkg);
-      return `"${s.name}" (${where}): ${r.runner} ${pkg}`;
+      return `"${name}" (${where}): ${r.runner} ${pkg}`;
     }
-    return `"${s.name}" (${where}): local program`;
+    return `"${name}" (${where}): local program`;
   });
   const local = servers2.length - remote;
   const tools = Object.entries(
@@ -4654,7 +4698,7 @@ function formatInventory(r) {
   if (!r.files.length && !r.unchecked.length) return "No agent config files found.\n";
   const rows = [
     ...r.files.map((f5) => `${f5.scope.padEnd(8)} ${f5.tool.padEnd(7)} ${f5.kind.padEnd(16)} ${f5.display}`),
-    ...r.unchecked.map((f5) => `${f5.scope.padEnd(8)} ${f5.tool.padEnd(7)} ${f5.kind.padEnd(16)} ${f5.display} (too large, not checked)`)
+    ...r.unchecked.map((f5) => `${f5.scope.padEnd(8)} ${f5.tool.padEnd(7)} ${f5.kind.padEnd(16)} ${f5.display} (${f5.reason === "unopenable" ? "couldn't be opened" : "too large"}, not checked)`)
   ];
   return `${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path
 ${rows.join("\n")}

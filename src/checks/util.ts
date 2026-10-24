@@ -18,13 +18,15 @@ export interface FindingInput {
 /** Longest match and fix text kept in a finding. */
 const MATCH_LIMIT = 100;
 const FIX_LIMIT = 300;
+/** Titles name rules, servers and files from the user's config, so they are masked too. Long enough that no normal title is cut. */
+const TITLE_LIMIT = 500;
 
 /** Every finding passes through here, so match and fix never carry a credential into the output. */
 export const make = (check: CheckId, f: FindingInput): Finding => ({
   rule: f.rule,
   check,
   severity: f.severity,
-  title: f.title,
+  title: scrub(f.title, TITLE_LIMIT),
   file: f.file.display,
   line: f.line,
   match: f.masked ? f.match : scrub(f.match, MATCH_LIMIT),

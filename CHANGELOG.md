@@ -1,9 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.2.2
 
-Text reports are shorter by default and wrap to fit the terminal. Each finding gets a first step to fix it. Add `--details` for the full explanations and glossary.
-JSON and SARIF output are unchanged.
+Nothing here changes what the ten checks look for, and the accuracy figures are the same.
+
+- Text reports are shorter by default and wrap to fit the terminal. Each finding gets a first step to fix it. Add `--details` for the full explanations and glossary. JSON and SARIF output are unchanged for these.
+- A config file that exists but can't be opened (for example, because of its permissions) used to be skipped without a word. It is now reported as `FILE-002`, with the same levels and effect on the exit code as `FILE-001`: high in a repository, local or plugin file, medium in your own. The text report says "Couldn't open <file>, so it wasn't checked". JSON and SARIF carry it as a finding, and it counts under `summary.files.unchecked`. The JSON `files` list is unchanged and still holds only files that were read.
+- The word after `--password-stdin` is no longer hidden, because that option takes no value. Other options that take no secret, such as `--passWithNoTests` and `--author`, are left readable too. Every other `--token`, `--key` or `--password` style option is still masked.
+- Finding titles now pass through the masking step, so a key or password in a title (for example in an MCP server name) is hidden. The same goes for server names in the summary.
+- Every attached `mysql -pPASSWORD` in a command is masked, not only the first.
+- JSON `files` still doesn't list config files over 1 MiB. They are in `findings` as `FILE-001` and in the `summary.files.unchecked` count. Listing them would change what `files` means, so that waits for a minor release.
 
 ## 0.2.1
 

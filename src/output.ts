@@ -287,7 +287,7 @@ export function formatInventory(r: ScanResult): string {
   if (!r.files.length && !r.unchecked.length) return "No agent config files found.\n";
   const rows = [
     ...r.files.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display}`),
-    ...r.unchecked.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display} (too large, not checked)`),
+    ...r.unchecked.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display} (${f.reason === "unopenable" ? "couldn't be opened" : "too large"}, not checked)`),
   ];
   return `${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path\n${rows.join("\n")}\n`;
 }

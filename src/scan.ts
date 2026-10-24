@@ -35,7 +35,7 @@ export interface ScanResult {
 
 const CHECKS = [checkMode, checkAllow, checkDeny, checkEndpoint, checkHooks, checkMcp, checkDrift, checkSecrets, checkSkills];
 
-const mib = (n: number): string => `${(n / (1024 * 1024)).toFixed(1)} MiB`;
+const size = (n: number): string => (n < 2 * 1024 * 1024 ? `${n.toLocaleString("en-US")} bytes` : `${(n / (1024 * 1024)).toFixed(1)} MiB`);
 
 /** A file we didn't read must not look like a file with nothing wrong in it. */
 function uncheckedFinding(u: UncheckedFile): Finding {
@@ -46,7 +46,7 @@ function uncheckedFinding(u: UncheckedFile): Finding {
     title: `${u.display} is too large to check`,
     file: u,
     line: 1,
-    match: `${mib(u.bytes)}, limit ${mib(MAX_BYTES)}`,
+    match: `${size(u.bytes)}, limit ${size(MAX_BYTES)}`,
     why:
       u.kind === "claude-json"
         ? "We skip config files over 1 MiB, so nothing in this one was checked, including its MCP servers. Claude Code grows this file as you use it, so it may be harmless."

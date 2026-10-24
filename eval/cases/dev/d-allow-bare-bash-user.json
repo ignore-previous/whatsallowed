@@ -1,0 +1,20 @@
+{
+  "id": "d-allow-bare-bash-user",
+  "split": "dev",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "Bare Bash in a user file matches every command (ALLOW rule 1).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Read",
+          "Bash",
+          "Edit"
+        ]
+      }
+    }
+  }
+}

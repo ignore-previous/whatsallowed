@@ -1,0 +1,27 @@
+{
+  "id": "t-a-benign-35",
+  "split": "test",
+  "risky": [],
+  "rationale": "The MCP rule accepts a local node server and a remote https server that reads its token from ${TRACKER_TOKEN}, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "local-tools": {
+          "command": "node",
+          "args": [
+            "./tools/server.js"
+          ]
+        },
+        "tracker": {
+          "type": "http",
+          "url": "https://tracker.example.test/mcp",
+          "headers": {
+            "Authorization": "Bearer ${TRACKER_TOKEN}"
+          }
+        }
+      }
+    },
+    "./CLAUDE.md": "# Project\n\nUse TRACKER_TOKEN from your shell.\n"
+  }
+}

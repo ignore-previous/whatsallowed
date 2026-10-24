@@ -1,0 +1,37 @@
+{
+  "id": "d-benign-drift-new-server",
+  "split": "dev",
+  "risky": [],
+  "rationale": "New server since baseline (DRIFT); pinned so not MCP.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "s": {
+          "command": "node",
+          "args": [
+            "s.js"
+          ]
+        },
+        "t": {
+          "command": "npx",
+          "args": [
+            "t-mcp@2.0.0"
+          ]
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "s": {
+          "command": "node",
+          "args": [
+            "s.js"
+          ]
+        }
+      }
+    }
+  }
+}

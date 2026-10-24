@@ -1,0 +1,21 @@
+{
+  "id": "d-mode-user-bypass",
+  "split": "dev",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "User settings start in bypassPermissions (MODE rule 1).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "$schema": "https://json.schemastore.org/claude-code-settings.json",
+      "includeCoAuthoredBy": false,
+      "permissions": {
+        "defaultMode": "bypassPermissions",
+        "allow": [
+          "Bash(git status)"
+        ]
+      }
+    }
+  }
+}

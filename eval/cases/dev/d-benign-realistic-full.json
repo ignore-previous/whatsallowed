@@ -1,0 +1,59 @@
+{
+  "id": "d-benign-realistic-full",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Realistic full setup with nothing risky.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "$schema": "https://json.schemastore.org/claude-code-settings.json",
+      "includeCoAuthoredBy": false,
+      "model": "opus",
+      "permissions": {
+        "defaultMode": "acceptEdits",
+        "allow": [
+          "Bash(git status)",
+          "Bash(npm run *)",
+          "Read(~/notes/**)"
+        ],
+        "deny": [
+          "Read(//**/.env)"
+        ]
+      },
+      "hooks": {
+        "Stop": [
+          {
+            "matcher": "*",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "afplay /System/Library/Sounds/Glass.aiff"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "~/.claude.json": {
+      "numStartups": 42,
+      "mcpServers": {
+        "memory": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@example/memory@0.9.1"
+          ]
+        }
+      }
+    },
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(pnpm test)"
+        ]
+      }
+    },
+    "./.env": "LOCAL=1\n",
+    "./CLAUDE.md": "# Project\n\nUse pnpm. Tests: pnpm test.\n"
+  }
+}

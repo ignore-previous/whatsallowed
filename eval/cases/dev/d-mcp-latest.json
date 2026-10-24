@@ -1,0 +1,22 @@
+{
+  "id": "d-mcp-latest",
+  "split": "dev",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "npx @latest (MCP rule 1).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "mcpServers": {
+        "gh": {
+          "type": "stdio",
+          "command": "npx",
+          "args": [
+            "gh-mcp@latest"
+          ]
+        }
+      }
+    }
+  }
+}

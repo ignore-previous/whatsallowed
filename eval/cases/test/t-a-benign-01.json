@@ -1,0 +1,24 @@
+{
+  "id": "t-a-benign-01",
+  "split": "test",
+  "risky": [],
+  "rationale": "The MODE rule does not list acceptEdits and the ALLOW rule does not list narrow rules such as Bash(npm run test), so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "model": "sonnet",
+      "permissions": {
+        "defaultMode": "acceptEdits",
+        "allow": [
+          "Bash(npm run test)",
+          "Bash(git status)"
+        ]
+      },
+      "statusLine": {
+        "type": "command",
+        "command": "~/.claude/statusline.sh"
+      }
+    },
+    "~/.claude/statusline.sh": "#!/bin/sh\nprintf 'claude'\n"
+  }
+}

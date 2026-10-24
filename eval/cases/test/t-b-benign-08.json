@@ -1,0 +1,29 @@
+{
+  "id": "t-b-benign-08",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md HTTPHOOK: a repository http hook to localhost with a $VAR token is still local, so it is benign.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "hooks": {
+        "SessionStart": [
+          {
+            "hooks": [
+              {
+                "type": "http",
+                "url": "http://localhost:4318/v1/events",
+                "headers": {
+                  "Authorization": "Bearer $LOCAL_DEV_TOKEN"
+                },
+                "allowedEnvVars": [
+                  "LOCAL_DEV_TOKEN"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

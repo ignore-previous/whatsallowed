@@ -1,0 +1,10 @@
+{
+  "id": "t-b-benign-35",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MCP and SECRET: a Codex remote https server with env_http_headers naming a variable is a reference, so benign.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\n\n[mcp_servers.docs]\nurl = \"https://docs.example.org/mcp\"\nenv_http_headers = { \"X-Api-Key\" = \"DOCS_API_KEY\" }\n"
+  }
+}

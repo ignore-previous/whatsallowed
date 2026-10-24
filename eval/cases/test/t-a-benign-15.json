@@ -1,0 +1,17 @@
+{
+  "id": "t-a-benign-15",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DENY rule accepts a .env file covered by a Read deny rule in project settings, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "./.env": "DATABASE_URL=postgres://app:fake-pass@localhost:5432/app\n",
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(./.env)"
+        ]
+      }
+    }
+  }
+}

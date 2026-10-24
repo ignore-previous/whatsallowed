@@ -1,0 +1,18 @@
+{
+  "id": "d-benign-deny-carve-anchored",
+  "split": "dev",
+  "risky": [],
+  "rationale": "! can't cancel an anchored rule, so .env stays covered (DENY).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(~/project/.env)",
+          "Read(!.env)"
+        ]
+      }
+    },
+    "./.env": "A=1\n"
+  }
+}

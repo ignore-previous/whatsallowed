@@ -1,0 +1,18 @@
+{
+  "id": "d-allow-adddir-home",
+  "split": "dev",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "additionalDirectories includes home (ALLOW rule 4).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "additionalDirectories": [
+          "~/"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "d-mcp-local-scope-unpinned",
+  "split": "dev",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "Local-scope server in ~/.claude.json runs pnpm dlx unpinned (MCP rule 1).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "projects": {
+        "/home/user/project": {
+          "mcpServers": {
+            "p": {
+              "command": "pnpm",
+              "args": [
+                "dlx",
+                "mcp-pkg"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

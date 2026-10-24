@@ -1,0 +1,39 @@
+{
+  "id": "t-a-drift-08",
+  "split": "test",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "The DRIFT rule lists a changed env value of an existing MCP server in .mcp.json as risky, and TRACKER_REGION changed from eu to us.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "tracker": {
+          "command": "node",
+          "args": [
+            "./tools/tracker.js"
+          ],
+          "env": {
+            "TRACKER_REGION": "us"
+          }
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "tracker": {
+          "command": "node",
+          "args": [
+            "./tools/tracker.js"
+          ],
+          "env": {
+            "TRACKER_REGION": "eu"
+          }
+        }
+      }
+    }
+  }
+}

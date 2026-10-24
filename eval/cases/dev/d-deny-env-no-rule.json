@@ -1,0 +1,19 @@
+{
+  "id": "d-deny-env-no-rule",
+  "split": "dev",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "Project with .claude/ and .env, no Read deny (DENY rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(npm test)"
+        ]
+      }
+    },
+    "./.env": "DATABASE_URL=postgres://u:p@localhost/db\n"
+  }
+}

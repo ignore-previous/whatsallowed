@@ -1,0 +1,14 @@
+{
+  "id": "d-benign-user-auto",
+  "split": "dev",
+  "risky": [],
+  "rationale": "auto mode in a user file is not risky (MODE).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "defaultMode": "auto"
+      }
+    }
+  }
+}

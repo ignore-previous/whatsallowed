@@ -1,0 +1,14 @@
+{
+  "id": "t-a-benign-19",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DENY rule needs a token in .npmrc, and this file reads it from ${NPM_TOKEN}, so no secrets file is present.",
+  "source": "synthetic",
+  "files": {
+    "./.npmrc": "registry=https://registry.npmjs.org/\n//registry.npmjs.org/:_authToken=${NPM_TOKEN}\n",
+    "./CLAUDE.md": "# Build\n\nRun npm ci.\n",
+    "./.claude/settings.json": {
+      "model": "sonnet"
+    }
+  }
+}

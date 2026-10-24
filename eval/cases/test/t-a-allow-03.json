@@ -1,0 +1,23 @@
+{
+  "id": "t-a-allow-03",
+  "split": "test",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "The ALLOW rule lists PowerShell(*) as risky because it matches every PowerShell command, and this repository has it.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "PowerShell(*)",
+          "Bash(npm run build)"
+        ]
+      },
+      "env": {
+        "BASH_DEFAULT_TIMEOUT_MS": "300000"
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

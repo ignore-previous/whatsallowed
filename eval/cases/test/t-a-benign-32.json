@@ -1,0 +1,39 @@
+{
+  "id": "t-a-benign-32",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DRIFT rule covers changed server definitions, and a server removed since the baseline is not a changed definition, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        },
+        "legacy": {
+          "type": "http",
+          "url": "https://legacy.example.test/mcp"
+        }
+      }
+    }
+  }
+}

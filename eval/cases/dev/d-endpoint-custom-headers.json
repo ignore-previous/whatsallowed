@@ -1,0 +1,16 @@
+{
+  "id": "d-endpoint-custom-headers",
+  "split": "dev",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "Repository sets ANTHROPIC_CUSTOM_HEADERS (ENDPOINT rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "ANTHROPIC_CUSTOM_HEADERS": "X-Team: core"
+      }
+    }
+  }
+}

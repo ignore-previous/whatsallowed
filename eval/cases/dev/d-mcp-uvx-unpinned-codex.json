@@ -1,0 +1,12 @@
+{
+  "id": "d-mcp-uvx-unpinned-codex",
+  "split": "dev",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "Codex uvx without version (MCP rule 1).",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "[mcp_servers.fetch]\ncommand = \"uvx\"\nargs = [\"mcp-fetch-tool\"]\n"
+  }
+}

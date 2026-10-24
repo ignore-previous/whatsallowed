@@ -1,0 +1,35 @@
+{
+  "id": "d-drift-version",
+  "split": "dev",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "Pinned version changed since baseline (DRIFT rule).",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "files": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@example/files@1.3.0"
+          ]
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "files": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@example/files@1.2.0"
+          ]
+        }
+      }
+    }
+  }
+}

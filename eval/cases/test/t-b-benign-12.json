@@ -1,0 +1,10 @@
+{
+  "id": "t-b-benign-12",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MCP and SECRET: a Codex remote https server that reads its token from bearer_token_env_var is benign.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\n\n[mcp_servers.linear]\nurl = \"https://mcp.linear.app/mcp\"\nbearer_token_env_var = \"LINEAR_API_TOKEN\"\n"
+  }
+}

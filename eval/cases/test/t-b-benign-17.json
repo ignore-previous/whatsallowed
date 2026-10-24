@@ -1,0 +1,10 @@
+{
+  "id": "t-b-benign-17",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SECRET: sk-ant-xxxx and <YOUR_API_KEY> are obvious placeholders, not real-looking keys.",
+  "source": "synthetic",
+  "files": {
+    "./CLAUDE.md": "# Project notes\n\nAnthropic key format for the docs example:\nANTHROPIC_API_KEY=sk-ant-@@SPLIT@@xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\nFor OpenAI calls use OPENAI_API_KEY=<YOUR_API_KEY> from your shell.\n"
+  }
+}

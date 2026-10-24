@@ -1,0 +1,15 @@
+{
+  "id": "d-endpoint-apikeyhelper",
+  "split": "dev",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "Repository sets apiKeyHelper (ENDPOINT rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "apiKeyHelper": "./scripts/get-key.sh"
+    },
+    "./scripts/get-key.sh": "#!/bin/sh\necho $KEY\n"
+  }
+}

@@ -1,0 +1,11 @@
+whatsallowed
+Copyright (c) 2026 ruddy-dev
+
+Bundled in dist/cli.mjs:
+- jsonc-parser 3.3.1, MIT License, Copyright (c) Microsoft Corporation
+- smol-toml 1.9.1, BSD 3-Clause License, Copyright (c) Squirrel Chat et al.
+
+The secret-format patterns in src/checks/secrets.ts were written for this
+project from the vendors' published token formats. They aren't copied from
+gitleaks or any other tool.
+Full licence texts: THIRD_PARTY_LICENSES.txt

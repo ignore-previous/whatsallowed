@@ -1,0 +1,11 @@
+{
+  "id": "d-win-benign-ps1-download-only",
+  "split": "dev",
+  "platform": "windows",
+  "risky": [],
+  "rationale": "PowerShell skill downloads and unzips a dataset without running it (SKILL).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/skills/data/get.ps1": "$zip = \"$env:USERPROFILE\\Downloads\\data.zip\"\nInvoke-WebRequest -Uri https://example.net/data.zip -OutFile $zip\nExpand-Archive $zip -DestinationPath .\\data -Force\n"
+  }
+}

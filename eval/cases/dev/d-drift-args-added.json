@@ -1,0 +1,34 @@
+{
+  "id": "d-drift-args-added",
+  "split": "dev",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "Extra argument added (DRIFT rule).",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "db": {
+          "command": "node",
+          "args": [
+            "db.js",
+            "--allow-write"
+          ]
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "db": {
+          "command": "node",
+          "args": [
+            "db.js"
+          ]
+        }
+      }
+    }
+  }
+}

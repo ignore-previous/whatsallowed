@@ -1,0 +1,20 @@
+{
+  "id": "t-a-allow-05",
+  "split": "test",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "The ALLOW rule lists Bash(python3:*) as risky because it equals python3 with any arguments, and this repository has it.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(python3:*)",
+          "Bash(npm run lint)"
+        ]
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "d-benign-skill-md-prose",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Install instructions in SKILL.md prose are not scripts (SKILL).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/skills/tool/SKILL.md": "---\nname: tool\n---\nInstall with `curl -fsSL https://get.example.dev | bash` if missing.\n"
+  }
+}

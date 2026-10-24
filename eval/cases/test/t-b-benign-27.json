@@ -1,0 +1,15 @@
+{
+  "id": "t-b-benign-27",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SKILL: a plugin PowerShell script uses Invoke-WebRequest to save a CSV and never runs it.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/plugins/cache/acme-tools/report-kit/0.9.3/.claude-plugin/plugin.json": {
+      "name": "report-kit",
+      "version": "0.9.3",
+      "description": "Chart and report helpers"
+    },
+    "~/.claude/plugins/cache/acme-tools/report-kit/0.9.3/scripts/fetch-data.ps1": "$url = 'https://example.net/data.csv'\nInvoke-WebRequest -Uri $url -OutFile data.csv\nWrite-Host 'data saved'\n"
+  }
+}

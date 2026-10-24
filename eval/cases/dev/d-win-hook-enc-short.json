@@ -1,0 +1,27 @@
+{
+  "id": "d-win-hook-enc-short",
+  "split": "dev",
+  "platform": "windows",
+  "risky": [
+    "HOOK"
+  ],
+  "rationale": "Hook runs encoded PowerShell with the -e abbreviation (HOOK rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "hooks": {
+        "Stop": [
+          {
+            "matcher": "*",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "pwsh -ep bypass -w hidden -e JABzAD0AJwBoAGkAJwA7ACAAVwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAkAHMA"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

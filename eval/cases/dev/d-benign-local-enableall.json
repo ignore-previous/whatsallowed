@@ -1,0 +1,22 @@
+{
+  "id": "d-benign-local-enableall",
+  "split": "dev",
+  "risky": [],
+  "rationale": "enableAllProjectMcpServers in local file is benign (MODE).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "enableAllProjectMcpServers": true
+    },
+    "./.mcp.json": {
+      "mcpServers": {
+        "a": {
+          "command": "node",
+          "args": [
+            "a.js"
+          ]
+        }
+      }
+    }
+  }
+}

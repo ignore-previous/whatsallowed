@@ -1,0 +1,20 @@
+{
+  "id": "t-a-allow-01",
+  "split": "test",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "The ALLOW rule lists a bare Bash rule that matches every command as risky, and this user allow list has one.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "model": "sonnet",
+      "permissions": {
+        "allow": [
+          "Bash",
+          "Bash(git status)"
+        ]
+      }
+    }
+  }
+}

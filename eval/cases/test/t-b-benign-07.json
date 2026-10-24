@@ -1,0 +1,27 @@
+{
+  "id": "t-b-benign-07",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md HTTPHOOK: a user-file hook to an https host the user lists in their own allowedHttpHookUrls, with no credential header, is benign.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "allowedHttpHookUrls": [
+        "https://hooks.example.org/*"
+      ],
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "*",
+            "hooks": [
+              {
+                "type": "http",
+                "url": "https://hooks.example.org/claude/tool"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

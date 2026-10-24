@@ -1,0 +1,15 @@
+{
+  "id": "t-a-benign-25",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ENDPOINT rule exempts a corporate CA bundle and a Bedrock switch in a user settings file, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "env": {
+        "NODE_EXTRA_CA_CERTS": "/home/user/certs/corp-root.pem",
+        "CLAUDE_CODE_USE_BEDROCK": "1"
+      }
+    }
+  }
+}

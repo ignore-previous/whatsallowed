@@ -1,0 +1,19 @@
+{
+  "id": "d-benign-drift-nobaseline",
+  "split": "dev",
+  "risky": [],
+  "rationale": "No baseline means no DRIFT.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "s": {
+          "command": "node",
+          "args": [
+            "s.js"
+          ]
+        }
+      }
+    }
+  }
+}

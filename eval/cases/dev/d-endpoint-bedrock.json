@@ -1,0 +1,17 @@
+{
+  "id": "d-endpoint-bedrock",
+  "split": "dev",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "Repository switches to Bedrock (ENDPOINT rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "CLAUDE_CODE_USE_BEDROCK": "1",
+        "AWS_REGION": "us-east-1"
+      }
+    }
+  }
+}

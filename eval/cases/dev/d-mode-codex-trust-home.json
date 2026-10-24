@@ -1,0 +1,12 @@
+{
+  "id": "d-mode-codex-trust-home",
+  "split": "dev",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "Codex trusts the whole home folder (MODE rule 6).",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "[projects.\"/home/user\"]\ntrust_level = \"trusted\"\n"
+  }
+}

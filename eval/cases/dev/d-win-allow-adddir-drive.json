@@ -1,0 +1,19 @@
+{
+  "id": "d-win-allow-adddir-drive",
+  "split": "dev",
+  "platform": "windows",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "additionalDirectories adds the D: drive root (ALLOW rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "additionalDirectories": [
+          "D:\\"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "id": "t-a-drift-04",
+  "split": "test",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "The DRIFT rule lists a changed env value of an existing MCP server as risky, and the notes server in ~/.cursor/mcp.json now reads a different folder.",
+  "source": "synthetic",
+  "files": {
+    "~/.cursor/mcp.json": {
+      "mcpServers": {
+        "notes": {
+          "command": "node",
+          "args": [
+            "/home/user/mcp/notes-server.js"
+          ],
+          "env": {
+            "NOTES_DIR": "/home/user/notes-archive"
+          }
+        }
+      }
+    }
+  },
+  "before": {
+    "~/.cursor/mcp.json": {
+      "mcpServers": {
+        "notes": {
+          "command": "node",
+          "args": [
+            "/home/user/mcp/notes-server.js"
+          ],
+          "env": {
+            "NOTES_DIR": "/home/user/notes"
+          }
+        }
+      }
+    }
+  }
+}

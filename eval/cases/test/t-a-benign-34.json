@@ -1,0 +1,10 @@
+{
+  "id": "t-a-benign-34",
+  "split": "test",
+  "risky": [],
+  "rationale": "The MODE rule does not list on-request with workspace-write, and the filesystem MCP server is pinned, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\napproval_policy = \"on-request\"\nsandbox_mode = \"workspace-write\"\n\n[mcp_servers.docs]\ncommand = \"npx\"\nargs = [\"-y\", \"@modelcontextprotocol/server-filesystem@2025.1.14\", \"/home/user/notes\"]\n"
+  }
+}

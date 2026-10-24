@@ -1,0 +1,23 @@
+{
+  "id": "t-a-deny-09",
+  "split": "test",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "A Read rule in the ask list prompts but does not deny, so it is not a Read deny rule and the .env file is risky under the DENY rule.",
+  "source": "synthetic",
+  "files": {
+    "./.env": "DEBUG=1\n",
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n",
+    "./.claude/settings.json": {
+      "permissions": {
+        "ask": [
+          "Read(./.env)"
+        ],
+        "allow": [
+          "Bash(npm run test)"
+        ]
+      }
+    }
+  }
+}

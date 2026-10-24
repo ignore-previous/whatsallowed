@@ -1,0 +1,12 @@
+{
+  "id": "t-b-mcp-08",
+  "split": "test",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "LABELLING.md MCP: the user Codex config keeps an oauth.client_secret in plain text, which the MCP rule names directly (SECRET does not list this key, see report).",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\n\n[mcp_servers.linear]\nurl = \"https://mcp.linear.app/mcp\"\n\n[mcp_servers.linear.oauth]\nclient_id = \"linear-desktop-7731\"\nclient_secret = \"A03ZW0N1sip9VRhmqrLR7lwawk5gw1cN60w5tWvm\"\n"
+  }
+}

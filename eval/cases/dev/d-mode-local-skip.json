@@ -1,0 +1,14 @@
+{
+  "id": "d-mode-local-skip",
+  "split": "dev",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "Local file sets skipDangerousModePermissionPrompt (MODE rule 2).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "skipDangerousModePermissionPrompt": true
+    }
+  }
+}

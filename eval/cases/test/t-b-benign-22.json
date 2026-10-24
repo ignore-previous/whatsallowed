@@ -1,0 +1,10 @@
+{
+  "id": "t-b-benign-22",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SECRET: changeme, a 4-digit PIN and demo are short or dictionary values, not long random-looking secrets.",
+  "source": "synthetic",
+  "files": {
+    "./CLAUDE.md": "# Dev setup\n\nLocal database: DB_PASSWORD=changeme\nDemo login PIN: ADMIN_PIN=1234\nSandbox API_TOKEN=demo\n\nRun npm run dev to start.\n"
+  }
+}

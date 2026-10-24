@@ -1,0 +1,14 @@
+{
+  "id": "t-a-benign-24",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ENDPOINT rule treats MAX_THINKING_TOKENS in a local settings env block as a harmless value.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "env": {
+        "MAX_THINKING_TOKENS": "4000"
+      }
+    }
+  }
+}

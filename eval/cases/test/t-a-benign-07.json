@@ -1,0 +1,22 @@
+{
+  "id": "t-a-benign-07",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ALLOW rule does not list narrow rules such as npm run test or npm run *, and deny rules are never risky for ALLOW.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(npm run test)",
+          "Bash(git status)",
+          "Bash(npm run *)",
+          "Bash(git diff *)"
+        ],
+        "deny": [
+          "Bash(rm -rf *)"
+        ]
+      }
+    }
+  }
+}

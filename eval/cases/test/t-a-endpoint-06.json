@@ -1,0 +1,19 @@
+{
+  "id": "t-a-endpoint-06",
+  "split": "test",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "The ENDPOINT rule lists a provider switch such as CLAUDE_CODE_USE_BEDROCK in a repository env block as risky.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "CLAUDE_CODE_USE_BEDROCK": "1",
+        "AWS_PROFILE": "shared-dev"
+      },
+      "model": "sonnet"
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

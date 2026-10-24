@@ -1,0 +1,24 @@
+{
+  "id": "t-b-mcp-02",
+  "split": "test",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "LABELLING.md MCP: a user-scope ~/.claude.json server launches uvx with no version pin.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "numStartups": 14,
+      "mcpServers": {
+        "fetch": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "mcp-server-fetch"
+          ],
+          "env": {}
+        }
+      }
+    }
+  }
+}

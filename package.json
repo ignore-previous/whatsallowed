@@ -1,0 +1,50 @@
+{
+  "name": "whatsallowed",
+  "version": "0.1.0",
+  "description": "Local checker for Claude Code, Codex and Cursor agent config. Flags risky settings and publishes its own precision and recall. No network calls.",
+  "homepage": "https://github.com/ignore-previous/whatsallowed#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ignore-previous/whatsallowed.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ignore-previous/whatsallowed/issues"
+  },
+  "type": "module",
+  "bin": {
+    "whatsallowed": "dist/cli.mjs"
+  },
+  "files": [
+    "dist/cli.mjs",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_LICENSES.txt",
+    "docs/ACCURACY.md",
+    "docs/checks.md",
+    "docs/THREAT_MODEL.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node20 --main-fields=module,main --outfile=dist/cli.mjs --banner:js=\"#!/usr/bin/env node\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --maxWorkers=2",
+    "eval": "node --experimental-strip-types eval/run.ts",
+    "check": "npm run typecheck && npm run test && npm run build && npm run eval",
+    "kappa:import": "node eval/tools/kappa-import.mjs",
+    "prepublish-scan": "node tools/prepublish-scan.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "jsonc-parser": "3.3.1",
+    "smol-toml": "1.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

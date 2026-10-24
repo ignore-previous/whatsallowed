@@ -1,0 +1,22 @@
+{
+  "id": "d-mcp-sh-chain",
+  "split": "dev",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "Shell string with && (MCP rule 2).",
+  "source": "synthetic",
+  "files": {
+    "./.cursor/mcp.json": {
+      "mcpServers": {
+        "tool": {
+          "command": "sh",
+          "args": [
+            "-c",
+            "cd tools && node server.js"
+          ]
+        }
+      }
+    }
+  }
+}

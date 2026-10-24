@@ -1,0 +1,161 @@
+{
+  "tool": "whatsallowed",
+  "version": "0.1.0",
+  "split": "test-win",
+  "lockSet": "8742ea9363706c43dfe8f40f733c73af4139deb14ee784f3340d202bc5c79dbc",
+  "date": "2026-10-19",
+  "stats": [
+    {
+      "check": "MODE",
+      "positives": 0,
+      "tp": 0,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": []
+    },
+    {
+      "check": "ALLOW",
+      "positives": 1,
+      "tp": 1,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.2065493117918027,
+        1
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.2065493117918027,
+        1
+      ]
+    },
+    {
+      "check": "DENY",
+      "positives": 1,
+      "tp": 1,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.2065493117918027,
+        1
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.2065493117918027,
+        1
+      ]
+    },
+    {
+      "check": "ENDPOINT",
+      "positives": 1,
+      "tp": 1,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.2065493117918027,
+        1
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.2065493117918027,
+        1
+      ]
+    },
+    {
+      "check": "HOOK",
+      "positives": 2,
+      "tp": 2,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.3423802239546494,
+        1
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.3423802239546494,
+        1
+      ]
+    },
+    {
+      "check": "HTTPHOOK",
+      "positives": 0,
+      "tp": 0,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": []
+    },
+    {
+      "check": "MCP",
+      "positives": 1,
+      "tp": 1,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.2065493117918027,
+        1
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.2065493117918027,
+        1
+      ]
+    },
+    {
+      "check": "DRIFT",
+      "positives": 0,
+      "tp": 0,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": []
+    },
+    {
+      "check": "SECRET",
+      "positives": 0,
+      "tp": 0,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": []
+    },
+    {
+      "check": "SKILL",
+      "positives": 4,
+      "tp": 3,
+      "fn": 1,
+      "fp": 0,
+      "missed": [
+        "w-skill-cmd-fetch-03"
+      ],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.43850296436068037,
+        1
+      ],
+      "recall": 0.75,
+      "recallCI": [
+        0.3006418400969081,
+        0.954412739704631
+      ]
+    }
+  ]
+}

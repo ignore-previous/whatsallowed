@@ -1,0 +1,12 @@
+{
+  "id": "t-a-benign-18",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DENY rule needs a ./.claude/ folder, ./CLAUDE.md or ./.mcp.json, and AGENTS.md with Codex config does not count, so the project is not a Claude Code project.",
+  "source": "synthetic",
+  "files": {
+    "./.env": "PORT=8080\n",
+    "./AGENTS.md": "# Agent notes\n\nUse pnpm test.\n",
+    "./.codex/config.toml": "sandbox_mode = \"workspace-write\"\n"
+  }
+}

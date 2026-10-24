@@ -1,0 +1,17 @@
+{
+  "id": "d-mode-project-auto",
+  "split": "dev",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "Repository asks for auto mode (MODE rule 2).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "defaultMode": "auto"
+      }
+    },
+    "./CLAUDE.md": "# Repo\n"
+  }
+}

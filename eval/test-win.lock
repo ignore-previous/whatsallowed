@@ -1,0 +1,19 @@
+{
+ "frozen": "2026-10-19",
+ "set": "8742ea9363706c43dfe8f40f733c73af4139deb14ee784f3340d202bc5c79dbc",
+ "count": 12,
+ "files": {
+  "w-deny-endpoint-06.json": "56a5b01bcb5b3552b3067f199207a45e48596593c53d4b027920b2a25339cb53",
+  "w-hook-enc-allow-02.json": "51b46bfdc33f768a919fe9b817be35e0e39b92741102c8a72eba146f0122400f",
+  "w-hook-iex-01.json": "3e2bdff855979085b963686251f98f8f97f24cd059183363553f4e9ec935485f",
+  "w-hook-local-benign-07.json": "d7c7d0ce644930a76009f3d33c57777671daa9e3a126f4a8c8b620f22c550751",
+  "w-hook-notify-10.json": "4bae77cc57e3e2158714c07ce85c90983ced929b50103e27cd99517e914389e3",
+  "w-mcp-pinned-08.json": "9d91f6917f7049cdd9fdb92d8aee7c153a6b635bd1c1150acfca4678a3479dc6",
+  "w-mcp-unpinned-05.json": "8b62b7f7b3a8349720a23e4aec1a35c98f8f0244a39d8961ee41eb65d6ce3801",
+  "w-skill-bat-11.json": "a1882a057b0fad8e99e4f8e1fe3c91f852a7fabd0dec0e781854321b4e0505fb",
+  "w-skill-cmd-fetch-03.json": "50004b8654793c599c69e9b064b80a36ace61fde70989920709a157ff5e285fd",
+  "w-skill-ps-download-09.json": "0dffa5fb92afe8c41ec38374a53b75317ec1dcf895edd422d0f2d3bac2455675",
+  "w-skill-ps1-12.json": "4d36850fe5319d8d1ed67dc2db020da72746ca5c3ab2bed57773c9776ed81668",
+  "w-skill-py-exec-04.json": "e76aa563140d8d20599f0b1291d60783ef66e97f78d6adfb8e225d5f9c521efd"
+ }
+}

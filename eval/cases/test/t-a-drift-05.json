@@ -1,0 +1,27 @@
+{
+  "id": "t-a-drift-05",
+  "split": "test",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "The DRIFT rule lists a changed URL of an existing MCP server in .cursor/mcp.json as risky, and the design server moved to a different path.",
+  "source": "synthetic",
+  "files": {
+    "./.cursor/mcp.json": {
+      "mcpServers": {
+        "design": {
+          "url": "https://design-mcp.example.test/v2/sse"
+        }
+      }
+    }
+  },
+  "before": {
+    "./.cursor/mcp.json": {
+      "mcpServers": {
+        "design": {
+          "url": "https://design-mcp.example.test/sse"
+        }
+      }
+    }
+  }
+}

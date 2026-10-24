@@ -1,0 +1,9 @@
+The labelled cases in eval/cases/ and the labelling rule in eval/LABELLING.md
+are licensed under the Creative Commons Attribution 4.0 International licence
+(CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+
+Attribution: "whatsallowed labelled set" with a link to the repository.
+
+Every case is synthetic. None is copied from a third-party configuration.
+Credential-like strings in the cases are made up in real formats so the
+checks can be tested; none is a working credential.

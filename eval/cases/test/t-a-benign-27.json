@@ -1,0 +1,28 @@
+{
+  "id": "t-a-benign-27",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DRIFT rule ignores pure formatting and key-order changes, and the docs and issues servers are otherwise unchanged.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": "{\"mcpServers\":{\"issues\":{\"url\":\"https://issues.example.test/mcp\",\"type\":\"http\"},\"docs\":{\"args\":[\"-y\",\"@modelcontextprotocol/server-filesystem@2025.1.14\",\"./docs\"],\"command\":\"npx\"}}}\n"
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        },
+        "issues": {
+          "type": "http",
+          "url": "https://issues.example.test/mcp"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "d-benign-deny-user-global",
+  "split": "dev",
+  "risky": [],
+  "rationale": "User rule Read(//**/.env) covers the project (DENY).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(//**/.env)",
+          "Read(~/.ssh/**)"
+        ]
+      }
+    },
+    "./.claude/settings.json": {},
+    "./.env": "A=1\n"
+  }
+}

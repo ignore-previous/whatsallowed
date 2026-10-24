@@ -1,0 +1,17 @@
+{
+  "id": "d-deny-idrsa",
+  "split": "dev",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "id_rsa at top level of a Claude Code project (DENY rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "permissions": {
+        "allow": []
+      }
+    },
+    "./id_rsa": "-----BEGIN @@SPLIT@@OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n"
+  }
+}

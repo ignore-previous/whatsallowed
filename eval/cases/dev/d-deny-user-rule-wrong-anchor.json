@@ -1,0 +1,22 @@
+{
+  "id": "d-deny-user-rule-wrong-anchor",
+  "split": "dev",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "User rule Read(/.env) anchors at ~/.claude, so the project .env is uncovered (DENY rule).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(/.env)"
+        ]
+      }
+    },
+    "./.mcp.json": {
+      "mcpServers": {}
+    },
+    "./.env": "K=v\n"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "t-a-deny-08",
+  "split": "test",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "The Read deny rule ./.env covers only the top-level file, so config/.env one folder down stays readable and is risky under the DENY rule.",
+  "source": "synthetic",
+  "files": {
+    "./config/.env": "SMTP_PASSWORD=fake-smtp-pass\n",
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(./.env)"
+        ]
+      }
+    }
+  }
+}

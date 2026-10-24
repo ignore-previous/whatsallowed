@@ -1,0 +1,18 @@
+{
+  "id": "d-mcp-plain-http",
+  "split": "dev",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "Remote plain http (MCP rule 4).",
+  "source": "synthetic",
+  "files": {
+    "~/.cursor/mcp.json": {
+      "mcpServers": {
+        "remote": {
+          "url": "http://mcp.example.net/sse"
+        }
+      }
+    }
+  }
+}

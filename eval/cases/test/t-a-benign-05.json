@@ -1,0 +1,11 @@
+{
+  "id": "t-a-benign-05",
+  "split": "test",
+  "risky": [],
+  "rationale": "The MODE rule accepts trusting one specific project folder, and the project Codex config is read-only.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "approval_policy = \"on-request\"\n\n[projects.\"/home/user/dev/shop-api\"]\ntrust_level = \"trusted\"\n",
+    "./.codex/config.toml": "sandbox_mode = \"read-only\"\napproval_policy = \"never\"\n"
+  }
+}

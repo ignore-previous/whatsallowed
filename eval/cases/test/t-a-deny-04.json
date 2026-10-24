@@ -1,0 +1,20 @@
+{
+  "id": "t-a-deny-04",
+  "split": "test",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "An Edit deny rule does not stop reads, and the DENY rule needs a Read deny rule, so the uncovered .env file is risky.",
+  "source": "synthetic",
+  "files": {
+    "./.env": "API_BASE=https://api.example.test\n",
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n",
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Edit(./.env)"
+        ]
+      }
+    }
+  }
+}

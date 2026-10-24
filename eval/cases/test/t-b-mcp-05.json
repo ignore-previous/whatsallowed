@@ -1,0 +1,22 @@
+{
+  "id": "t-b-mcp-05",
+  "split": "test",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "LABELLING.md MCP: a repository server wraps a pinned npx launch in sh -c with an && metacharacter, which is a shell string.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "acme": {
+          "command": "sh",
+          "args": [
+            "-c",
+            "npx -y acme-mcp@2.3.0 && echo ready"
+          ]
+        }
+      }
+    }
+  }
+}

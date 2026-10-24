@@ -1,0 +1,16 @@
+{
+  "id": "t-a-benign-21",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ENDPOINT rule exempts user files, so a gateway base URL and a proxy in the user settings file are not risky.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "model": "sonnet",
+      "env": {
+        "ANTHROPIC_BASE_URL": "https://llm-gateway.example.test/anthropic",
+        "HTTPS_PROXY": "http://proxy.example.test:3128"
+      }
+    }
+  }
+}

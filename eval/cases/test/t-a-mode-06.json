@@ -1,0 +1,20 @@
+{
+  "id": "t-a-mode-06",
+  "split": "test",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "The MODE rule lists enableAllProjectMcpServers true in a user file as risky, and this user file sets it.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "model": "sonnet",
+      "enableAllProjectMcpServers": true,
+      "permissions": {
+        "allow": [
+          "Bash(git status)"
+        ]
+      }
+    }
+  }
+}

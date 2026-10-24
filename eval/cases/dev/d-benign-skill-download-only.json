@@ -1,0 +1,10 @@
+{
+  "id": "d-benign-skill-download-only",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Script downloads a file without running it (SKILL).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/skills/fetch/get.sh": "#!/bin/bash\ncurl -fsSL -o data.json https://api.example.com/data\njq . data.json\n"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "t-a-benign-20",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DENY rule accepts the filesystem-root form Read(//**/.env) in project settings, which covers the project .env file.",
+  "source": "synthetic",
+  "files": {
+    "./.env": "LOG_LEVEL=debug\n",
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n",
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(//**/.env)"
+        ]
+      }
+    }
+  }
+}

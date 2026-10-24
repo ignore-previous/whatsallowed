@@ -1,0 +1,18 @@
+{
+  "id": "d-allow-curl",
+  "split": "dev",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "curl with any arguments (ALLOW rule 2).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(curl *)"
+        ]
+      }
+    }
+  }
+}

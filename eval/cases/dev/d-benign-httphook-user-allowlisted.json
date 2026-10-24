@@ -1,0 +1,27 @@
+{
+  "id": "d-benign-httphook-user-allowlisted",
+  "split": "dev",
+  "risky": [],
+  "rationale": "User https hook listed in allowedHttpHookUrls, no credential (HTTPHOOK).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "allowedHttpHookUrls": [
+        "https://hooks.example.com/*"
+      ],
+      "hooks": {
+        "Stop": [
+          {
+            "matcher": "*",
+            "hooks": [
+              {
+                "type": "http",
+                "url": "https://hooks.example.com/claude"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

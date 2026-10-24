@@ -1,0 +1,22 @@
+{
+  "id": "t-a-benign-10",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ALLOW rule ignores deny and ask lists, so a deny Bash rule and an ask curl rule are not risky.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Bash"
+        ],
+        "ask": [
+          "Bash(curl *)"
+        ],
+        "allow": [
+          "Bash(npm run lint)"
+        ]
+      }
+    }
+  }
+}

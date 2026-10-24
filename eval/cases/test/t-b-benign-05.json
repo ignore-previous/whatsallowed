@@ -1,0 +1,10 @@
+{
+  "id": "t-b-benign-05",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md HOOK: a Codex notify command runs a local Python script and the user file keeps workspace-write, so nothing is fetched or escalated.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\napproval_policy = \"on-request\"\nsandbox_mode = \"workspace-write\"\nnotify = [\"python3\", \"C:/Users/user/bin/codex-notify.py\"]\n"
+  }
+}

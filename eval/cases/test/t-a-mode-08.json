@@ -1,0 +1,35 @@
+{
+  "id": "t-a-mode-08",
+  "split": "test",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "The MODE rule lists a repository file that pre-approves its own .mcp.json servers with enabledMcpjsonServers as risky, and this one does.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "enabledMcpjsonServers": [
+        "docs",
+        "issues"
+      ],
+      "model": "sonnet"
+    },
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        },
+        "issues": {
+          "type": "http",
+          "url": "https://mcp.example.test/issues"
+        }
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "t-a-allow-07",
+  "split": "test",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "The ALLOW rule lists a bare WebFetch rule with no domain as risky, and this user allow list has one.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "model": "sonnet",
+      "permissions": {
+        "allow": [
+          "WebFetch",
+          "Bash(git status)"
+        ]
+      }
+    }
+  }
+}

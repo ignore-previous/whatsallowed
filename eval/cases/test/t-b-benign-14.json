@@ -1,0 +1,25 @@
+{
+  "id": "t-b-benign-14",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MCP: docker run of a tagged image is local, and ${PWD} is a reference, so benign.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "files": {
+          "command": "docker",
+          "args": [
+            "run",
+            "--rm",
+            "-i",
+            "-v",
+            "${PWD}:/work",
+            "mcp/filesystem:1.4.0",
+            "/work"
+          ]
+        }
+      }
+    }
+  }
+}

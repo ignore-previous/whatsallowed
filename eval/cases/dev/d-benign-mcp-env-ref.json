@@ -1,0 +1,29 @@
+{
+  "id": "d-benign-mcp-env-ref",
+  "split": "dev",
+  "risky": [],
+  "rationale": "${VAR} references in env and headers (SECRET).",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "api": {
+          "type": "http",
+          "url": "https://api.example.com/mcp",
+          "headers": {
+            "Authorization": "Bearer ${API_TOKEN}"
+          }
+        },
+        "gh": {
+          "command": "node",
+          "args": [
+            "gh.js"
+          ],
+          "env": {
+            "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+          }
+        }
+      }
+    }
+  }
+}

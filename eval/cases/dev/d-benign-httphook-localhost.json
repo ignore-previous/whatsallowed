@@ -1,0 +1,24 @@
+{
+  "id": "d-benign-httphook-localhost",
+  "split": "dev",
+  "risky": [],
+  "rationale": "http hook to localhost (HTTPHOOK).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "hooks": {
+        "Stop": [
+          {
+            "matcher": "*",
+            "hooks": [
+              {
+                "type": "http",
+                "url": "http://localhost:4318/hook"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

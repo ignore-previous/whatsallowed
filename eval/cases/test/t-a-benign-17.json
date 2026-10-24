@@ -1,0 +1,17 @@
+{
+  "id": "t-a-benign-17",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DENY rule accepts a Read(./.env*) deny rule in settings.local.json, which covers .env.production.",
+  "source": "synthetic",
+  "files": {
+    "./.env.production": "SESSION_SECRET=fake-prod-0000\n",
+    "./.claude/settings.local.json": {
+      "permissions": {
+        "deny": [
+          "Read(./.env*)"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "whatsallowed",
+  "owner": {
+    "name": "ruddy-dev"
+  },
+  "metadata": {
+    "description": "A local, read-only checker for agent config.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "whatsallowed",
+      "source": "./",
+      "description": "Checks your Claude Code, Codex and Cursor config for risky settings. Reads files only; no network calls."
+    }
+  ]
+}

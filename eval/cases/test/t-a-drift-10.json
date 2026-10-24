@@ -1,0 +1,36 @@
+{
+  "id": "t-a-drift-10",
+  "split": "test",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "The DRIFT rule lists a changed command of an existing MCP server as risky, and the docs server switched its launcher from npx to bunx.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "bunx",
+          "args": [
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "t-a-drift-02",
+  "split": "test",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "The DRIFT rule lists a changed URL of an existing MCP server as risky, and the search server in ~/.claude.json now points at a different host.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "mcpServers": {
+        "search": {
+          "type": "http",
+          "url": "https://search-eu.example.test/mcp"
+        }
+      },
+      "numStartups": 14,
+      "theme": "dark"
+    }
+  },
+  "before": {
+    "~/.claude.json": {
+      "mcpServers": {
+        "search": {
+          "type": "http",
+          "url": "https://search.example.test/mcp"
+        }
+      },
+      "numStartups": 14,
+      "theme": "dark"
+    }
+  }
+}

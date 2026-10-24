@@ -1,0 +1,18 @@
+{
+  "id": "t-a-endpoint-04",
+  "split": "test",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "The ENDPOINT rule lists a repository env block that sets ANTHROPIC_API_KEY as risky, whatever the value.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "ANTHROPIC_API_KEY": "<your-key>"
+      },
+      "model": "sonnet"
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "d-benign-narrow-allow",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Narrow allow rules (ALLOW).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(npm run *)",
+          "Bash(git diff *)",
+          "Bash(ls *)",
+          "WebFetch(domain:docs.example.com)",
+          "Bash(python3 -m pytest)"
+        ],
+        "additionalDirectories": [
+          "../shared-lib"
+        ]
+      }
+    }
+  }
+}

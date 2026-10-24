@@ -1,0 +1,20 @@
+{
+  "id": "d-deny-pem-subdir",
+  "split": "dev",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "certs/server.pem one level down, only .env denied (DENY rule).",
+  "source": "synthetic",
+  "files": {
+    "./CLAUDE.md": "# notes\n",
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(./.env)"
+        ]
+      }
+    },
+    "./certs/server.pem": "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
+  }
+}

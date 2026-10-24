@@ -1,0 +1,18 @@
+{
+  "id": "t-b-mcp-07",
+  "split": "test",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "LABELLING.md MCP: a user Cursor MCP server talks to a remote host over plain http://.",
+  "source": "synthetic",
+  "files": {
+    "~/.cursor/mcp.json": {
+      "mcpServers": {
+        "team-wiki": {
+          "url": "http://wiki-mcp.example.net:8000/mcp"
+        }
+      }
+    }
+  }
+}

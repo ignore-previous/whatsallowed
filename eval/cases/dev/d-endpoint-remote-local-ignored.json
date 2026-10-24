@@ -1,0 +1,17 @@
+{
+  "id": "d-endpoint-remote-local-ignored",
+  "split": "dev",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "Remote proxy in an ignored local file is still an alert (ENDPOINT rule; only loopback is exempt).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "env": {
+        "HTTPS_PROXY": "http://10.0.0.5:3128"
+      }
+    },
+    "./.gitignore": ".claude/\n"
+  }
+}

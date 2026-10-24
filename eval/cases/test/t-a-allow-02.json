@@ -1,0 +1,20 @@
+{
+  "id": "t-a-allow-02",
+  "split": "test",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "The ALLOW rule lists Bash(*) as risky because it matches every command, and this repository allow list has it.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(*)",
+          "Bash(npm run test)"
+        ]
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

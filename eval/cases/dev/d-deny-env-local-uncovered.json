@@ -1,0 +1,20 @@
+{
+  "id": "d-deny-env-local-uncovered",
+  "split": "dev",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": ".env.local not covered by Read(./.env) (DENY rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(./.env)"
+        ]
+      }
+    },
+    "./.env": "A=1\n",
+    "./.env.local": "B=2\n"
+  }
+}

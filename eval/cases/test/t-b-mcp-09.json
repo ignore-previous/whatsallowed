@@ -1,0 +1,32 @@
+{
+  "id": "t-b-mcp-09",
+  "split": "test",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "LABELLING.md MCP: a repository server launches npx through cmd /c with no version pin, and a second server uses @latest.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "win-files": {
+          "command": "cmd",
+          "args": [
+            "/c",
+            "npx",
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            "C:\\Users\\user\\dev\\app"
+          ]
+        },
+        "tickets": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@acme/tickets-mcp@latest"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "d-benign-hook-local",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Hooks running local scripts and formatters (HOOK).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "Edit|Write",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "npx prettier --write \"$CLAUDE_FILE_PATHS\""
+              },
+              {
+                "type": "command",
+                "command": "bash ./scripts/lint.sh"
+              }
+            ]
+          }
+        ]
+      },
+      "statusLine": {
+        "type": "command",
+        "command": "~/.claude/statusline.sh"
+      }
+    }
+  }
+}

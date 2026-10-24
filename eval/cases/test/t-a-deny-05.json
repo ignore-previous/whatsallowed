@@ -1,0 +1,20 @@
+{
+  "id": "t-a-deny-05",
+  "split": "test",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "A private key one folder down has no Read deny rule and the project uses CLAUDE.md, which the DENY rule lists as risky.",
+  "source": "synthetic",
+  "files": {
+    "./certs/server.pem": "-----BEGIN @@SPLIT@@PRIVATE KEY-----\nFAKE-NOT-A-KEY\n-----END PRIVATE KEY-----\n",
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n",
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(npm test)"
+        ]
+      }
+    }
+  }
+}

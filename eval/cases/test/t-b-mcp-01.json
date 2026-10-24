@@ -1,0 +1,39 @@
+{
+  "id": "t-b-mcp-01",
+  "split": "test",
+  "risky": [
+    "MCP",
+    "MODE"
+  ],
+  "rationale": "LABELLING.md MCP: .mcp.json runs npx and pipx run without a pinned version; the repository settings file also pre-approves the servers, which is MODE.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "github": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-github"
+          ],
+          "env": {
+            "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+          }
+        },
+        "search": {
+          "command": "pipx",
+          "args": [
+            "run",
+            "mcp-search-tools"
+          ]
+        }
+      }
+    },
+    "./.claude/settings.json": {
+      "enabledMcpjsonServers": [
+        "github",
+        "search"
+      ]
+    }
+  }
+}

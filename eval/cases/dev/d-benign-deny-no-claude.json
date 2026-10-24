@@ -1,0 +1,11 @@
+{
+  "id": "d-benign-deny-no-claude",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Secrets file but no Claude Code use (DENY).",
+  "source": "synthetic",
+  "files": {
+    "./AGENTS.md": "# agents\n",
+    "./.env": "A=1\n"
+  }
+}

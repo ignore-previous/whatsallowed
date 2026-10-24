@@ -1,0 +1,17 @@
+{
+  "id": "t-a-endpoint-02",
+  "split": "test",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "The ENDPOINT rule lists a proxy in a local settings env block as risky, and this local file sets HTTPS_PROXY.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "env": {
+        "HTTPS_PROXY": "http://proxy.example.test:3128",
+        "MAX_THINKING_TOKENS": "8000"
+      }
+    }
+  }
+}

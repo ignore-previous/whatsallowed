@@ -1,0 +1,18 @@
+{
+  "id": "t-a-benign-16",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DENY rule accepts a covering Read deny rule in any scope, and the user-scope Read(.env*) covers the project .env file.",
+  "source": "synthetic",
+  "files": {
+    "./.env": "PORT=3000\n",
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n",
+    "~/.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(.env*)"
+        ]
+      }
+    }
+  }
+}

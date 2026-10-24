@@ -1,0 +1,27 @@
+{
+  "id": "d-benign-httphook-user-https",
+  "split": "dev",
+  "risky": [],
+  "rationale": "User https hook with no credential headers (HTTPHOOK).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "hooks": {
+        "Stop": [
+          {
+            "matcher": "*",
+            "hooks": [
+              {
+                "type": "http",
+                "url": "https://ingest.example.io/claude",
+                "headers": {
+                  "Content-Type": "application/json"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

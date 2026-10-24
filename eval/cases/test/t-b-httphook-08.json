@@ -1,0 +1,31 @@
+{
+  "id": "t-b-httphook-08",
+  "split": "test",
+  "risky": [
+    "HTTPHOOK"
+  ],
+  "rationale": "LABELLING.md HTTPHOOK: a user-file hook sends a relay secret in a header to a remote https host, which counts as a credential header.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "hooks": {
+        "Notification": [
+          {
+            "hooks": [
+              {
+                "type": "http",
+                "url": "https://chat-relay.example.com/claude",
+                "headers": {
+                  "X-Relay-Secret": "$RELAY_SHARED_SECRET"
+                },
+                "allowedEnvVars": [
+                  "RELAY_SHARED_SECRET"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

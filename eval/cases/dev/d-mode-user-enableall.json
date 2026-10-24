@@ -1,0 +1,15 @@
+{
+  "id": "d-mode-user-enableall",
+  "split": "dev",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "User file sets enableAllProjectMcpServers (MODE rule 3).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "enableAllProjectMcpServers": true,
+      "model": "opus"
+    }
+  }
+}

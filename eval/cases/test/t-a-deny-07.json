@@ -1,0 +1,15 @@
+{
+  "id": "t-a-deny-07",
+  "split": "test",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "A credentials.json file with no Read deny rule in a project with a local Claude settings file is risky under the DENY rule.",
+  "source": "synthetic",
+  "files": {
+    "./credentials.json": "{\"type\":\"service_account\",\"project_id\":\"demo-123\",\"private_key_id\":\"fake\"}\n",
+    "./.claude/settings.local.json": {
+      "model": "sonnet"
+    }
+  }
+}

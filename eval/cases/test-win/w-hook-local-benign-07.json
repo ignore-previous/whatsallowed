@@ -1,0 +1,34 @@
+{
+  "id": "w-hook-local-benign-07",
+  "split": "test",
+  "platform": "windows",
+  "risky": [],
+  "rationale": "LABELLING.md HOOK not risky: the PostToolUse hook runs a local formatter script that calls a local tool; the deny rule Read(.env*) covers the .env file, so DENY is not risky; narrow allow rules and a telemetry env value are harmless.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "DISABLE_TELEMETRY": "1"
+      },
+      "permissions": {
+        "allow": ["Bash(npm run test)", "Bash(git status)", "WebFetch(domain:docs.example.com)"],
+        "deny": ["Read(.env*)"]
+      },
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "Edit|Write",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\format.ps1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "./scripts/format.ps1": "# Format changed files (run by the PostToolUse hook)\nnpx --no-install prettier --write .\n",
+    "./.env": "APP_PORT=3000\n"
+  }
+}

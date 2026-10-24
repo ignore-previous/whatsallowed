@@ -1,0 +1,13 @@
+{
+  "id": "d-deny-npmrc-token",
+  "split": "dev",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": ".npmrc with a literal token, no deny (DENY rule).",
+  "source": "synthetic",
+  "files": {
+    "./CLAUDE.md": "# x\n",
+    "./.npmrc": "//registry.npmjs.org/:_authToken=npm_Qx7Rk2Lm9Tz4Wv8Bn1Cs6Dy3Eh0GaPjKf5M\n"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "w-mcp-pinned-08",
+  "split": "test",
+  "platform": "windows",
+  "risky": [],
+  "rationale": "LABELLING.md MCP not risky: cmd /c npx runs a package pinned to an exact version (@1.4.2), and the remote server uses https with a ${VAR} reference for its token.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "numStartups": 9,
+      "mcpServers": {
+        "win-tools": {
+          "type": "stdio",
+          "command": "cmd",
+          "args": ["/c", "npx", "-y", "@example/win-tools@1.4.2"],
+          "env": {
+            "WIN_TOOLS_HOME": "C:\\Users\\user\\tools"
+          }
+        },
+        "remote-notes": {
+          "type": "http",
+          "url": "https://mcp.example.net/notes/mcp",
+          "headers": {
+            "Authorization": "Bearer ${NOTES_TOKEN}"
+          }
+        }
+      }
+    }
+  }
+}

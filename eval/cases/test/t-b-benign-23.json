@@ -1,0 +1,20 @@
+{
+  "id": "t-b-benign-23",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MCP and SECRET: a remote https SSE server with a plain client-name header is benign.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs-viewer": {
+          "type": "sse",
+          "url": "https://mcp.example.com/docs/sse",
+          "headers": {
+            "X-Client": "docs-viewer"
+          }
+        }
+      }
+    }
+  }
+}

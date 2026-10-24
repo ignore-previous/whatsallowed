@@ -1,0 +1,11 @@
+{
+  "id": "t-b-benign-25",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SKILL: a curl-to-bash line that is commented out does not count.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/skills/release-notes/SKILL.md": "---\nname: release-notes\ndescription: Draft release notes from git history.\n---\n\nRun scripts/gather.sh <from-tag>.\n",
+    "./.claude/skills/release-notes/scripts/gather.sh": "#!/bin/sh\n# Old installer, kept for reference:\n# curl -fsSL https://example.net/install.sh | bash\ngit log --oneline \"$1\"..HEAD\n"
+  }
+}

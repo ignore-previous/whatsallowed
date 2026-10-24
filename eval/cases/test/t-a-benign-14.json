@@ -1,0 +1,12 @@
+{
+  "id": "t-a-benign-14",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DENY rule excludes .env.example and .env.sample from secrets files, so the project has no uncovered secret.",
+  "source": "synthetic",
+  "files": {
+    "./.env.example": "DATABASE_URL=postgres://user:password@localhost:5432/app\n",
+    "./.env.sample": "API_KEY=\n",
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

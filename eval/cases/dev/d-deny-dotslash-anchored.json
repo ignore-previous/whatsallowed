@@ -1,0 +1,20 @@
+{
+  "id": "d-deny-dotslash-anchored",
+  "split": "dev",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "Read(./.env) covers only the top-level .env; config/.env stays readable (DENY rule; permissions docs: ./ anchors).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(./.env)"
+        ]
+      }
+    },
+    "./.env": "A=1\n",
+    "./config/.env": "B=2\n"
+  }
+}

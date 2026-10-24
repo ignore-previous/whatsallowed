@@ -1,0 +1,22 @@
+{
+  "id": "t-a-allow-09",
+  "split": "test",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "The ALLOW rule lists the home folder in additionalDirectories as risky, and this user settings file adds it.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "model": "sonnet",
+      "permissions": {
+        "additionalDirectories": [
+          "/home/user"
+        ],
+        "allow": [
+          "Bash(git status)"
+        ]
+      }
+    }
+  }
+}

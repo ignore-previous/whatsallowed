@@ -1,0 +1,11 @@
+{
+  "id": "t-b-benign-18",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SECRET and DENY: YOUR_TOKEN_HERE and your-key-here are placeholders, and .env.example is not a secrets file.",
+  "source": "synthetic",
+  "files": {
+    "./AGENTS.md": "# Agent notes\n\nCopy .env.example to .env and set GITHUB_TOKEN=YOUR_TOKEN_HERE.\nNever commit real tokens.\n",
+    "./.env.example": "GITHUB_TOKEN=\nOPENAI_API_KEY=your-key-here\n"
+  }
+}

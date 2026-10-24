@@ -1,0 +1,17 @@
+{
+  "id": "t-b-benign-15",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MCP: an http URL to localhost is not a remote plain-http server, so benign.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "preview": {
+          "type": "http",
+          "url": "http://localhost:8931/mcp"
+        }
+      }
+    }
+  }
+}

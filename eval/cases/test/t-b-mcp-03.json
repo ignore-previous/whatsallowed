@@ -1,0 +1,24 @@
+{
+  "id": "t-b-mcp-03",
+  "split": "test",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "LABELLING.md MCP: a Cursor project MCP server runs yarn dlx on an unpinned package.",
+  "source": "synthetic",
+  "files": {
+    "./.cursor/mcp.json": {
+      "mcpServers": {
+        "sqlite-tools": {
+          "command": "yarn",
+          "args": [
+            "dlx",
+            "some-sqlite-mcp",
+            "--db",
+            "./data/app.db"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "d-benign-mcp-pinned",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Pinned packages and local commands (MCP).",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "a": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@example/files@1.4.2"
+          ]
+        },
+        "b": {
+          "command": "uvx",
+          "args": [
+            "mcp-fetch==0.6.1"
+          ]
+        },
+        "c": {
+          "command": "node",
+          "args": [
+            "./server.js"
+          ]
+        },
+        "d": {
+          "command": "docker",
+          "args": [
+            "run",
+            "-i",
+            "--rm",
+            "ghcr.io/example/mcp:2.1.0"
+          ]
+        }
+      }
+    }
+  }
+}

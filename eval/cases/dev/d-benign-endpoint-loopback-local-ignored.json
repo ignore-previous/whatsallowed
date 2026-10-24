@@ -1,0 +1,20 @@
+{
+  "id": "d-benign-endpoint-loopback-local-ignored",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Loopback ANTHROPIC_BASE_URL in a git-ignored settings.local.json is the user's own proxy (ENDPOINT, post-freeze change).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "permissions": {
+        "allow": [
+          "Bash(npm test)"
+        ]
+      },
+      "env": {
+        "ANTHROPIC_BASE_URL": "http://127.0.0.1:8787"
+      }
+    },
+    "./.gitignore": "node_modules/\n.claude/settings.local.json\n"
+  }
+}

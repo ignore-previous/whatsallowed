@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-19",
+  "sample": {
+    "repos": 110,
+    "files": {
+      ".claude/settings.json": 61,
+      ".mcp.json": 56,
+      ".codex/config.toml": 30
+    },
+    "method": "GitHub code search for each of the three files at a project root (up to the first 300 results per file, forks and the maintainer's own repositories left out), then a seeded random draw from the results, with each of the three files fetched from every drawn repository.",
+    "reposWithAlerts": 48
+  },
+  "checks": [
+    {
+      "check": "MODE",
+      "alerts": 10,
+      "tp": 10,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "ALLOW",
+      "alerts": 30,
+      "tp": 30,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "DENY",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "ENDPOINT",
+      "alerts": 1,
+      "tp": 1,
+      "fp": 0,
+      "lowValue": 1
+    },
+    {
+      "check": "HOOK",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "HTTPHOOK",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "MCP",
+      "alerts": 55,
+      "tp": 55,
+      "fp": 0,
+      "lowValue": 3
+    },
+    {
+      "check": "DRIFT",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "SECRET",
+      "alerts": 2,
+      "tp": 2,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "SKILL",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    }
+  ],
+  "info": {
+    "ENDPOINT-004": 2,
+    "MCP-007": 38
+  },
+  "notes": [
+    "Every alert matched the labelling rule as written. 4 of them are right only by the rule's wording and look harmless in context: a `NODE_OPTIONS` value that only sets a memory limit (ENDPOINT), two `npx` launches of tools that are usually installed in the project (MCP), and a plain `sh -c \"cd … && exec …\"` launch (MCP). These are candidates for narrowing the rules, not counted as false alarms.",
+    "Only config files were fetched, so DENY (needs a secrets file), SKILL (needs scripts) and DRIFT (needs a baseline) can't fire here. HOOK and HTTPHOOK could fire but raised no alerts in this sample.",
+    "Search results are ranked by GitHub, not random, and repositories that commit these files may differ from those that keep them local. Treat the sample as indicative, not representative.",
+    "Secret alerts were labelled from the masked output only (key name and value length). The values were never opened.",
+    "Seen while labelling, not counted: allow rules for package managers with any arguments (`npm`, `pnpm`, `yarn`, `pip`, `uv`) raise no alert, though `npm exec`, `pnpm dlx` and `uv run` can run packages. The labelling rule doesn't settle whether they should."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "d-endpoint-api-key",
+  "split": "dev",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "Repository env sets ANTHROPIC_AUTH_TOKEN (ENDPOINT rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "ANTHROPIC_AUTH_TOKEN": "${TEAM_TOKEN}"
+      }
+    }
+  }
+}

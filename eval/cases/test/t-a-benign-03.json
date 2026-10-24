@@ -1,0 +1,30 @@
+{
+  "id": "t-a-benign-03",
+  "split": "test",
+  "risky": [],
+  "rationale": "The MODE rule calls enableAllProjectMcpServers in a local file benign, and the only .mcp.json server is pinned.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "enableAllProjectMcpServers": true,
+      "permissions": {
+        "allow": [
+          "Bash(npm run test)"
+        ]
+      }
+    },
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        }
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

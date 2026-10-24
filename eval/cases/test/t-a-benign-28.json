@@ -1,0 +1,41 @@
+{
+  "id": "t-a-benign-28",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DRIFT rule does not treat a server new since the baseline as a change, and the docs server is unchanged.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        },
+        "notes": {
+          "command": "node",
+          "args": [
+            "./tools/notes-server.js"
+          ]
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        }
+      }
+    }
+  }
+}

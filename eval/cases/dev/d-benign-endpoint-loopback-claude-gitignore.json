@@ -1,0 +1,15 @@
+{
+  "id": "d-benign-endpoint-loopback-claude-gitignore",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Loopback proxy in a local file ignored by .claude/.gitignore (ENDPOINT, post-freeze change).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "env": {
+        "HTTPS_PROXY": "http://localhost:8080"
+      }
+    },
+    "./.claude/.gitignore": "settings.local.json\n"
+  }
+}

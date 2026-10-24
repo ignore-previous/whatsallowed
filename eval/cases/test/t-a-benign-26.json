@@ -1,0 +1,15 @@
+{
+  "id": "t-a-benign-26",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ENDPOINT rule exempts user files, so a placeholder API key in the user settings env is not risky.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "model": "sonnet",
+      "env": {
+        "ANTHROPIC_API_KEY": "<your-key>"
+      }
+    }
+  }
+}

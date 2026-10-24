@@ -1,0 +1,17 @@
+{
+  "id": "d-endpoint-loopback-local-tracked",
+  "split": "dev",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "Loopback base URL in a local file git doesn't ignore, so it may have come with the repo (ENDPOINT rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "env": {
+        "ANTHROPIC_BASE_URL": "http://127.0.0.1:8787"
+      }
+    },
+    "./.gitignore": "node_modules/\n"
+  }
+}

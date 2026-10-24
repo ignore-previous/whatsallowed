@@ -1,0 +1,17 @@
+{
+  "id": "t-a-endpoint-07",
+  "split": "test",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "The ENDPOINT rule lists NODE_TLS_REJECT_UNAUTHORIZED=0 in a repository env block as a risky TLS change.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      },
+      "model": "sonnet"
+    }
+  }
+}

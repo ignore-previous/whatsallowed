@@ -1,0 +1,24 @@
+{
+  "id": "t-b-benign-06",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md HTTPHOOK: an http hook to 127.0.0.1 is the local machine, which the rule excludes.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "hooks": {
+        "Stop": [
+          {
+            "hooks": [
+              {
+                "type": "http",
+                "url": "http://127.0.0.1:8787/events"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "./CLAUDE.md": "# Notes\n\nA local dashboard listens on port 8787 during development.\n"
+  }
+}

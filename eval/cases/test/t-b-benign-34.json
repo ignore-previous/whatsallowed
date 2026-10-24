@@ -1,0 +1,25 @@
+{
+  "id": "t-b-benign-34",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MODE and ALLOW: acceptEdits in a user file and narrow Bash rules are not risky, and no other check fires.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "defaultMode": "acceptEdits",
+        "allow": [
+          "Bash(npm run *)",
+          "Bash(git diff *)",
+          "WebFetch(domain:docs.example.com)"
+        ],
+        "deny": [
+          "Bash(rm -rf *)"
+        ]
+      },
+      "env": {
+        "BASH_DEFAULT_TIMEOUT_MS": "600000"
+      }
+    }
+  }
+}

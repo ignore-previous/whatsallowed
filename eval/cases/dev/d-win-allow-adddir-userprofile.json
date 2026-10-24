@@ -1,0 +1,19 @@
+{
+  "id": "d-win-allow-adddir-userprofile",
+  "split": "dev",
+  "platform": "windows",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "additionalDirectories adds %USERPROFILE%, the whole home folder (ALLOW rule).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "additionalDirectories": [
+          "%USERPROFILE%"
+        ]
+      }
+    }
+  }
+}

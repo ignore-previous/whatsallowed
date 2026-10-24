@@ -1,0 +1,27 @@
+{
+  "id": "d-drift-url",
+  "split": "dev",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "URL changed since baseline (DRIFT rule).",
+  "source": "synthetic",
+  "files": {
+    "~/.cursor/mcp.json": {
+      "mcpServers": {
+        "r": {
+          "url": "https://mcp2.example.com/mcp"
+        }
+      }
+    }
+  },
+  "before": {
+    "~/.cursor/mcp.json": {
+      "mcpServers": {
+        "r": {
+          "url": "https://mcp.example.com/mcp"
+        }
+      }
+    }
+  }
+}

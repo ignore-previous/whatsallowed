@@ -1,0 +1,12 @@
+{
+  "id": "d-skill-node-b64",
+  "split": "dev",
+  "risky": [
+    "SKILL"
+  ],
+  "rationale": "Node script evals base64 payload (SKILL rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/skills/x/index.js": "const p = 'Y29uc29sZS5sb2coMSk=';\neval(Buffer.from(p, 'base64').toString());\n"
+  }
+}

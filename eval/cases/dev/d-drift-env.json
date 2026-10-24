@@ -1,0 +1,39 @@
+{
+  "id": "d-drift-env",
+  "split": "dev",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "env value changed since baseline (DRIFT rule).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "mcpServers": {
+        "s": {
+          "command": "node",
+          "args": [
+            "s.js"
+          ],
+          "env": {
+            "MODE": "admin"
+          }
+        }
+      }
+    }
+  },
+  "before": {
+    "~/.claude.json": {
+      "mcpServers": {
+        "s": {
+          "command": "node",
+          "args": [
+            "s.js"
+          ],
+          "env": {
+            "MODE": "read"
+          }
+        }
+      }
+    }
+  }
+}

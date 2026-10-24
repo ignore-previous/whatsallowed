@@ -1,0 +1,16 @@
+{
+  "id": "t-a-benign-06",
+  "split": "test",
+  "risky": [],
+  "rationale": "The MODE rule does not list defaultMode plan, and the repository allows no commands, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "defaultMode": "plan"
+      },
+      "model": "opus"
+    },
+    "./CLAUDE.md": "# Working style\n\nPlan first, then edit.\n"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "t-a-deny-01",
+  "split": "test",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "The project uses Claude Code and holds a .env file that no Read deny rule covers, which the DENY rule lists as risky.",
+  "source": "synthetic",
+  "files": {
+    "./.env": "DATABASE_URL=postgres://app:fake-password@db.example.test:5432/app\n",
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n",
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(npm run test)"
+        ]
+      }
+    }
+  }
+}

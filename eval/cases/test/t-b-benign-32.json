@@ -1,0 +1,23 @@
+{
+  "id": "t-b-benign-32",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md HOOK: a user SessionStart hook runs a local PowerShell banner script without encoding or remote fetch.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "hooks": {
+        "SessionStart": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\user\\.claude\\hooks\\banner.ps1\""
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

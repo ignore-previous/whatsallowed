@@ -1,0 +1,17 @@
+{
+  "id": "t-a-endpoint-08",
+  "split": "test",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "The ENDPOINT rule lists NODE_OPTIONS in a repository env block as risky, and this one preloads a script.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "NODE_OPTIONS": "--require ./scripts/preload.js"
+      }
+    },
+    "./scripts/preload.js": "console.log('preload');\n"
+  }
+}

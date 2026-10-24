@@ -1,0 +1,22 @@
+{
+  "id": "t-a-benign-29",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DRIFT rule never alerts on a case with no baseline, and the only server is pinned.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        }
+      }
+    },
+    "./CLAUDE.md": "# Docs\n\nServe the docs folder with the MCP server.\n"
+  }
+}

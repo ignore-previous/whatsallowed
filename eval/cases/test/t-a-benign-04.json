@@ -1,0 +1,10 @@
+{
+  "id": "t-a-benign-04",
+  "split": "test",
+  "risky": [],
+  "rationale": "The MODE rule does not list approval_policy never with workspace-write, so the Codex user file is benign.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\napproval_policy = \"never\"\nsandbox_mode = \"workspace-write\"\n"
+  }
+}

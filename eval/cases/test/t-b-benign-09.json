@@ -1,0 +1,32 @@
+{
+  "id": "t-b-benign-09",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MCP: all three project servers are pinned (npx, uvx) or local (node ./tools), so MCP does not fire.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@acme/docs-mcp@1.4.2"
+          ]
+        },
+        "pg": {
+          "command": "uvx",
+          "args": [
+            "mcp-server-postgres==0.7.1"
+          ]
+        },
+        "local": {
+          "command": "node",
+          "args": [
+            "./tools/server.js"
+          ]
+        }
+      }
+    }
+  }
+}

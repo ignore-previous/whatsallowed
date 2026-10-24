@@ -1,0 +1,10 @@
+{
+  "id": "t-b-benign-13",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MCP: a project Codex server run through uv run inside the project is not in the rule list.",
+  "source": "synthetic",
+  "files": {
+    "./.codex/config.toml": "[mcp_servers.notes]\ncommand = \"uv\"\nargs = [\"run\", \"--project\", \".\", \"notes-server\"]\n"
+  }
+}

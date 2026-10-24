@@ -1,0 +1,10 @@
+{
+  "id": "d-benign-codex-workspace",
+  "split": "dev",
+  "risky": [],
+  "rationale": "never + workspace-write is not risky (MODE).",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "approval_policy = \"never\"\nsandbox_mode = \"workspace-write\"\n[projects.\"/home/user/project\"]\ntrust_level = \"trusted\"\n"
+  }
+}

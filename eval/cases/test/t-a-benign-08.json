@@ -1,0 +1,18 @@
+{
+  "id": "t-a-benign-08",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ALLOW rule does not list Bash(ls *) or a WebFetch rule limited to one domain, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(ls *)",
+          "WebFetch(domain:docs.example.com)"
+        ]
+      },
+      "model": "sonnet"
+    }
+  }
+}

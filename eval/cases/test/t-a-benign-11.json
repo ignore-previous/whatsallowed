@@ -1,0 +1,19 @@
+{
+  "id": "t-a-benign-11",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ALLOW rule accepts a project subfolder in additionalDirectories, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "additionalDirectories": [
+          "./vendor/shared-ui"
+        ],
+        "allow": [
+          "Bash(npm run build)"
+        ]
+      }
+    }
+  }
+}

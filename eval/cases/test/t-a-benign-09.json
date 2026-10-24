@@ -1,0 +1,18 @@
+{
+  "id": "t-a-benign-09",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ALLOW rule does not list an exact python3 test command or a PowerShell rule limited to Get-ChildItem, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "model": "sonnet",
+      "permissions": {
+        "allow": [
+          "Bash(python3 -m pytest)",
+          "PowerShell(Get-ChildItem *)"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "t-a-allow-08",
+  "split": "test",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "The ALLOW rule lists WebFetch(domain:*) as risky because it allows any domain, and this repository allow list has it.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "WebFetch(domain:*)",
+          "Bash(ls *)"
+        ]
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

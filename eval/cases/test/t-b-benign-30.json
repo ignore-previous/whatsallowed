@@ -1,0 +1,15 @@
+{
+  "id": "t-b-benign-30",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SKILL: a plugin script calls a status API and prints a field, with no download-and-run.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/plugins/cache/acme-tools/status-badge/1.0.1/.claude-plugin/plugin.json": {
+      "name": "status-badge",
+      "version": "1.0.1",
+      "description": "Shows service status"
+    },
+    "~/.claude/plugins/cache/acme-tools/status-badge/1.0.1/scripts/status.js": "const url = 'https://api.example.net/status';\nfetch(url).then((r) => r.json()).then((j) => console.log(j.state));\n"
+  }
+}

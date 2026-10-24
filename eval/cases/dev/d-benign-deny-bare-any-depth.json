@@ -1,0 +1,18 @@
+{
+  "id": "d-benign-deny-bare-any-depth",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Bare Read(.env) covers .env at any depth (DENY).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(.env)"
+        ]
+      }
+    },
+    "./.env": "A=1\n",
+    "./config/.env": "B=2\n"
+  }
+}

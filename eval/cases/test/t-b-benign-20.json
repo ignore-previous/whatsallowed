@@ -1,0 +1,23 @@
+{
+  "id": "t-b-benign-20",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SECRET and MCP: a user Cursor server pinned to 0.9.2 with a $VAR token reference is benign.",
+  "source": "synthetic",
+  "files": {
+    "~/.cursor/mcp.json": {
+      "mcpServers": {
+        "sentry": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@acme/sentry-mcp@0.9.2"
+          ],
+          "env": {
+            "SENTRY_AUTH_TOKEN": "$SENTRY_AUTH_TOKEN"
+          }
+        }
+      }
+    }
+  }
+}

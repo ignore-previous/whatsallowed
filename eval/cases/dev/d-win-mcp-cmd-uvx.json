@@ -1,0 +1,24 @@
+{
+  "id": "d-win-mcp-cmd-uvx",
+  "split": "dev",
+  "platform": "windows",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "cmd /c uvx without a version (MCP rule).",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "fetch": {
+          "command": "cmd",
+          "args": [
+            "/c",
+            "uvx",
+            "mcp-server-fetch"
+          ]
+        }
+      }
+    }
+  }
+}

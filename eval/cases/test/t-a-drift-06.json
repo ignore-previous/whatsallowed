@@ -1,0 +1,15 @@
+{
+  "id": "t-a-drift-06",
+  "split": "test",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "The DRIFT rule lists a changed argument of an existing Codex MCP server as risky, and the docs server now gets a different directory.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\n\n[mcp_servers.docs]\ncommand = \"npx\"\nargs = [\"-y\", \"@modelcontextprotocol/server-filesystem@2025.1.14\", \"/home/user/notes\"]\n"
+  },
+  "before": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\n\n[mcp_servers.docs]\ncommand = \"npx\"\nargs = [\"-y\", \"@modelcontextprotocol/server-filesystem@2025.1.14\", \"/home/user/docs\"]\n"
+  }
+}

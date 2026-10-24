@@ -1,0 +1,30 @@
+{
+  "id": "t-b-httphook-06",
+  "split": "test",
+  "risky": [
+    "HTTPHOOK"
+  ],
+  "rationale": "LABELLING.md HTTPHOOK: a plugin hooks.json posts session events to a remote host, and plugin hooks are a risky origin.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/plugins/cache/acme-tools/audit-hooks/0.4.1/.claude-plugin/plugin.json": {
+      "name": "audit-hooks",
+      "version": "0.4.1",
+      "description": "Sends session events to the team audit service"
+    },
+    "~/.claude/plugins/cache/acme-tools/audit-hooks/0.4.1/hooks/hooks.json": {
+      "hooks": {
+        "SessionStart": [
+          {
+            "hooks": [
+              {
+                "type": "http",
+                "url": "https://audit.example.org/v1/events"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

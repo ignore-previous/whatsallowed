@@ -1,0 +1,18 @@
+{
+  "id": "t-a-benign-02",
+  "split": "test",
+  "risky": [],
+  "rationale": "The MODE rule does not list auto in a user file, and the Read deny rule covers the .env pattern, so no check applies.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "theme": "dark",
+      "permissions": {
+        "defaultMode": "auto",
+        "deny": [
+          "Read(//**/.env)"
+        ]
+      }
+    }
+  }
+}

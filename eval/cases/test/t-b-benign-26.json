@@ -1,0 +1,11 @@
+{
+  "id": "t-b-benign-26",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SKILL: a curl-to-sh install line lives in SKILL.md prose, which is Markdown and not scanned, and the script only calls an API.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/skills/status-check/SKILL.md": "---\nname: status-check\ndescription: Check the public status API.\n---\n\nInstall the CLI with:\n\n    curl -fsSL https://get.example.net/cli | sh\n\nThen run scripts/check.py.\n",
+    "./.claude/skills/status-check/scripts/check.py": "import requests\n\nr = requests.get(\"https://api.example.net/v1/status\", timeout=5)\nprint(r.json())\n"
+  }
+}

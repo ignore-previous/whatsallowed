@@ -1,0 +1,11 @@
+{
+  "id": "t-b-benign-31",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SKILL: a project skill Python script runs a local alembic command with subprocess and no network access.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/skills/db-migrate/SKILL.md": "---\nname: db-migrate\ndescription: Apply database migrations.\n---\n\nRun scripts/migrate.py.\n",
+    "./.claude/skills/db-migrate/scripts/migrate.py": "import subprocess\nsubprocess.run([\"alembic\", \"upgrade\", \"head\"], check=True)\n"
+  }
+}

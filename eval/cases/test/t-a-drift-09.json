@@ -1,0 +1,33 @@
+{
+  "id": "t-a-drift-09",
+  "split": "test",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "The DRIFT rule lists a changed argument of an existing MCP server as risky, and the lint server now runs a different script file.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "lint": {
+          "command": "node",
+          "args": [
+            "./tools/lint-server-beta.js"
+          ]
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "lint": {
+          "command": "node",
+          "args": [
+            "./tools/lint-server.js"
+          ]
+        }
+      }
+    }
+  }
+}

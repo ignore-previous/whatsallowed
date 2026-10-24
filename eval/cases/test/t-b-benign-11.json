@@ -1,0 +1,19 @@
+{
+  "id": "t-b-benign-11",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MCP and SECRET: a Cursor remote https server with a ${VAR} Bearer reference is benign under both rules.",
+  "source": "synthetic",
+  "files": {
+    "./.cursor/mcp.json": {
+      "mcpServers": {
+        "team-tickets": {
+          "url": "https://mcp.example.com/sse",
+          "headers": {
+            "Authorization": "Bearer ${ACME_MCP_TOKEN}"
+          }
+        }
+      }
+    }
+  }
+}

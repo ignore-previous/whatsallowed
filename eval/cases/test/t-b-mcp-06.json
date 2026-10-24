@@ -1,0 +1,25 @@
+{
+  "id": "t-b-mcp-06",
+  "split": "test",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "LABELLING.md MCP: a repository server binds 0.0.0.0, so it listens on every network interface.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "notes": {
+          "command": "node",
+          "args": [
+            "./servers/notes.js",
+            "--bind",
+            "0.0.0.0",
+            "--port",
+            "7300"
+          ]
+        }
+      }
+    }
+  }
+}

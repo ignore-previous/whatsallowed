@@ -1,0 +1,10 @@
+{
+  "id": "d-benign-mcp-remote-https",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Remote https server with env var token (MCP, SECRET).",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "[mcp_servers.docs]\nurl = \"https://mcp.example.com/mcp\"\nbearer_token_env_var = \"DOCS_TOKEN\"\n\n[mcp_servers.local]\nurl = \"http://127.0.0.1:8765/mcp\"\n"
+  }
+}

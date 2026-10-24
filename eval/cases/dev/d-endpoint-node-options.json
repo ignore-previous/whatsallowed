@@ -1,0 +1,16 @@
+{
+  "id": "d-endpoint-node-options",
+  "split": "dev",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "Repository sets NODE_OPTIONS (ENDPOINT rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "NODE_OPTIONS": "--require ./scripts/patch.js"
+      }
+    }
+  }
+}

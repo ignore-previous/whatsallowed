@@ -1,0 +1,13 @@
+{
+  "id": "d-mode-codex-split",
+  "split": "dev",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "never in user file, danger-full-access in project (MODE rule 5, across files).",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "approval_policy = \"never\"\n",
+    "./.codex/config.toml": "sandbox_mode = \"danger-full-access\"\n"
+  }
+}

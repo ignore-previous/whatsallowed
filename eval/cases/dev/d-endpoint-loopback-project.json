@@ -1,0 +1,17 @@
+{
+  "id": "d-endpoint-loopback-project",
+  "split": "dev",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "Loopback base URL in the repository's own settings (ENDPOINT rule).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "ANTHROPIC_BASE_URL": "http://localhost:4000"
+      }
+    },
+    "./.gitignore": ".claude/settings.local.json\n"
+  }
+}

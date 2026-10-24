@@ -1,0 +1,20 @@
+{
+  "id": "t-a-allow-04",
+  "split": "test",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "The ALLOW rule lists a package runner allowed with any arguments, such as Bash(npx *), as risky, and this user allow list has it.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "model": "sonnet",
+      "permissions": {
+        "allow": [
+          "Bash(npx *)",
+          "Bash(git diff *)"
+        ]
+      }
+    }
+  }
+}

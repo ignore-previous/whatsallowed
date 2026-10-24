@@ -1,0 +1,12 @@
+{
+  "id": "d-mode-codex-yolo",
+  "split": "dev",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "Codex never + danger-full-access (MODE rule 5).",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5\"\napproval_policy = \"never\"\nsandbox_mode = \"danger-full-access\"\n"
+  }
+}

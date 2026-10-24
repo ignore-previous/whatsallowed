@@ -1,0 +1,18 @@
+{
+  "id": "t-a-mode-04",
+  "split": "test",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "The MODE rule covers local files as well as repository files, and this local file asks for bypassPermissions as defaultMode.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "model": "sonnet",
+      "permissions": {
+        "defaultMode": "bypassPermissions"
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

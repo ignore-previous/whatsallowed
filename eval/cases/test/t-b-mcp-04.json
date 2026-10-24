@@ -1,0 +1,12 @@
+{
+  "id": "t-b-mcp-04",
+  "split": "test",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "LABELLING.md MCP: a user Codex MCP server launches bunx with no version pin.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\n\n[mcp_servers.browser]\ncommand = \"bunx\"\nargs = [\"playwright-mcp\"]\n"
+  }
+}

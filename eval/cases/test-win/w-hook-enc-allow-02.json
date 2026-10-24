@@ -1,0 +1,31 @@
+{
+  "id": "w-hook-enc-allow-02",
+  "split": "test",
+  "platform": "windows",
+  "risky": ["ALLOW", "HOOK"],
+  "rationale": "LABELLING.md HOOK: a user PreToolUse hook runs base64 -EncodedCommand PowerShell (-enc abbreviation). LABELLING.md ALLOW: permissions.allow contains PowerShell(*), a rule that matches every PowerShell command.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "env": {
+        "DISABLE_TELEMETRY": "1"
+      },
+      "permissions": {
+        "allow": ["PowerShell(*)", "Bash(git status)"]
+      },
+      "hooks": {
+        "PreToolUse": [
+          {
+            "matcher": "PowerShell",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "pwsh -nop -enc VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAiAHIAZQBhAGQAeQAiAA=="
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

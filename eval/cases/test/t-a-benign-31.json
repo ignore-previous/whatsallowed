@@ -1,0 +1,13 @@
+{
+  "id": "t-a-benign-31",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DRIFT rule ignores formatting, and this Codex change only adds a comment and blank lines.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "# Reviewed 20 Oct 2026\nmodel = \"gpt-5-codex\"\n\n\n[mcp_servers.docs]\ncommand = \"npx\"\nargs = [\"-y\", \"@modelcontextprotocol/server-filesystem@2025.1.14\", \"/home/user/docs\"]\n"
+  },
+  "before": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\n\n[mcp_servers.docs]\ncommand = \"npx\"\nargs = [\"-y\", \"@modelcontextprotocol/server-filesystem@2025.1.14\", \"/home/user/docs\"]\n"
+  }
+}

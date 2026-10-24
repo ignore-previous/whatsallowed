@@ -1,0 +1,20 @@
+{
+  "id": "t-a-allow-06",
+  "split": "test",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "The ALLOW rule lists a download tool allowed with any arguments, such as Bash(curl *), as risky, and this repository allow list has it.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(curl *)",
+          "Bash(npm test)"
+        ]
+      }
+    },
+    "./CLAUDE.md": "# Notes\n\nRun npm test before opening a pull request.\n"
+  }
+}

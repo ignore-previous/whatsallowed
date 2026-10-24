@@ -1,0 +1,17 @@
+{
+  "id": "t-a-endpoint-05",
+  "split": "test",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "The ENDPOINT rule lists ANTHROPIC_CUSTOM_HEADERS in a repository env block as a risky credential-path variable.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "ANTHROPIC_CUSTOM_HEADERS": "X-Project: app-team"
+      },
+      "model": "sonnet"
+    }
+  }
+}

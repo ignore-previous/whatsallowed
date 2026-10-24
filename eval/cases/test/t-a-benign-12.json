@@ -1,0 +1,20 @@
+{
+  "id": "t-a-benign-12",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ALLOW rule does not list a folder inside the home folder, or a WebFetch rule for one named domain, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(git log --oneline)",
+          "WebFetch(domain:api.example.org)"
+        ],
+        "additionalDirectories": [
+          "/home/user/dev/archive"
+        ]
+      }
+    }
+  }
+}

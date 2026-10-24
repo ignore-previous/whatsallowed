@@ -1,0 +1,28 @@
+{
+  "id": "t-a-mode-07",
+  "split": "test",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "The MODE rule lists enableAllProjectMcpServers true in a repository file as risky, and this repository sets it.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "enableAllProjectMcpServers": true,
+      "model": "sonnet"
+    },
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ]
+        }
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

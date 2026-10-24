@@ -1,0 +1,25 @@
+{
+  "id": "d-win-benign-hook-local-ps1",
+  "split": "dev",
+  "platform": "windows",
+  "risky": [],
+  "rationale": "Hook runs a local PowerShell script with a backslash path (HOOK: local script).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "*",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\lint.ps1"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

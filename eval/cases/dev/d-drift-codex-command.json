@@ -1,0 +1,15 @@
+{
+  "id": "d-drift-codex-command",
+  "split": "dev",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "Codex command changed (DRIFT rule).",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "[mcp_servers.x]\ncommand = \"/opt/x/bin/x2\"\n"
+  },
+  "before": {
+    "~/.codex/config.toml": "[mcp_servers.x]\ncommand = \"/opt/x/bin/x\"\n"
+  }
+}

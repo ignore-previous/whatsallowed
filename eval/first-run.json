@@ -1,0 +1,203 @@
+{
+  "tool": "whatsallowed",
+  "version": "0.1.0",
+  "split": "test",
+  "lockSet": "27005e58f039e3d5f1b19423ec1c88082135e7b63c414462ddc6f6485d9051d3",
+  "stats": [
+    {
+      "check": "MODE",
+      "positives": 13,
+      "tp": 13,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.7719046248681998,
+        1
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.7719046248681998,
+        1
+      ]
+    },
+    {
+      "check": "ALLOW",
+      "positives": 10,
+      "tp": 10,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ]
+    },
+    {
+      "check": "DENY",
+      "positives": 10,
+      "tp": 9,
+      "fn": 1,
+      "fp": 0,
+      "missed": [
+        "t-a-deny-08"
+      ],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.700854948272956,
+        1
+      ],
+      "recall": 0.9,
+      "recallCI": [
+        0.5958499704752279,
+        0.982123787103926
+      ]
+    },
+    {
+      "check": "ENDPOINT",
+      "positives": 11,
+      "tp": 11,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.7411670300055737,
+        1
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.7411670300055737,
+        1
+      ]
+    },
+    {
+      "check": "HOOK",
+      "positives": 10,
+      "tp": 10,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ]
+    },
+    {
+      "check": "HTTPHOOK",
+      "positives": 10,
+      "tp": 10,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ]
+    },
+    {
+      "check": "MCP",
+      "positives": 10,
+      "tp": 10,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ]
+    },
+    {
+      "check": "DRIFT",
+      "positives": 10,
+      "tp": 10,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ]
+    },
+    {
+      "check": "SECRET",
+      "positives": 10,
+      "tp": 10,
+      "fn": 0,
+      "fp": 0,
+      "missed": [],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ],
+      "recall": 1,
+      "recallCI": [
+        0.7224671969739421,
+        0.9999999999999999
+      ]
+    },
+    {
+      "check": "SKILL",
+      "positives": 10,
+      "tp": 8,
+      "fn": 2,
+      "fp": 0,
+      "missed": [
+        "t-b-skill-02",
+        "t-b-skill-06"
+      ],
+      "falseAlarms": [],
+      "precision": 1,
+      "precisionCI": [
+        0.6755924316585924,
+        1
+      ],
+      "recall": 0.8,
+      "recallCI": [
+        0.4901624691221323,
+        0.9433178490622331
+      ]
+    }
+  ]
+}

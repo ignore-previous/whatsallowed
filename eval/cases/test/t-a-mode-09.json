@@ -1,0 +1,13 @@
+{
+  "id": "t-a-mode-09",
+  "split": "test",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "The MODE rule lists approval_policy never together with sandbox_mode danger-full-access in one Codex user file as risky, and this file has both.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\napproval_policy = \"never\"\nsandbox_mode = \"danger-full-access\"\n",
+    "./AGENTS.md": "# Agent notes\n\nRun npm test before committing.\n"
+  }
+}

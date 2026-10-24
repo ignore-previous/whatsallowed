@@ -1,0 +1,24 @@
+{
+  "id": "t-b-benign-04",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md HOOK: a local Notification hook runs a local PowerShell script, which is not encoded or remote.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "hooks": {
+        "Notification": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "powershell -NoProfile -File .\\scripts\\notify.ps1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "./scripts/notify.ps1": "[System.Media.SystemSounds]::Asterisk.Play()\nWrite-Host 'Claude needs your input'\n"
+  }
+}

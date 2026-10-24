@@ -1,0 +1,27 @@
+{
+  "id": "t-b-benign-02",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md HOOK: curl piped into jq only sends a status check to localhost and executes nothing.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "statusLine": {
+        "type": "command",
+        "command": "git -C \"$PWD\" branch --show-current"
+      },
+      "hooks": {
+        "Stop": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "curl -s http://localhost:3000/health | jq .status"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

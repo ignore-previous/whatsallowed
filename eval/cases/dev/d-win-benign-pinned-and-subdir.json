@@ -1,0 +1,30 @@
+{
+  "id": "d-win-benign-pinned-and-subdir",
+  "split": "dev",
+  "platform": "windows",
+  "risky": [],
+  "rationale": "Pinned cmd /c npx and a project subfolder in additionalDirectories (MCP, ALLOW).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "cmd",
+          "args": [
+            "/c",
+            "npx",
+            "-y",
+            "@example/docs-mcp@2.1.0"
+          ]
+        }
+      }
+    },
+    "./.claude/settings.json": {
+      "permissions": {
+        "additionalDirectories": [
+          "C:\\Users\\user\\project\\docs"
+        ]
+      }
+    }
+  }
+}

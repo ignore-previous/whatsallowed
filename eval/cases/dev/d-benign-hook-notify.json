@@ -1,0 +1,28 @@
+{
+  "id": "d-benign-hook-notify",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Desktop notification and status check (HOOK).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "hooks": {
+        "Notification": [
+          {
+            "matcher": "*",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "notify-send 'Claude' 'needs input'"
+              },
+              {
+                "type": "command",
+                "command": "curl -sf -o /dev/null https://status.example.com/health"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

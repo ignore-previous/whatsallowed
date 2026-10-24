@@ -1,0 +1,19 @@
+{
+  "id": "t-a-benign-22",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ENDPOINT rule treats BASH_DEFAULT_TIMEOUT_MS, MAX_THINKING_TOKENS, DISABLE_TELEMETRY and ANTHROPIC_MODEL in a repository env block as harmless.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "BASH_DEFAULT_TIMEOUT_MS": "600000",
+        "MAX_THINKING_TOKENS": "10000",
+        "DISABLE_TELEMETRY": "1",
+        "ANTHROPIC_MODEL": "claude-sonnet-4-5"
+      },
+      "model": "sonnet"
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

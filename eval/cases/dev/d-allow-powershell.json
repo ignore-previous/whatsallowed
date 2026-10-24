@@ -1,0 +1,18 @@
+{
+  "id": "d-allow-powershell",
+  "split": "dev",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "PowerShell(*) matches every command (ALLOW rule 1).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "PowerShell(*)"
+        ]
+      }
+    }
+  }
+}

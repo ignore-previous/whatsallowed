@@ -1,0 +1,21 @@
+{
+  "id": "t-a-mode-03",
+  "split": "test",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "The MODE rule treats a repository file that asks for auto as defaultMode as risky, and this one does.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "model": "opus",
+      "permissions": {
+        "defaultMode": "auto",
+        "deny": [
+          "Read(./secrets/**)"
+        ]
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun the app with npm run dev.\n"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "t-a-mode-10",
+  "split": "test",
+  "risky": [
+    "MODE"
+  ],
+  "rationale": "The MODE rule lists a Codex config that marks the whole home folder as trusted as risky, and this one does.",
+  "source": "synthetic",
+  "files": {
+    "~/.codex/config.toml": "model = \"gpt-5-codex\"\napproval_policy = \"on-request\"\n\n[projects.\"/home/user\"]\ntrust_level = \"trusted\"\n"
+  }
+}

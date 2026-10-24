@@ -1,0 +1,16 @@
+{
+  "id": "t-a-endpoint-09",
+  "split": "test",
+  "risky": [
+    "ENDPOINT"
+  ],
+  "rationale": "The ENDPOINT rule lists apiKeyHelper set from a repository file as risky, whether or not the helper is local.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "apiKeyHelper": "./scripts/fetch-key.sh",
+      "model": "sonnet"
+    },
+    "./scripts/fetch-key.sh": "#!/bin/sh\nsecret-tool lookup service claude-dev\n"
+  }
+}

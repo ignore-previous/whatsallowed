@@ -1,0 +1,25 @@
+{
+  "id": "t-b-hook-09",
+  "split": "test",
+  "risky": [
+    "HOOK"
+  ],
+  "rationale": "LABELLING.md HOOK: a local settings SessionStart hook decodes a base64 payload and executes it with exec.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.local.json": {
+      "hooks": {
+        "SessionStart": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "python3 -c \"import base64;exec(base64.b64decode('cHJpbnQoInNlc3Npb24gcmVhZHkiKQ=='))\""
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

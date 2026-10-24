@@ -1,0 +1,19 @@
+{
+  "id": "d-allow-bash-star",
+  "split": "dev",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "Bash(*) matches every command (ALLOW rule 1).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(npm run lint)",
+          "Bash(*)"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-22",
+  "sample": {
+    "repos": 110,
+    "files": {
+      ".claude/settings.json": 64,
+      ".mcp.json": 52,
+      ".codex/config.toml": 32
+    },
+    "method": "GitHub code search for each of the three files at a project root (up to the first 300 results per file, forks and the maintainer's own repositories left out), then a seeded random draw from the results (seed 20261022), with each of the three files fetched from every drawn repository.",
+    "reposWithAlerts": 31,
+    "labelling": "Every high or medium alert was labelled against [LABELLING.md](../eval/LABELLING.md) by two models working blind, from a masked copy of each alert: Claude Sonnet 5.5 and GPT-6 (Codex). They agreed on all 92 (Cohen's kappa 1.00), and a third model (Claude Opus 5.5) reviewed the alerts either was unsure about. Secret alerts were labelled from the masked output only. Every label came from a model; no person labelled any alert."
+  },
+  "checks": [
+    {
+      "check": "MODE",
+      "alerts": 9,
+      "tp": 9,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "ALLOW",
+      "alerts": 20,
+      "tp": 19,
+      "fp": 1,
+      "lowValue": 0
+    },
+    {
+      "check": "DENY",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "ENDPOINT",
+      "alerts": 2,
+      "tp": 1,
+      "fp": 1,
+      "lowValue": 1
+    },
+    {
+      "check": "HOOK",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "HTTPHOOK",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "MCP",
+      "alerts": 52,
+      "tp": 52,
+      "fp": 0,
+      "lowValue": 1
+    },
+    {
+      "check": "DRIFT",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "SECRET",
+      "alerts": 9,
+      "tp": 9,
+      "fp": 0,
+      "lowValue": 0
+    },
+    {
+      "check": "SKILL",
+      "alerts": 0,
+      "tp": 0,
+      "fp": 0,
+      "lowValue": 0
+    }
+  ],
+  "info": {
+    "ENDPOINT-004": 2,
+    "MCP-007": 41
+  },
+  "notes": [
+    "Two alerts were wrong: an allow rule for `node --version` alone (ALLOW), and `AWS_PROFILE` set to the placeholder `your-profile-here` (ENDPOINT).",
+    "Two more are right only by the rule's wording and look harmless in context: a repository `awsAuthRefresh` command that logs into a placeholder profile (ENDPOINT), and a plain `sh -c \"cd … && exec …\"` launch (MCP). They are candidates for narrowing the rules, not counted as false alarms.",
+    "In three of the four repositories where MODE-006 fired, MODE-005 fired on the same file too, so one setting raised two alerts.",
+    "Only config files were fetched, so DENY (needs a secrets file), SKILL (needs scripts) and DRIFT (needs a baseline) can't fire here. HOOK and HTTPHOOK could fire but raised no alerts in this sample.",
+    "Search results are ranked by GitHub, not random, and repositories that commit these files may differ from those that keep them local. This sample may share repositories with the 19 Oct 2026 one. Treat it as indicative, not representative."
+  ]
+}

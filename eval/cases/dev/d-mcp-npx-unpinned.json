@@ -1,0 +1,22 @@
+{
+  "id": "d-mcp-npx-unpinned",
+  "split": "dev",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "npx without version (MCP rule 1).",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "files": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@example/mcp-files"
+          ]
+        }
+      }
+    }
+  }
+}

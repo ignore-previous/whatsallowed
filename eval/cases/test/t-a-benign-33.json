@@ -1,0 +1,25 @@
+{
+  "id": "t-a-benign-33",
+  "split": "test",
+  "risky": [],
+  "rationale": "The HOOK rule does not list a PostToolUse hook that runs a local format script, so no check alerts.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "Edit|Write",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "npm run format --silent"
+              }
+            ]
+          }
+        ]
+      },
+      "model": "sonnet"
+    }
+  }
+}

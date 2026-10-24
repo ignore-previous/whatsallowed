@@ -1,0 +1,22 @@
+{
+  "id": "d-benign-mcp-cmd-wrapper",
+  "split": "dev",
+  "risky": [],
+  "rationale": "cmd /c npx pinned on Windows (MCP).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "mcpServers": {
+        "w": {
+          "command": "cmd",
+          "args": [
+            "/c",
+            "npx",
+            "-y",
+            "win-mcp@1.2.3"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "d-allow-webfetch-any",
+  "split": "dev",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "WebFetch with no domain (ALLOW rule 3).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "WebFetch",
+          "WebSearch"
+        ]
+      }
+    }
+  }
+}

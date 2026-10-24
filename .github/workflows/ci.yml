@@ -1,0 +1,30 @@
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [20, 24]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Bundle is committed and current
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        run: git diff --exit-code dist/cli.mjs
+      - run: npx vitest run --maxWorkers=2
+      - run: node eval/tools/lock.mjs verify
+      - name: Eval meets thresholds (no writes)
+        if: matrix.node == 24
+        run: node --experimental-strip-types eval/run.ts --split test --no-write --check-thresholds

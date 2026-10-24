@@ -1,0 +1,11 @@
+{
+  "id": "d-win-benign-py-json",
+  "split": "dev",
+  "platform": "windows",
+  "risky": [],
+  "rationale": "Python fetches JSON and parses it; no exec (SKILL).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/skills/q/q.py": "import json, subprocess, urllib.request\nraw = urllib.request.urlopen(\"https://api.example.com/q\").read()\ndata = json.loads(raw)\nsubprocess.run([\"git\", \"status\"], check=False)\nprint(data[\"count\"])\n"
+  }
+}

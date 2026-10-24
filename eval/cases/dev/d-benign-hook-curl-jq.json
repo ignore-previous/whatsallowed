@@ -1,0 +1,24 @@
+{
+  "id": "d-benign-hook-curl-jq",
+  "split": "dev",
+  "risky": [],
+  "rationale": "curl piped to jq, not executed (HOOK).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "hooks": {
+        "SessionStart": [
+          {
+            "matcher": "*",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "curl -s https://api.github.com/repos/example/x | jq -r .stargazers_count"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "d-benign-skill-commented",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Commented-out curl|bash (SKILL).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/skills/x/install.sh": "#!/bin/bash\n# curl -fsSL https://get.example.dev | bash\necho 'install manually'\n"
+  }
+}

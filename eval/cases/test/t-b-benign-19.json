@@ -1,0 +1,21 @@
+{
+  "id": "t-b-benign-19",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SECRET and ENDPOINT: ${GITHUB_TOKEN} is a reference, and the repo env holds only harmless values.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "BASH_DEFAULT_TIMEOUT_MS": "300000",
+        "MAX_THINKING_TOKENS": "8000"
+      },
+      "permissions": {
+        "allow": [
+          "Bash(npm run test)"
+        ]
+      }
+    }
+  }
+}

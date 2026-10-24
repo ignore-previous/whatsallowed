@@ -1,0 +1,11 @@
+{
+  "id": "d-win-benign-bat-caret-download-only",
+  "split": "dev",
+  "platform": "windows",
+  "risky": [],
+  "rationale": "Batch file splits a curl download over lines with ^ and only unzips the result (SKILL).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/skills/assets/fetch.bat": "@echo off\r\ncurl -L ^\r\n  -o assets.zip ^\r\n  https://example.net/assets.zip\r\ntar -xf assets.zip -C assets\r\n"
+  }
+}

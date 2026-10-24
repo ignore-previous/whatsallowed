@@ -1,0 +1,18 @@
+{
+  "id": "d-benign-deny-covered",
+  "split": "dev",
+  "risky": [],
+  "rationale": ".env covered by Read(./.env*) (DENY).",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "deny": [
+          "Read(./.env*)"
+        ]
+      }
+    },
+    "./.env": "A=1\n",
+    "./.env.production": "B=2\n"
+  }
+}

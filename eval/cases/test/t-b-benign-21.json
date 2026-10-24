@@ -1,0 +1,10 @@
+{
+  "id": "t-b-benign-21",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md SECRET: a Cursor rule that describes placeholder key shapes with no real value is benign.",
+  "source": "synthetic",
+  "files": {
+    "./.cursor/rules/style.mdc": "---\ndescription: Docs and examples\nglobs: docs/**\n---\n\nIn docs, show keys as placeholders such as sk-..., AKIAxxxxxxxxxxxxxxxx or ghp_your_token_here. Never paste a real key.\n"
+  }
+}

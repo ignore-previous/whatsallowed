@@ -1,0 +1,16 @@
+{
+  "id": "t-a-benign-23",
+  "split": "test",
+  "risky": [],
+  "rationale": "The ENDPOINT rule exempts an apiKeyHelper and an AWS profile in a user settings file, so nothing alerts.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "apiKeyHelper": "~/bin/get-anthropic-key.sh",
+      "env": {
+        "AWS_PROFILE": "dev"
+      }
+    },
+    "~/bin/get-anthropic-key.sh": "#!/bin/sh\npass show anthropic/dev\n"
+  }
+}

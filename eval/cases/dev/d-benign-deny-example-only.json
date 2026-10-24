@@ -1,0 +1,11 @@
+{
+  "id": "d-benign-deny-example-only",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Only .env.example present (DENY).",
+  "source": "synthetic",
+  "files": {
+    "./CLAUDE.md": "# x\n",
+    "./.env.example": "API_KEY=\n"
+  }
+}

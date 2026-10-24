@@ -1,0 +1,31 @@
+{
+  "id": "t-b-benign-01",
+  "split": "test",
+  "risky": [],
+  "rationale": "LABELLING.md HOOK and MCP: a formatter hook with unpinned npx is a hook, not an MCP server, and fetches nothing, so no check fires.",
+  "source": "synthetic",
+  "files": {
+    "./.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(npm run test)",
+          "Bash(git status)"
+        ]
+      },
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "Edit|Write",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "npx prettier --write ."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "./CLAUDE.md": "# Project notes\n\nRun tests with npm test. Format with prettier.\n"
+  }
+}

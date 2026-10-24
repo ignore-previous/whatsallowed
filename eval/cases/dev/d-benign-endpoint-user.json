@@ -1,0 +1,15 @@
+{
+  "id": "d-benign-endpoint-user",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Base URL and proxy in a user file are the user's choice (ENDPOINT).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "env": {
+        "ANTHROPIC_BASE_URL": "https://gateway.corp.example",
+        "HTTPS_PROXY": "http://127.0.0.1:8080"
+      }
+    }
+  }
+}

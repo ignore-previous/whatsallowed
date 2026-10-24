@@ -1,0 +1,23 @@
+{
+  "id": "w-mcp-unpinned-05",
+  "split": "test",
+  "platform": "windows",
+  "risky": ["MCP"],
+  "rationale": "LABELLING.md MCP: a Windows user MCP server launches cmd /c npx -y @example/win-tools with no version, so it runs whatever the registry serves.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "numStartups": 14,
+      "mcpServers": {
+        "win-tools": {
+          "type": "stdio",
+          "command": "cmd",
+          "args": ["/c", "npx", "-y", "@example/win-tools"],
+          "env": {
+            "WIN_TOOLS_HOME": "C:\\Users\\user\\tools"
+          }
+        }
+      }
+    }
+  }
+}

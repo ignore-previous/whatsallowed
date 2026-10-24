@@ -1,0 +1,22 @@
+{
+  "id": "t-b-mcp-10",
+  "split": "test",
+  "risky": [
+    "MCP"
+  ],
+  "rationale": "LABELLING.md MCP: a repository server runs pnpm dlx on an unpinned package.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "api-tools": {
+          "command": "pnpm",
+          "args": [
+            "dlx",
+            "@acme/api-mcp"
+          ]
+        }
+      }
+    }
+  }
+}

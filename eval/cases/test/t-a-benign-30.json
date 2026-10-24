@@ -1,0 +1,37 @@
+{
+  "id": "t-a-benign-30",
+  "split": "test",
+  "risky": [],
+  "rationale": "The DRIFT rule lists command, arguments, package, URL and env changes only, and a changed timeout is none of these.",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ],
+          "timeout": 60000
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "docs": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem@2025.1.14",
+            "./docs"
+          ],
+          "timeout": 30000
+        }
+      }
+    }
+  }
+}

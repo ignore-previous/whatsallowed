@@ -1,0 +1,43 @@
+{
+  "id": "t-a-drift-03",
+  "split": "test",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "The DRIFT rule lists a changed package version of an existing local-scope MCP server as risky, and the tracker moved from 0.4.1 to 0.5.0.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude.json": {
+      "projects": {
+        "/home/user/project": {
+          "mcpServers": {
+            "tracker": {
+              "type": "stdio",
+              "command": "uvx",
+              "args": [
+                "mcp-server-tracker==0.5.0"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "before": {
+    "~/.claude.json": {
+      "projects": {
+        "/home/user/project": {
+          "mcpServers": {
+            "tracker": {
+              "type": "stdio",
+              "command": "uvx",
+              "args": [
+                "mcp-server-tracker==0.4.1"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

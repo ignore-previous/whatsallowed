@@ -1,0 +1,15 @@
+{
+  "id": "t-a-deny-02",
+  "split": "test",
+  "risky": [
+    "DENY"
+  ],
+  "rationale": "The project holds a .env.production file, has a .claude folder, and no Read deny rule covers it, which the DENY rule lists as risky.",
+  "source": "synthetic",
+  "files": {
+    "./.env.production": "SESSION_SECRET=fake-prod-0000\n",
+    "./.claude/settings.json": {
+      "model": "sonnet"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "d-allow-npx",
+  "split": "dev",
+  "risky": [
+    "ALLOW"
+  ],
+  "rationale": "npx with any arguments (ALLOW rule 2).",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "permissions": {
+        "allow": [
+          "Bash(npx:*)"
+        ]
+      }
+    }
+  }
+}

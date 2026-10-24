@@ -1,0 +1,15 @@
+{
+  "id": "t-a-drift-07",
+  "split": "test",
+  "risky": [
+    "DRIFT"
+  ],
+  "rationale": "The DRIFT rule lists a changed URL of an existing Codex MCP server as risky, and the project issues server moved to a different https path.",
+  "source": "synthetic",
+  "files": {
+    "./.codex/config.toml": "[mcp_servers.issues]\nurl = \"https://issues.example.test/mcp/v2\"\n"
+  },
+  "before": {
+    "./.codex/config.toml": "[mcp_servers.issues]\nurl = \"https://issues.example.test/mcp\"\n"
+  }
+}

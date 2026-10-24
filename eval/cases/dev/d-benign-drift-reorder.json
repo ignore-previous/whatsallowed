@@ -1,0 +1,31 @@
+{
+  "id": "d-benign-drift-reorder",
+  "split": "dev",
+  "risky": [],
+  "rationale": "Key reordering since baseline (DRIFT).",
+  "source": "synthetic",
+  "files": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "s": {
+          "args": [
+            "s.js"
+          ],
+          "command": "node"
+        }
+      }
+    }
+  },
+  "before": {
+    "./.mcp.json": {
+      "mcpServers": {
+        "s": {
+          "command": "node",
+          "args": [
+            "s.js"
+          ]
+        }
+      }
+    }
+  }
+}

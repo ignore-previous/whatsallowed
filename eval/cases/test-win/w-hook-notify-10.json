@@ -1,0 +1,28 @@
+{
+  "id": "w-hook-notify-10",
+  "split": "test",
+  "platform": "windows",
+  "risky": [],
+  "rationale": "LABELLING.md HOOK not risky: the user Stop hook runs a local notify.bat (via %USERPROFILE%) that only posts a desktop message; no network fetch or encoded payload.",
+  "source": "synthetic",
+  "files": {
+    "~/.claude/settings.json": {
+      "env": {
+        "DISABLE_TELEMETRY": "1"
+      },
+      "hooks": {
+        "Stop": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "%USERPROFILE%\\.claude\\hooks\\notify.bat"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "~/.claude/hooks/notify.bat": "@echo off\nmsg %USERNAME% \"Claude has finished the task\"\n"
+  }
+}

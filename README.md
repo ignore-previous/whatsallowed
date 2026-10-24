@@ -16,12 +16,12 @@ You need Node.js 20 or later. In the folder of a project you work on with an age
 npx whatsallowed
 ```
 
-It checks that project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). It only reads files, so it changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means in plain words and what you could do about it. You make any change yourself.
+It checks that project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). It only reads files, so it changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means in plain words and what you could do about it. You make any change yourself. A summary at the end shows what each check looked at, including the checks that found nothing.
 
 ```
-whatsallowed 0.1.0. This is a read-only check: it changes nothing and sends nothing anywhere.
+whatsallowed 0.2.0. This is a read-only check: it changes nothing and sends nothing anywhere.
 
-2 things to look at in the 2 settings files checked. 1 needs attention first.
+2 things to look at in the 2 files checked. 1 needs attention first.
 
 Look at these first (1)  High: could let something run or leak without you noticing.
 
@@ -35,9 +35,21 @@ Worth checking (1)  Medium: risky in some set-ups, harmless in others.
 
   MCP server "a" runs an unpinned package
     ...
+
+Summary: this project folder and your user settings. Other projects on this machine aren't read.
+
+  Files     2 read: Claude Code 2. Codex or Cursor: no files found.
+  ...
+  HOOK      1 command that runs by itself: 1 hook. 1 comes from a repository or plugin.
+            These run without asking you when events happen. 1 downloads and runs code, runs an encoded payload or opens a reverse shell.
+  ...
+  MCP       1 MCP server (Claude Code 1): 1 started on this machine, 0 remote. The downloaded package isn't pinned to an exact version.
+  ...
+  DRIFT     Not checked yet: no baseline recorded. Run: npx whatsallowed baseline
+  ...
 ```
 
-The file, line and rule ID are on each finding's last line, for when you want to look it up. Lower-priority notes are hidden unless you add `--verbose`. For scripts and other tools, `--format json` gives the same findings in a stable, machine-readable form (and `--format sarif` for GitHub code scanning).
+The file, line and rule ID are on each finding's last line, for when you want to look it up. The summary has one row per check, with a count and what it means. Lower-priority notes and the full list behind each summary count are hidden unless you add `--verbose`. For scripts and other tools, `--format json` gives the same findings in a stable, machine-readable form (and `--format sarif` for GitHub code scanning).
 
 Exit code 0 means nothing at or above the `--fail-on` level (default `high`). 1 means there were findings, and 2 means the tool couldn't run.
 
@@ -57,7 +69,7 @@ Exit code 0 means nothing at or above the `--fail-on` level (default `high`). 1 
 | `--fail-on high\|medium\|info\|never` | Exit 1 when a finding is at or above this level |
 | `--baseline <file>` | Use another baseline file |
 | `--reset-baseline` | With `baseline`: replace an existing baseline |
-| `--verbose` | Also show lower-priority notes in the text report |
+| `--verbose` | Also show lower-priority notes, and list every rule, server, hook and file behind the summary counts |
 | `--no-color` | No colour (`NO_COLOR` also works) |
 
 ## In CI

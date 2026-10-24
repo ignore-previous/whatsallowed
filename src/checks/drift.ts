@@ -33,12 +33,19 @@ export function recordBaseline(m: Model, created: string): Baseline {
   return { version: 1, created, files: [...new Set(files)].sort(), servers };
 }
 
+/** "<file>#<server>" keys in the baseline whose server is gone from a file that was scanned. */
+export function removedSinceBaseline(m: Model): string[] {
+  const b = m.ctx.baseline;
+  if (!b) return [];
+  const present = new Set(m.servers.map((s) => s.key));
+  const scanned = new Set(m.parsed.map((p) => p.file.path));
+  return Object.keys(b.servers).filter((key) => !present.has(key) && scanned.has(key.slice(0, key.lastIndexOf("#"))));
+}
+
+// With no baseline there is nothing to compare; the summary says so and names the command.
 export function checkDrift(m: Model): Finding[] {
   const b = m.ctx.baseline;
-  if (!b) {
-    if (m.servers.length) m.ctx.notes.push("No baseline recorded, so MCP drift wasn't checked. Run the baseline command once to start tracking changes.");
-    return [];
-  }
+  if (!b) return [];
   const recorded = new Set(b.files);
   const out: Finding[] = [];
   const seen = new Set<string>();
@@ -75,11 +82,9 @@ export function checkDrift(m: Model): Finding[] {
       );
     }
   }
-  const scanned = new Set(m.parsed.map((p) => p.file.path));
-  for (const key of Object.keys(b.servers)) {
-    const file = key.slice(0, key.lastIndexOf("#"));
-    if (seen.has(key) || !scanned.has(file)) continue;
-    m.ctx.notes.push(`MCP server ${key.slice(key.lastIndexOf("#") + 1)} in ${file} was removed since the baseline.`);
+  for (const key of removedSinceBaseline(m)) {
+    if (seen.has(key)) continue;
+    m.ctx.notes.push(`MCP server ${key.slice(key.lastIndexOf("#") + 1)} in ${key.slice(0, key.lastIndexOf("#"))} was removed since the baseline.`);
   }
   return out;
 }

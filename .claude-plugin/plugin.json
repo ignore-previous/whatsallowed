@@ -1,6 +1,6 @@
 {
   "name": "whatsallowed",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Checks your Claude Code, Codex and Cursor config for risky settings. Reads files only; no network calls, no telemetry.",
   "author": { "name": "ruddy-dev" },
   "license": "MIT",

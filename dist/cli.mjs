@@ -1217,8 +1217,8 @@ var TomlDate = class _TomlDate extends Date {
 };
 
 // node_modules/smol-toml/dist/extract.js
-function isDigit2(char, base2 = 10) {
-  return base2 === 16 ? char > 47 && char < 58 || char > 64 && char < 71 || char > 96 && char < 103 : char > 47 && char < 48 + base2;
+function isDigit2(char, base3 = 10) {
+  return base3 === 16 ? char > 47 && char < 58 || char > 64 && char < 71 || char > 96 && char < 103 : char > 47 && char < 48 + base3;
 }
 function isEndOfValue(char, delim) {
   return char === 32 || char === 9 || char === 10 || char === 13 || // Structure end or next value delimiter
@@ -1323,14 +1323,14 @@ function parseNumber(ctx, startPtr, startChr, sign, endChr) {
     str2 = str2.replaceAll("_", "");
   return state > 1 ? parseFloat(str2) : parseInteger(ctx, str2, 10, startPtr);
 }
-function parseIntegerBaseN(ctx, startPtr, base2, endChr) {
+function parseIntegerBaseN(ctx, startPtr, base3, endChr) {
   let c, underscore = 1;
   while (++ctx.p < ctx.s.length && (c = ctx.s.charCodeAt(ctx.p), !isEndOfValue(c, endChr))) {
     if (c === 95) {
       if (underscore & 1)
         TomlError.x("illegal underscore", ctx);
       underscore = 3;
-    } else if (!isDigit2(c, base2))
+    } else if (!isDigit2(c, base3))
       TomlError.x(`illegal character in numeric literal`, ctx);
     else if (underscore & 1)
       underscore--;
@@ -1340,12 +1340,12 @@ function parseIntegerBaseN(ctx, startPtr, base2, endChr) {
   let str2 = ctx.s.slice(startPtr + 2, ctx.p);
   if (underscore)
     str2 = str2.replaceAll("_", "");
-  return parseInteger(ctx, str2, base2, startPtr);
+  return parseInteger(ctx, str2, base3, startPtr);
 }
-function parseInteger(ctx, str2, base2, startPtr) {
+function parseInteger(ctx, str2, base3, startPtr) {
   if (ctx.bi !== true)
     int: {
-      let val = parseInt(str2, base2);
+      let val = parseInt(str2, base3);
       if (!Number.isSafeInteger(val)) {
         if (ctx.bi)
           break int;
@@ -1353,7 +1353,7 @@ function parseInteger(ctx, str2, base2, startPtr) {
       }
       return val;
     }
-  return base2 === 10 ? BigInt(str2) : BigInt((base2 === 2 ? "0b" : base2 === 8 ? "0o" : "0x") + str2);
+  return base3 === 10 ? BigInt(str2) : BigInt((base3 === 2 ? "0b" : base3 === 8 ? "0o" : "0x") + str2);
 }
 function parseDate(ctx, c, endChr) {
   let startPtr = ctx.p++, unsafeSeparator;
@@ -1884,12 +1884,16 @@ function recordBaseline(m, created) {
   for (const s of m.servers) servers[s.key] = serverFingerprint(s);
   return { version: 1, created, files: [...new Set(files)].sort(), servers };
 }
+function removedSinceBaseline(m) {
+  const b = m.ctx.baseline;
+  if (!b) return [];
+  const present = new Set(m.servers.map((s) => s.key));
+  const scanned = new Set(m.parsed.map((p) => p.file.path));
+  return Object.keys(b.servers).filter((key) => !present.has(key) && scanned.has(key.slice(0, key.lastIndexOf("#"))));
+}
 function checkDrift(m) {
   const b = m.ctx.baseline;
-  if (!b) {
-    if (m.servers.length) m.ctx.notes.push("No baseline recorded, so MCP drift wasn't checked. Run the baseline command once to start tracking changes.");
-    return [];
-  }
+  if (!b) return [];
   const recorded = new Set(b.files);
   const out = [];
   const seen = /* @__PURE__ */ new Set();
@@ -1926,11 +1930,9 @@ function checkDrift(m) {
       );
     }
   }
-  const scanned = new Set(m.parsed.map((p) => p.file.path));
-  for (const key of Object.keys(b.servers)) {
-    const file = key.slice(0, key.lastIndexOf("#"));
-    if (seen.has(key) || !scanned.has(file)) continue;
-    m.ctx.notes.push(`MCP server ${key.slice(key.lastIndexOf("#") + 1)} in ${file} was removed since the baseline.`);
+  for (const key of removedSinceBaseline(m)) {
+    if (seen.has(key)) continue;
+    m.ctx.notes.push(`MCP server ${key.slice(key.lastIndexOf("#") + 1)} in ${key.slice(0, key.lastIndexOf("#"))} was removed since the baseline.`);
   }
   return out;
 }
@@ -1989,7 +1991,7 @@ function globBody(pat) {
   }
   return out;
 }
-function parseIgnore(text, base2 = "") {
+function parseIgnore(text, base3 = "") {
   const out = [];
   for (const raw of text.split(/\r?\n/)) {
     let line = raw.replace(/(?<!\\)\s+$/, "");
@@ -2001,7 +2003,7 @@ function parseIgnore(text, base2 = "") {
     if (!line) continue;
     const anchored = line.includes("/");
     line = line.replace(/^\//, "");
-    const prefix = base2 ? `${base2.replace(/\/+$/, "")}/` : "";
+    const prefix = base3 ? `${base3.replace(/\/+$/, "")}/` : "";
     const lead = anchored ? "" : "(?:.*/)?";
     const esc = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     out.push({ re: new RegExp(`^${esc}${lead}${globBody(line)}$`), negate, dirOnly });
@@ -2052,9 +2054,9 @@ function gitIgnoresFile(fs3, home, project, rel) {
     const d = dirs.slice(0, i).join("/");
     sources.push([join(project, d, ".gitignore"), d]);
   }
-  for (const [path2, base2] of sources) {
+  for (const [path2, base3] of sources) {
     const text = fs3.readText(path2);
-    if (text !== void 0) patterns.push(...parseIgnore(text, base2));
+    if (text !== void 0) patterns.push(...parseIgnore(text, base3));
   }
   return isIgnored(patterns, rel);
 }
@@ -2197,7 +2199,7 @@ function defaultManagedDirs(platform) {
 
 // src/name.ts
 var TOOL_NAME = "whatsallowed";
-var TOOL_VERSION = "0.1.0";
+var TOOL_VERSION = "0.2.0";
 var BASELINE_DIR = ".whatsallowed";
 var BASELINE_FILE = "baseline.json";
 
@@ -2484,15 +2486,15 @@ function classifyAllowRule(rule) {
   if (/^\*\s/.test(inner) || inner === "*:*") return { rule: "ALLOW-001" };
   const words = inner.split(/\s+/);
   const first = (words[0] ?? "").replace(/:\*$|\*$/, "");
-  const base2 = first.split(/[\\/]/).pop()?.toLowerCase() ?? "";
+  const base3 = first.split(/[\\/]/).pop()?.toLowerCase() ?? "";
   const rest = inner.slice((words[0] ?? "").length);
   const flags = words.slice(1).map((w) => w.replace(/:\*$|\*+$/, "")).filter((w) => w !== "");
   if (m[1]?.toLowerCase() === "bash" && flags.length > 0 && flags.every((w) => INFO_FLAGS.has(w))) return void 0;
-  if (POWERFUL.has(base2) && (WILD_TAIL.test(rest) || /(?::\*|\*)$/.test(words[0] ?? "") && words.length === 1)) {
-    return { rule: "ALLOW-002", word: base2 };
+  if (POWERFUL.has(base3) && (WILD_TAIL.test(rest) || /(?::\*|\*)$/.test(words[0] ?? "") && words.length === 1)) {
+    return { rule: "ALLOW-002", word: base3 };
   }
   if (words.length >= 2) {
-    const pair = `${base2} ${(words[1] ?? "").replace(/:\*$|\*$/, "").toLowerCase()}`;
+    const pair = `${base3} ${(words[1] ?? "").replace(/:\*$|\*$/, "").toLowerCase()}`;
     const restPair = inner.slice(inner.indexOf(words[1] ?? "") + (words[1] ?? "").length);
     if (POWERFUL_PAIRS.has(pair) && (WILD_TAIL.test(restPair) || /(?::\*|\*)$/.test(words[1] ?? ""))) return { rule: "ALLOW-002", word: pair };
   }
@@ -2620,22 +2622,22 @@ function globToRegex(pat) {
 function readRuleMatches(rule, fileAbs, home, project) {
   let pat = rule.pattern.trim();
   if (pat === "" || pat === "**" || pat === "*" || pat === "//**" || pat === "./**") return true;
-  let base2;
+  let base3;
   const bare = !/^(?:\.\/|\/|~\/|~$)/.test(pat);
   if (pat.startsWith("//")) {
-    base2 = "/";
+    base3 = "/";
     pat = pat.slice(2);
   } else if (pat === "~" || pat.startsWith("~/")) {
-    base2 = home;
+    base3 = home;
     pat = pat.slice(2);
   } else if (pat.startsWith("/")) {
-    base2 = rule.sourceBase;
+    base3 = rule.sourceBase;
     pat = pat.slice(1);
   } else {
-    base2 = project;
+    base3 = project;
     if (pat.startsWith("./")) pat = pat.slice(2);
   }
-  const b = posixForMatch(base2);
+  const b = posixForMatch(base3);
   const target = posixForMatch(fileAbs);
   const prefix = b === "/" ? "/" : `${b}/`;
   if (!target.startsWith(prefix)) return false;
@@ -2681,17 +2683,26 @@ var hasToken = (name, text) => {
   if (/^\.npmrc$/i.test(name)) return /(?:_authToken|_auth|_password)\s*=\s*(?!\$\{)["']?[^\s"'$]{6,}/i.test(text);
   return /^\s*password\s*[=:]\s*(?!\$\{)\S{4,}/im.test(text);
 };
-function checkDeny(m) {
-  const { project, home, projectEntries, files } = m.ctx;
+function projectUsesClaude(m) {
+  const { project, projectEntries, files } = m.ctx;
   const proj = toPosix(project);
-  const usesClaude = projectEntries.some((p) => p.startsWith(`${proj}/.claude/`) || p === `${proj}/CLAUDE.md` || p === `${proj}/.mcp.json`) || files.some((f5) => f5.tool === "claude" && (f5.scope === "project" || f5.scope === "local"));
-  if (!usesClaude) return [];
+  return projectEntries.some((p) => p.startsWith(`${proj}/.claude/`) || p === `${proj}/CLAUDE.md` || p === `${proj}/.mcp.json`) || files.some((f5) => f5.tool === "claude" && (f5.scope === "project" || f5.scope === "local"));
+}
+function secretFilesToGuard(m) {
+  return m.ctx.files.filter((file) => {
+    if (file.kind !== "secret-file") return false;
+    const name = file.path.slice(file.path.lastIndexOf("/") + 1);
+    return !(/^\.(npmrc|pypirc)$/i.test(name) && !hasToken(name, file.text));
+  });
+}
+function checkDeny(m) {
+  if (!projectUsesClaude(m)) return [];
+  const { project, home } = m.ctx;
+  const proj = toPosix(project);
   const ruleSets = m.settings.map((p) => readDenyRules(p, home, proj));
   const out = [];
-  for (const file of files) {
-    if (file.kind !== "secret-file") continue;
+  for (const file of secretFilesToGuard(m)) {
     const name = file.path.slice(file.path.lastIndexOf("/") + 1);
-    if (/^\.(npmrc|pypirc)$/i.test(name) && !hasToken(name, file.text)) continue;
     if (ruleSets.some((rs) => coveredByFile(rs, file.path, home, proj))) continue;
     out.push(
       make("DENY", {
@@ -2712,7 +2723,7 @@ function checkDeny(m) {
 // src/model.ts
 var HELPER_KEYS = ["apiKeyHelper", "awsCredentialExport", "awsAuthRefresh", "otelHeadersHelper"];
 var JSON_KINDS = /* @__PURE__ */ new Set(["claude-settings", "claude-json", "mcp-json", "codex-hooks", "cursor-mcp", "plugin-hooks", "plugin-manifest"]);
-function serversFrom(p, map, base2, scope, keyPrefix = "") {
+function serversFrom(p, map, base3, scope, keyPrefix = "") {
   if (!isObj(map)) return [];
   const out = [];
   for (const [name, def] of Object.entries(map)) {
@@ -2725,7 +2736,7 @@ function serversFrom(p, map, base2, scope, keyPrefix = "") {
       name,
       key: `${p.file.path}#${keyPrefix}${name}`,
       def,
-      base: [...base2, name]
+      base: [...base3, name]
     });
   }
   return out;
@@ -2807,20 +2818,20 @@ function collectHandlers(p) {
     const h = get(v, "hooks");
     walkHooks(p, h ?? v, h ? ["hooks"] : [], out);
   }
-  const base2 = { file: p.file, doc: p.doc, scope: p.file.scope, type: "command", headers: {}, allowedEnvVars: [] };
+  const base3 = { file: p.file, doc: p.doc, scope: p.file.scope, type: "command", headers: {}, allowedEnvVars: [] };
   if (kind === "claude-settings") {
     for (const key of HELPER_KEYS) {
       const c = str(get(v, key));
-      if (c) out.push({ ...base2, command: c, path: [key], origin: key });
+      if (c) out.push({ ...base3, command: c, path: [key], origin: key });
     }
     const sl = get(v, "statusLine");
     const slc = isObj(sl) ? commandOf(sl) : void 0;
-    if (slc) out.push({ ...base2, command: slc, path: ["statusLine", "command"], origin: "statusLine" });
+    if (slc) out.push({ ...base3, command: slc, path: ["statusLine", "command"], origin: "statusLine" });
   }
   if (kind === "codex-config") {
     const n = get(v, "notify");
     const parts = Array.isArray(n) ? strArr(n) : typeof n === "string" ? [n] : [];
-    if (parts.length) out.push({ ...base2, command: parts.join(" "), path: ["notify"], origin: "notify" });
+    if (parts.length) out.push({ ...base3, command: parts.join(" "), path: ["notify"], origin: "notify" });
   }
   return out;
 }
@@ -3664,7 +3675,362 @@ function scan(opts) {
   findings.sort(
     (a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity] || a.file.localeCompare(b.file) || a.line - b.line || a.rule.localeCompare(b.rule)
   );
-  return { files, findings, notes: [...new Set(notes)], model };
+  return { mode: opts.mode, files, findings, notes: [...new Set(notes)], model };
+}
+
+// src/summary.ts
+var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+var cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+var CLAUDE_MODES = ["plan", "dontAsk", "default", "acceptEdits", "auto", "bypassPermissions"];
+var CLAUDE_MEANING = {
+  plan: "Claude Code can read files but not change them or run commands.",
+  dontAsk: "Claude Code refuses anything not already allowed, instead of asking you.",
+  default: "Claude Code asks before running commands or editing files.",
+  acceptEdits: "Claude Code edits files without asking, but asks before running commands.",
+  auto: "Claude Code approves most actions itself and asks you only about ones it judges risky.",
+  bypassPermissions: "Claude Code runs commands and edits files without asking you."
+};
+var CODEX_SANDBOX = ["read-only", "workspace-write", "danger-full-access"];
+var SANDBOX_MEANING = {
+  "read-only": "Codex commands can read files but not change them",
+  "workspace-write": "Codex commands can change files only inside the project",
+  "danger-full-access": "Codex commands have full access to your disk and network"
+};
+var CODEX_APPROVAL = ["untrusted", "on-request", "on-failure", "never"];
+var APPROVAL_MEANING = {
+  untrusted: "and Codex asks before running anything not on its trusted list.",
+  "on-request": "and Codex asks before going outside that.",
+  "on-failure": "and Codex asks only when a command fails in the sandbox.",
+  never: "and Codex never asks first."
+};
+var rankIn = (list, v) => list.indexOf(v);
+function modeSummary(m, findings) {
+  const items = [];
+  let claude;
+  for (const p of m.settings) {
+    const mode = str(get(p.doc.value, "permissions", "defaultMode")) ?? str(get(p.doc.value, "defaultMode"));
+    if (!mode) continue;
+    const ignored = (mode === "bypassPermissions" || mode === "auto") && (p.file.scope === "project" || p.file.scope === "local");
+    items.push(`Claude Code defaultMode "${mode}" (${p.file.display})${ignored ? ", ignored in a project file" : ""}`);
+    if (!ignored && rankIn(CLAUDE_MODES, mode) > rankIn(CLAUDE_MODES, claude ?? "")) claude = mode;
+  }
+  let sandbox;
+  let approval;
+  const codexSetting = (v, where) => {
+    const s = str(get(v, "sandbox_mode"));
+    const a = str(get(v, "approval_policy"));
+    if (s) {
+      items.push(`Codex sandbox_mode "${s}" (${where})`);
+      if (rankIn(CODEX_SANDBOX, s) > rankIn(CODEX_SANDBOX, sandbox ?? "")) sandbox = s;
+    }
+    if (a) {
+      items.push(`Codex approval_policy "${a}" (${where})`);
+      if (rankIn(CODEX_APPROVAL, a) > rankIn(CODEX_APPROVAL, approval ?? "")) approval = a;
+    }
+  };
+  for (const p of m.codex) {
+    codexSetting(p.doc.value, p.file.display);
+    const profiles = get(p.doc.value, "profiles");
+    if (isObj(profiles) && p.file.scope === "user") {
+      for (const [name, prof] of Object.entries(profiles)) codexSetting(prof, `${p.file.display}, profile ${name}`);
+    }
+  }
+  const broad = [];
+  const meaning = [];
+  if (claude) {
+    broad.push(`Claude Code "${claude}"`);
+    meaning.push(CLAUDE_MEANING[claude] ?? `Claude Code uses the "${claude}" mode.`);
+  }
+  if (sandbox || approval) {
+    broad.push(`Codex ${[sandbox && `"${sandbox}"`, approval && `approval "${approval}"`].filter(Boolean).join(" with ")}`);
+    const s = sandbox ? SANDBOX_MEANING[sandbox] : void 0;
+    const a = approval ? APPROVAL_MEANING[approval] : void 0;
+    if (s && a) meaning.push(`${s}, ${a}`);
+    else if (s) meaning.push(`${s}.`);
+    else if (a) meaning.push(cap(a.replace(/^and /, "")));
+  }
+  if (!items.length) {
+    return base2("MODE", findings, {
+      count: 0,
+      text: "No permission mode set in the files checked.",
+      meaning: "Claude Code and Codex use their default modes. Claude Code's default asks before running commands or editing files.",
+      items
+    });
+  }
+  return base2("MODE", findings, {
+    count: items.length,
+    broadest: broad.join("; ") || void 0,
+    text: `${plural(items.length, "mode setting", "mode settings")}.${broad.length ? ` Broadest: ${broad.join("; ")}.` : ""}`,
+    meaning: meaning.join(" ") || "Claude Code ignores these modes in project files, so your own setting or its default applies.",
+    items
+  });
+}
+var WEBFETCH_ANY = /^WebFetch(?:\(\s*(?:domain:\s*\*|\*)?\s*\))?$/i;
+function allowRank(rule) {
+  const v = classifyAllowRule(rule);
+  if (v?.rule === "ALLOW-001") return 5;
+  if (v?.rule === "ALLOW-002") return 4;
+  if (WEBFETCH_ANY.test(rule.trim())) return 3;
+  if (/^(?:Bash|PowerShell)\(.*\*.*\)$/is.test(rule.trim())) return 2;
+  if (/^(?:Bash|PowerShell)\b/i.test(rule.trim())) return 1;
+  return 0;
+}
+function allowSummary(m, findings) {
+  const items = [];
+  let broadest;
+  let best = -1;
+  let dirs = 0;
+  for (const p of m.settings) {
+    for (const rule of strArr(get(p.doc.value, "permissions", "allow"))) {
+      items.push(`${rule} (${p.file.display})`);
+      const r = allowRank(rule);
+      if (r > best) best = r, broadest = rule;
+    }
+    dirs += strArr(get(p.doc.value, "permissions", "additionalDirectories")).length;
+  }
+  const rules = items.length;
+  const extra = dirs ? ` Extra folders it can work in: ${dirs}.` : "";
+  if (!rules) {
+    return base2("ALLOW", findings, {
+      count: 0,
+      text: `No allow rules.${extra}`,
+      meaning: "Claude Code asks before anything your permission mode doesn't already allow.",
+      items
+    });
+  }
+  const wide = findings.filter((f5) => f5.rule === "ALLOW-001" || f5.rule === "ALLOW-002" || f5.rule === "ALLOW-003").length;
+  return base2("ALLOW", findings, {
+    count: rules,
+    broadest,
+    text: `${plural(rules, "allow rule", "allow rules")}. Broadest: ${broadest}.${extra}`,
+    meaning: `Claude Code does what these rules match without asking you. ${wide ? `${plural(wide, "rule approves", "rules approve")} every command, a powerful program with any arguments, or any web address.` : "None approves every command, a powerful program with any arguments, or any web address."}`,
+    items
+  });
+}
+function denySummary(m, findings) {
+  const items = [];
+  for (const p of m.settings) for (const rule of strArr(get(p.doc.value, "permissions", "deny"))) items.push(`${rule} (${p.file.display})`);
+  const rules = plural(items.length, "deny rule", "deny rules");
+  if (!projectUsesClaude(m)) {
+    return base2("DENY", findings, {
+      checked: false,
+      count: items.length,
+      text: `${cap(rules)}. Secrets files weren't checked: this project has no Claude Code files.`,
+      meaning: "Deny rules stop Claude Code reading the files or running the commands they match.",
+      items
+    });
+  }
+  const secrets = secretFilesToGuard(m);
+  const open = findings.filter((f5) => f5.rule === "DENY-001").length;
+  const where = "in the top two folder levels of this project";
+  const fileText = !secrets.length ? `No .env, key or credentials files ${where}.` : secrets.length === 1 ? `The 1 secrets file ${where} ${open ? "isn't" : "is"} blocked from reading.` : open ? `${open} of ${secrets.length} secrets files ${where} ${open === 1 ? "isn't" : "aren't"} blocked from reading.` : `All ${secrets.length} secrets files ${where} are blocked from reading.`;
+  return base2("DENY", findings, {
+    count: items.length,
+    text: `${cap(rules)}. ${fileText}`,
+    meaning: "Deny rules stop Claude Code reading the files or running the commands they match.",
+    items: [...items, ...secrets.map((f5) => `secrets file ${f5.display}`)]
+  });
+}
+function endpointSummary(m, findings) {
+  const files = m.settings.filter((p) => p.file.scope === "project" || p.file.scope === "local");
+  const items = findings.map((f5) => `${f5.match.split(/[=:]/)[0] ?? f5.match} (${f5.file})`);
+  if (!files.length) {
+    return base2("ENDPOINT", findings, {
+      count: 0,
+      text: "No project settings files to check.",
+      meaning: "This check reads only settings that come with a project, not your own user settings.",
+      items
+    });
+  }
+  const n = plural(files.length, "project settings file", "project settings files");
+  return base2("ENDPOINT", findings, {
+    count: files.length,
+    text: findings.length ? `${n}. ${plural(findings.length, "setting changes", "settings change")} where your requests go or which credentials they use.` : `${n}. None changes where your requests go or which credentials they use.`,
+    meaning: findings.length ? "A project setting can send your prompts and code somewhere other than the provider you chose." : "Your prompts and code go where your own settings send them.",
+    items
+  });
+}
+var program = (h) => {
+  const w = shellWords(h.command ?? "")[0] ?? "";
+  return w.split(/[\\/]/).pop() ?? w;
+};
+function hookSummary(m, findings) {
+  const cmds = m.handlers.filter((h) => h.type === "command" && h.command);
+  const items = cmds.map((h) => `${h.origin} in ${h.file.display}: ${program(h)}`);
+  if (!cmds.length) {
+    return base2("HOOK", findings, {
+      count: 0,
+      text: "No hooks, status line or helper commands.",
+      meaning: "Nothing in these files runs by itself when your agent acts.",
+      items
+    });
+  }
+  const by = (o) => cmds.filter(o).length;
+  const parts = [
+    [by((h) => h.origin === "hook"), "hook", "hooks"],
+    [by((h) => h.origin === "statusLine"), "status line", "status lines"],
+    [by((h) => h.origin === "notify"), "Codex notify command", "Codex notify commands"],
+    [by((h) => h.origin !== "hook" && h.origin !== "statusLine" && h.origin !== "notify"), "credential helper", "credential helpers"]
+  ];
+  const shared = by((h) => h.scope === "project" || h.scope === "plugin");
+  return base2("HOOK", findings, {
+    count: cmds.length,
+    text: `${plural(cmds.length, "command that runs by itself", "commands that run by themselves")}: ${parts.filter(([n]) => n > 0).map(([n, one, many]) => plural(n, one, many)).join(", ")}.${shared ? ` ${shared} ${shared === 1 ? "comes" : "come"} from a repository or plugin.` : ""}`,
+    meaning: `These run without asking you when events happen. ${findings.length ? `${plural(findings.length, "downloads and runs code, runs an encoded payload or opens a reverse shell", "download and run code, run an encoded payload or open a reverse shell")}.` : "None downloads and runs code, runs an encoded payload or opens a reverse shell."}`,
+    items
+  });
+}
+function httpHookSummary(m, findings) {
+  const http = m.handlers.filter((h) => h.type === "http" && h.url);
+  const hostOf2 = (h) => parseUrl(h.url ?? "")?.host ?? "(unreadable address)";
+  const items = http.map((h) => `${hostOf2(h)} (${h.file.display})`);
+  if (!http.length) {
+    return base2("HTTPHOOK", findings, {
+      count: 0,
+      text: "No HTTP hooks.",
+      meaning: "No hook sends details of your sessions to a web address.",
+      items
+    });
+  }
+  const remote = [...new Set(http.filter((h) => !isLoopback(parseUrl(h.url ?? "")?.hostname ?? "")).map(hostOf2))];
+  return base2("HTTPHOOK", findings, {
+    count: http.length,
+    text: `${plural(http.length, "HTTP hook", "HTTP hooks")}. ${remote.length ? `Hosts off this machine: ${remote.slice(0, 3).join(", ")}${remote.length > 3 ? `, and ${remote.length - 3} more` : ""}.` : "All post to this machine."}`,
+    meaning: "Each one sends details of what your agent does, such as prompts and tool output, to its address.",
+    items
+  });
+}
+var TOOL_LABEL = { claude: "Claude Code", codex: "Codex", cursor: "Cursor", gemini: "Gemini", agents: "shared" };
+function launchOf(s) {
+  const command = s.def.command;
+  const args = strArr(s.def.args);
+  const argv0 = Array.isArray(command) ? strArr(command) : typeof command === "string" ? args.length ? [command] : shellWords(command) : [];
+  return unwrap([...argv0, ...args]).argv;
+}
+function mcpSummary(m, findings) {
+  const servers = m.servers;
+  if (!servers.length) {
+    return base2("MCP", findings, {
+      count: 0,
+      text: "No MCP servers.",
+      meaning: "Your agent has no extra tools or services from MCP servers in these files.",
+      items: []
+    });
+  }
+  let remote = 0;
+  let packages = 0;
+  let unpinned = 0;
+  const items = servers.map((s) => {
+    const url = str(s.def.url) ?? str(s.def.serverUrl) ?? str(s.def.httpUrl);
+    const where = `${TOOL_LABEL[s.tool] ?? s.tool}, ${s.file.display}`;
+    if (url && s.def.command === void 0) {
+      remote++;
+      return `"${s.name}" (${where}): remote, ${parseUrl(url)?.host ?? "unreadable address"}`;
+    }
+    const r = findRunner(launchOf(s));
+    if (r) {
+      packages++;
+      if (!r.pinned) unpinned++;
+      return `"${s.name}" (${where}): ${r.runner} ${r.pkg}`;
+    }
+    return `"${s.name}" (${where}): local program`;
+  });
+  const local = servers.length - remote;
+  const tools = Object.entries(
+    servers.reduce((acc, s) => (acc[TOOL_LABEL[s.tool] ?? s.tool] = (acc[TOOL_LABEL[s.tool] ?? s.tool] ?? 0) + 1, acc), {})
+  ).map(([t, n]) => `${t} ${n}`).join(", ");
+  const pins = !packages ? "" : unpinned ? packages === 1 ? " The downloaded package isn't pinned to an exact version." : ` ${unpinned} of ${packages} downloaded packages ${unpinned === 1 ? "isn't" : "aren't"} pinned to an exact version.` : ` ${packages === 1 ? "The downloaded package is" : `All ${packages} downloaded packages are`} pinned to an exact version.`;
+  return base2("MCP", findings, {
+    count: servers.length,
+    text: `${plural(servers.length, "MCP server", "MCP servers")} (${tools}): ${local} started on this machine, ${remote} remote.${pins}`,
+    meaning: "Your agent can call these servers' tools while it works, with your access.",
+    items
+  });
+}
+function driftSummary(m, findings) {
+  const b = m.ctx.baseline;
+  if (!b) {
+    if (!m.servers.length) {
+      return base2("DRIFT", findings, { count: 0, text: "No MCP servers, so there is nothing to compare.", meaning: "A baseline is only useful once you have MCP servers.", items: [] });
+    }
+    return base2("DRIFT", findings, {
+      checked: false,
+      count: 0,
+      text: "Not checked yet: no baseline recorded.",
+      meaning: "A baseline saves your MCP server settings so later scans can spot one whose command or address changed.",
+      fix: `npx ${TOOL_NAME} baseline`,
+      items: []
+    });
+  }
+  const changed = findings.filter((f5) => f5.rule === "DRIFT-001");
+  const added = findings.filter((f5) => f5.rule === "DRIFT-002");
+  const removed = removedSinceBaseline(m);
+  const items = [
+    ...changed.map((f5) => `changed: "${f5.match}" (${f5.file})`),
+    ...added.map((f5) => `new: "${f5.match}" (${f5.file})`),
+    ...removed.map((k) => `removed: "${k.slice(k.lastIndexOf("#") + 1)}"`)
+  ];
+  return base2("DRIFT", findings, {
+    count: Object.keys(b.servers).length,
+    text: `Baseline of ${b.created.slice(0, 10)}, ${plural(Object.keys(b.servers).length, "server", "servers")}: ${changed.length} changed, ${added.length} new, ${removed.length} removed since then.`,
+    meaning: changed.length ? "A server that changed may now run different code or connect somewhere else." : "No recorded server's command, arguments, address or environment has changed.",
+    items
+  });
+}
+function secretSummary(m, findings) {
+  const docs = m.ctx.files.filter((f5) => f5.kind === "instructions");
+  const count = (v) => isObj(v) ? Object.values(v).filter((x) => typeof x === "string").length : 0;
+  let values = 0;
+  for (const s of m.servers) for (const block of ["env", "headers", "http_headers"]) values += count(get(s.def, block));
+  for (const p of m.settings) values += count(get(p.doc.value, "env"));
+  const items = docs.map((f5) => f5.display);
+  return base2("SECRET", findings, {
+    count: docs.length + values,
+    text: `Looked for keys and tokens in ${plural(docs.length, "instruction file", "instruction files")} and ${plural(values, "settings or MCP value", "settings and MCP values")}.`,
+    meaning: findings.length ? `${plural(findings.length, "key or token is", "keys or tokens are")} written in plain text. Anyone who can read the file can use ${findings.length === 1 ? "it" : "them"}.` : "None holds a key or token in plain text that this check recognises.",
+    items
+  });
+}
+function skillSummary(m, findings) {
+  const scripts = m.ctx.files.filter((f5) => f5.kind === "script" && f5.text !== void 0 && !/\.min\.[cm]?js$/i.test(f5.path));
+  const plugin = scripts.filter((f5) => f5.scope === "plugin").length;
+  if (!scripts.length) {
+    return base2("SKILL", findings, { count: 0, text: "No skill or plugin scripts.", meaning: "No skill or plugin in these folders brings its own scripts.", items: [] });
+  }
+  return base2("SKILL", findings, {
+    count: scripts.length,
+    text: `${plural(scripts.length, "skill or plugin script", "skill and plugin scripts")}${plugin ? `, ${plugin} of them from plugins` : ""}.`,
+    meaning: `Your agent can run these when it uses a skill or plugin. ${findings.length ? `${plural(findings.length, "line downloads and runs code, runs an encoded payload or opens a reverse shell", "lines download and run code, run an encoded payload or open a reverse shell")}.` : "None downloads and runs code, runs an encoded payload or opens a reverse shell."}`,
+    items: scripts.map((f5) => f5.display)
+  });
+}
+function base2(check, all, s) {
+  const findings = { high: 0, medium: 0, info: 0 };
+  for (const f5 of all) findings[f5.severity]++;
+  return { check, checked: s.checked ?? true, count: s.count, findings, broadest: s.broadest, text: s.text, meaning: s.meaning, fix: s.fix, items: s.items };
+}
+var BUILDERS = {
+  MODE: modeSummary,
+  ALLOW: allowSummary,
+  DENY: denySummary,
+  ENDPOINT: endpointSummary,
+  HOOK: hookSummary,
+  HTTPHOOK: httpHookSummary,
+  MCP: mcpSummary,
+  DRIFT: driftSummary,
+  SECRET: secretSummary,
+  SKILL: skillSummary
+};
+function summarize(r) {
+  const byTool = (t) => r.files.filter((f5) => f5.tool === t).length;
+  const claude = byTool("claude");
+  const codex = byTool("codex");
+  const cursor = byTool("cursor");
+  return {
+    scope: r.mode,
+    files: { total: r.files.length, claude, codex, cursor, other: r.files.length - claude - codex - cursor },
+    checks: Object.keys(BUILDERS).map((id) => BUILDERS[id](r.model, r.findings.filter((f5) => f5.check === id)))
+  };
 }
 
 // src/output.ts
@@ -3686,7 +4052,38 @@ var TERMS = {
   SECRET: "Secret: a password, key or token. Anyone who has it can act as you.",
   SKILL: "Skill or plugin: an add-on that gives your agent extra abilities, often with its own scripts."
 };
-var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+var plural2 = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+var SCOPE_TEXT = {
+  all: "this project folder and your user settings. Other projects on this machine aren't read.",
+  project: "this project folder only (--project-only).",
+  user: "your user settings only (--user-only)."
+};
+function formatSummary(s, opts) {
+  const c = (code, x) => opts.color ? `${ANSI[code]}${x}${ANSI.reset}` : x;
+  const pad = (label) => `  ${label.padEnd(10)}`;
+  const indent = " ".repeat(12);
+  const lines = [c("bold", `Summary: ${SCOPE_TEXT[s.scope]}`), ""];
+  const f5 = s.files;
+  const tools = [
+    ["Claude Code", f5.claude],
+    ["Codex", f5.codex],
+    ["Cursor", f5.cursor]
+  ];
+  const found = tools.filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`);
+  if (f5.other) found.push(`other ${f5.other}`);
+  const missing = tools.filter(([, n]) => n === 0).map(([t]) => t);
+  lines.push(
+    `${pad("Files")}${f5.total} read: ${found.join(", ")}.${missing.length ? ` ${missing.join(" or ")}: no files found.` : ""}`,
+    c("dim", `${indent}Settings, instruction files, skill scripts, and secrets files such as .env.`)
+  );
+  for (const x of s.checks) {
+    lines.push(`${pad(x.check)}${x.text}${x.fix ? ` Run: ${x.fix}` : ""}`, c("dim", `${indent}${x.meaning}`));
+    if (opts.verbose) for (const item of x.items) lines.push(c("dim", `${indent}- ${item}`));
+  }
+  if (!opts.verbose && s.checks.some((x) => x.items.length)) lines.push("", c("dim", "Add --verbose to list every rule, server, hook and file counted."));
+  lines.push("");
+  return lines;
+}
 function formatText(r, opts) {
   const c = (code, s) => opts.color ? `${ANSI[code]}${s}${ANSI.reset}` : s;
   const lines = [];
@@ -3694,18 +4091,18 @@ function formatText(r, opts) {
   const medium = r.findings.filter((f5) => f5.severity === "medium");
   const infos = r.findings.filter((f5) => f5.severity === "info");
   const alerts = high.length + medium.length;
-  const checked = plural(r.files.length, "settings file", "settings files");
+  const checked = plural2(r.files.length, "file", "files");
   lines.push(`${c("bold", TOOL_NAME)} ${TOOL_VERSION}. This is a read-only check: it changes nothing and sends nothing anywhere.`, "");
   if (!r.files.length) {
     lines.push(c("bold", "Nothing was checked: no agent settings files were found here."));
     lines.push("Run it from a project folder, or see --help.");
   } else if (!alerts) {
     lines.push(c("bold", `No high or medium findings in the ${checked} checked.`));
-    lines.push("That is good news, but it does not promise your setup is safe.");
+    lines.push("The summary at the end shows what was checked.");
   } else if (high.length) {
-    lines.push(c("red", `${plural(alerts, "thing", "things")} to look at in the ${checked} checked. ${plural(high.length, "needs", "need")} attention first.`));
+    lines.push(c("red", `${plural2(alerts, "thing", "things")} to look at in the ${checked} checked. ${plural2(high.length, "needs", "need")} attention first.`));
   } else {
-    lines.push(c("yellow", `${plural(alerts, "thing", "things")} worth a look in the ${checked} checked. Nothing needs urgent attention.`));
+    lines.push(c("yellow", `${plural2(alerts, "thing", "things")} worth a look in the ${checked} checked. Nothing needs urgent attention.`));
   }
   lines.push("");
   const seenTerms = /* @__PURE__ */ new Set();
@@ -3729,10 +4126,11 @@ function formatText(r, opts) {
   group("Worth checking", "Medium: risky in some set-ups, harmless in others.", medium, "yellow");
   if (infos.length) {
     if (opts.verbose) group("For your information", "Not a problem on its own.", infos, "dim");
-    else lines.push(c("dim", `${plural(infos.length, "lower-priority note is", "lower-priority notes are")} hidden. Add --verbose to see ${infos.length === 1 ? "it" : "them"}.`), "");
+    else lines.push(c("dim", `${plural2(infos.length, "lower-priority note is", "lower-priority notes are")} hidden. Add --verbose to see ${infos.length === 1 ? "it" : "them"}.`), "");
   }
   for (const n of r.notes) lines.push(c("dim", `Note: ${n}`));
   if (r.notes.length) lines.push("");
+  if (r.files.length) lines.push(...formatSummary(summarize(r), opts));
   if (alerts) lines.push('Nothing has been changed. If you decide to act, you make the change yourself; the "What you could do" lines say how.');
   lines.push(c("dim", "This is a configuration check, not a security assessment. A clean result doesn't mean a setup is safe."));
   lines.push(c("dim", "Writing a script? Use --format json for the same findings in a stable, machine-readable form."));
@@ -3745,7 +4143,8 @@ function formatJson(r) {
       version: TOOL_VERSION,
       files: r.files.map((f5) => ({ path: f5.display, tool: f5.tool, kind: f5.kind, scope: f5.scope })),
       findings: r.findings,
-      notes: r.notes
+      notes: r.notes,
+      summary: summarize(r)
     },
     null,
     2
@@ -3920,9 +4319,9 @@ Run ${TOOL_NAME} --help for usage.
 `);
       return 2;
     }
-    const base2 = { fs: nodeFs, home, project, mode: args.mode, managedDirs: defaultManagedDirs(io.platform) };
+    const base3 = { fs: nodeFs, home, project, mode: args.mode, managedDirs: defaultManagedDirs(io.platform) };
     if (args.command === "baseline") {
-      const r2 = scan(base2);
+      const r2 = scan(base3);
       const b = recordBaseline(r2.model, (/* @__PURE__ */ new Date()).toISOString());
       if (!writeBaseline(baselineFile, b, args.reset)) {
         io.err(`${TOOL_NAME}: a baseline already exists at ${baselineFile}. Pass --reset-baseline to replace it.
@@ -3934,7 +4333,7 @@ Run ${TOOL_NAME} --help for usage.
       return 0;
     }
     const baseline = readBaseline(baselineFile);
-    const r = scan({ ...base2, baseline });
+    const r = scan({ ...base3, baseline });
     if (args.command === "inventory") return io.out(formatInventory(r)), 0;
     if (args.format === "json") io.out(formatJson(r));
     else if (args.format === "sarif") io.out(formatSarif(r));

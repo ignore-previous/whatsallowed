@@ -8,6 +8,7 @@ import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { cliEntries, nodeFlags } from "./node-entry.ts";
 
 const repo = resolve(import.meta.dirname, "..");
 let root: string;
@@ -41,7 +42,7 @@ function snapshot(dir: string): string[] {
 
 function runCli(entry: string, args: string[]): ReturnType<typeof spawnSync> {
   const home = join(root, "home");
-  return spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", entry, ...args], {
+  return spawnSync(process.execPath, [...nodeFlags(entry), entry, ...args], {
     cwd: join(root, "workdir"), // a separate working folder, so "no new file in the working directory" is checkable
     env: { ...process.env, HOME: home, USERPROFILE: home, NO_COLOR: "1" },
     encoding: "utf8",
@@ -70,7 +71,8 @@ beforeAll(() => {
 });
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
-const entries = [join(repo, "src/cli.ts"), join(repo, "dist/cli.mjs")].filter((p) => existsSync(p));
+const entries = cliEntries(repo);
+const firstEntry = entries[0] ?? join(repo, "dist/cli.mjs");
 const scans: string[][] = [
   [],
   ["--verbose"],
@@ -104,7 +106,7 @@ describe("a scan writes no files", () => {
     rmSync(join(home, ".whatsallowed"), { recursive: true });
     try {
       const before = snapshot(root);
-      expect([0, 1]).toContain(runCli(join(repo, "src/cli.ts"), []).status);
+      expect([0, 1]).toContain(runCli(firstEntry, []).status);
       expect(snapshot(root)).toEqual(before);
       expect(existsSync(join(home, ".whatsallowed"))).toBe(false);
     } finally {
@@ -116,7 +118,7 @@ describe("a scan writes no files", () => {
   it("the tree check can see a write: the baseline command adds exactly the one file it is given", () => {
     const target = join(root, "new-baseline.json");
     const before = snapshot(root);
-    expect(runCli(join(repo, "src/cli.ts"), ["baseline", "--baseline", target]).status).toBe(0);
+    expect(runCli(firstEntry, ["baseline", "--baseline", target]).status).toBe(0);
     const after = snapshot(root);
     expect(after.filter((l) => !before.includes(l)).map((l) => l.split(" ")[1])).toEqual(["new-baseline.json"]);
     rmSync(target);

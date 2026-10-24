@@ -1,7 +1,7 @@
 import { toPosix } from "../fsys.ts";
 import type { Model, Parsed } from "../model.ts";
 import { get, strArr } from "../parse.ts";
-import type { Finding } from "../types.ts";
+import type { ConfigFile, Finding } from "../types.ts";
 import { make } from "./util.ts";
 
 /** Windows paths become /c/... before matching, as Claude Code does. */
@@ -119,19 +119,33 @@ const hasToken = (name: string, text: string | undefined): boolean => {
   return /^\s*password\s*[=:]\s*(?!\$\{)\S{4,}/im.test(text);
 };
 
-export function checkDeny(m: Model): Finding[] {
-  const { project, home, projectEntries, files } = m.ctx;
+/** The DENY check applies only to projects that use Claude Code. */
+export function projectUsesClaude(m: Model): boolean {
+  const { project, projectEntries, files } = m.ctx;
   const proj = toPosix(project);
-  const usesClaude =
+  return (
     projectEntries.some((p) => p.startsWith(`${proj}/.claude/`) || p === `${proj}/CLAUDE.md` || p === `${proj}/.mcp.json`) ||
-    files.some((f) => f.tool === "claude" && (f.scope === "project" || f.scope === "local"));
-  if (!usesClaude) return [];
+    files.some((f) => f.tool === "claude" && (f.scope === "project" || f.scope === "local"))
+  );
+}
+
+/** Secrets files in the project that a deny rule should cover (.npmrc and .pypirc only when they hold a token). */
+export function secretFilesToGuard(m: Model): ConfigFile[] {
+  return m.ctx.files.filter((file) => {
+    if (file.kind !== "secret-file") return false;
+    const name = file.path.slice(file.path.lastIndexOf("/") + 1);
+    return !(/^\.(npmrc|pypirc)$/i.test(name) && !hasToken(name, file.text));
+  });
+}
+
+export function checkDeny(m: Model): Finding[] {
+  if (!projectUsesClaude(m)) return [];
+  const { project, home } = m.ctx;
+  const proj = toPosix(project);
   const ruleSets = m.settings.map((p) => readDenyRules(p, home, proj));
   const out: Finding[] = [];
-  for (const file of files) {
-    if (file.kind !== "secret-file") continue;
+  for (const file of secretFilesToGuard(m)) {
     const name = file.path.slice(file.path.lastIndexOf("/") + 1);
-    if (/^\.(npmrc|pypirc)$/i.test(name) && !hasToken(name, file.text)) continue;
     if (ruleSets.some((rs) => coveredByFile(rs, file.path, home, proj))) continue;
     out.push(
       make("DENY", {

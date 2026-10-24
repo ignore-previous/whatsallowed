@@ -35,8 +35,8 @@ describe("exit codes", () => {
     put(project, ".claude/settings.json", { permissions: { allow: ["Bash(npm test)"] } });
     const r = cli([]);
     expect(r.code).toBe(0);
-    expect(r.out).toContain("No high or medium findings in the 1 settings file checked.");
-    expect(r.out).toContain("does not promise your setup is safe");
+    expect(r.out).toContain("No high or medium findings in the 1 file checked.");
+    expect(r.out).toContain("Summary: this project folder and your user settings.");
     expect(r.out).toContain("not a security assessment");
   });
   it("says nothing was checked when no config files exist", () => {
@@ -112,7 +112,7 @@ describe("beginner-first text output", () => {
     put(project, ".claude/settings.json", { permissions: { allow: ["Bash(*)", "Bash(curl *)"] } });
     const lines = cli([]).out.split("\n");
     expect(lines[0]).toContain("read-only check");
-    expect(lines[2]).toBe("2 things to look at in the 1 settings file checked. 1 needs attention first.");
+    expect(lines[2]).toBe("2 things to look at in the 1 file checked. 1 needs attention first.");
     const out = lines.join("\n");
     expect(out.indexOf("Look at these first (1)")).toBeGreaterThan(-1);
     expect(out.indexOf("Look at these first (1)")).toBeLessThan(out.indexOf("Worth checking (1)"));
@@ -135,7 +135,7 @@ describe("beginner-first text output", () => {
   it("says nothing needs urgent attention when only medium findings exist", () => {
     put(project, ".mcp.json", { mcpServers: { a: { command: "npx", args: ["pkg"] } } });
     const out = cli([]).out;
-    expect(out).toContain("1 thing worth a look in the 1 settings file checked. Nothing needs urgent attention.");
+    expect(out).toContain("1 thing worth a look in the 1 file checked. Nothing needs urgent attention.");
     expect(out).not.toContain("Look at these first");
   });
   it("keeps --verbose working: info notes are hidden by default and shown with it", () => {
@@ -156,10 +156,10 @@ describe("beginner-first text output", () => {
     expect(colour).toContain("\x1b[");
     expect(colour.replace(/\x1b\[\d+m/g, "")).toBe(plain);
   });
-  it("--format json is unchanged: same keys, same finding fields", () => {
+  it("--format json keeps its keys and finding fields, and adds the summary", () => {
     put(project, ".claude/settings.json", { permissions: { allow: ["Bash(*)"] } });
     const j = JSON.parse(cli(["--format", "json"]).out);
-    expect(Object.keys(j)).toEqual(["tool", "version", "files", "findings", "notes"]);
+    expect(Object.keys(j)).toEqual(["tool", "version", "files", "findings", "notes", "summary"]);
     expect(Object.keys(j.findings[0])).toEqual(["rule", "check", "severity", "title", "file", "line", "match", "why", "fix"]);
     expect(Object.keys(j.files[0])).toEqual(["path", "tool", "kind", "scope"]);
   });

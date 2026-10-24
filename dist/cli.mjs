@@ -2238,9 +2238,15 @@ var CREDENTIAL_WORD = "token|secret|passw|pwd|passphrase|(?<!by)pass|key|auth|cr
 var VALUE = String.raw`"[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")]+`;
 var LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
 var SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
-var MYSQL_P = new RegExp(String.raw`(?<=\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,500}\s-p)(?!\s)(?:${VALUE})`, "g");
+var anyCase = (word) => word.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`);
+var MYSQL_NAMES = ["mysql", "mysqldump", "mysqladmin", "mysqlimport", "mysqlcheck", "mysqlshow", "mysqlslap", "mysqlsh", "mysql_upgrade", "mariadb", "mycli"].map(anyCase).join("|");
+var MYSQL_P = new RegExp(String.raw`(?<=\b(?:${MYSQL_NAMES})\b[^|;&\n]{0,500}\s-p)(?!\s)(?:${VALUE})`, "g");
+var MYSQL_P_QUOTED = new RegExp(
+  String.raw`(?<=\b(?:${MYSQL_NAMES})\b(?:"[^"\n]{0,200}"|'[^'\n]{0,200}'|[^|;&\n'"]){0,500}\s-p)(?!\s)(?:${VALUE})`,
+  "g"
+);
 var LONG_FLAG = new RegExp(
-  String.raw`(?!--?(?:[A-Za-z-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![A-Za-z-]))(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)`,
+  String.raw`(?!--?(?:[\w.-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![\w.-]|=))(--?[\w.-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[\w.-]{0,30})([=\s]\s{0,5})([^\s'")*]+)`,
   "gi"
 );
 var ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&:;,])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");
@@ -2260,9 +2266,11 @@ var TOKEN_SHAPES = new RegExp(
   ].join("|"),
   "g"
 );
+var noControl = (text) => text.replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g, "?");
 function scrub(text, limit = MAX_SHOWN) {
-  const t = text.length > limit ? `${text.slice(0, limit)}\u2026` : text;
-  return t.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(ASSIGNMENT, "$1$2=\u2022\u2022\u2022").replace(LONG_FLAG, "$1$2\u2022\u2022\u2022").replace(/\blogin\b[^|;&\n]{0,150}/gi, (seg) => seg.replace(LOGIN_P, "$1\u2022\u2022\u2022")).replace(SSHPASS_P, "$1\u2022\u2022\u2022").replace(MYSQL_P, "\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]{1,200}@/g, "$1\u2022\u2022\u2022@").replace(/(\/\/)[^/\s@]{1,200}…$/, "$1\u2022\u2022\u2022\u2026").replace(TOKEN_SHAPES, "\u2022\u2022\u2022");
+  const cut = text.length > limit ? `${text.slice(0, limit)}\u2026` : text;
+  const t = noControl(cut);
+  return t.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(ASSIGNMENT, "$1$2=\u2022\u2022\u2022").replace(LONG_FLAG, "$1$2\u2022\u2022\u2022").replace(/\blogin\b[^|;&\n]{0,150}/gi, (seg) => seg.replace(LOGIN_P, "$1\u2022\u2022\u2022")).replace(SSHPASS_P, "$1\u2022\u2022\u2022").replace(MYSQL_P, "\u2022\u2022\u2022").replace(MYSQL_P_QUOTED, "\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]{1,200}@/g, "$1\u2022\u2022\u2022@").replace(/(\/\/)[^/\s@]{1,200}…$/, "$1\u2022\u2022\u2022\u2026").replace(TOKEN_SHAPES, "\u2022\u2022\u2022");
 }
 
 // src/checks/util.ts
@@ -2365,7 +2373,7 @@ function checkDrift(m) {
   for (const key of removedSinceBaseline(m)) {
     if (seen.has(key)) continue;
     const at = key.lastIndexOf("#");
-    m.ctx.notes.push(`MCP server ${key.slice(at + 1)} in ${displayPath(key.slice(0, at), m.ctx.home, m.ctx.project)} was removed since the baseline.`);
+    m.ctx.notes.push(`MCP server ${scrub(key.slice(at + 1))} in ${displayPath(key.slice(0, at), m.ctx.home, m.ctx.project)} was removed since the baseline.`);
   }
   return out;
 }
@@ -4123,7 +4131,7 @@ function modeSummary(m, findings) {
     const mode = str(get(p.doc.value, "permissions", "defaultMode")) ?? str(get(p.doc.value, "defaultMode"));
     if (!mode) continue;
     const ignored = (mode === "bypassPermissions" || mode === "auto") && (p.file.scope === "project" || p.file.scope === "local");
-    items.push(`Claude Code defaultMode "${mode}" (${p.file.display})${ignored ? ", ignored in a project file" : ""}`);
+    items.push(`Claude Code defaultMode "${scrub(mode)}" (${p.file.display})${ignored ? ", ignored in a project file" : ""}`);
     if (ignored) ignoredModes++;
     if (!ignored && rankIn(CLAUDE_MODES, mode) > rankIn(CLAUDE_MODES, claude ?? "")) claude = mode;
   }
@@ -4133,11 +4141,11 @@ function modeSummary(m, findings) {
     const s = str(get(v, "sandbox_mode"));
     const a = str(get(v, "approval_policy"));
     if (s) {
-      items.push(`Codex sandbox_mode "${s}" (${where})`);
+      items.push(`Codex sandbox_mode "${scrub(s)}" (${where})`);
       if (rankIn(CODEX_SANDBOX, s) > rankIn(CODEX_SANDBOX, sandbox ?? "")) sandbox = s;
     }
     if (a) {
-      items.push(`Codex approval_policy "${a}" (${where})`);
+      items.push(`Codex approval_policy "${scrub(a)}" (${where})`);
       if (rankIn(CODEX_APPROVAL, a) > rankIn(CODEX_APPROVAL, approval ?? "")) approval = a;
     }
   };
@@ -4555,7 +4563,7 @@ function textWidth(opts) {
 }
 function writer(opts) {
   const width = textWidth(opts);
-  return (line, color) => wrap(line, width).map((part) => opts.color && color && part ? `${ANSI[color]}${part}${ANSI.reset}` : part);
+  return (line, color) => wrap(noControl(line), width).map((part) => opts.color && color && part ? `${ANSI[color]}${part}${ANSI.reset}` : part);
 }
 function formatSummary(s, opts) {
   const write = writer(opts);
@@ -4570,7 +4578,7 @@ function formatSummary(s, opts) {
     if (missing.length) lines.push(...write(`  ${missing.join(", ")}: no files found.`));
   }
   const skipped = s.files.unchecked;
-  if (skipped) lines.push(...write(`  ${plural2(skipped, "config file was", "config files were")} too large to check, so ${skipped === 1 ? "it was" : "they were"} skipped.`));
+  if (skipped) lines.push(...write(`  ${plural2(skipped, "config file", "config files")} couldn't be checked (too large or couldn't be opened), so ${skipped === 1 ? "it was" : "they were"} skipped.`));
   const empty = [];
   for (const x of s.checks) {
     const hasFindings = Object.values(x.findings).some((n) => n > 0);
@@ -4702,9 +4710,9 @@ function formatInventory(r) {
     ...r.files.map((f5) => `${f5.scope.padEnd(8)} ${f5.tool.padEnd(7)} ${f5.kind.padEnd(16)} ${f5.display}`),
     ...r.unchecked.map((f5) => `${f5.scope.padEnd(8)} ${f5.tool.padEnd(7)} ${f5.kind.padEnd(16)} ${f5.display} (${f5.reason === "unopenable" ? "couldn't be opened" : "too large"}, not checked)`)
   ];
-  return `${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path
+  return noControl(`${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path
 ${rows.join("\n")}
-`;
+`);
 }
 
 // src/cli.ts

@@ -10,9 +10,11 @@ export type CheckId =
   | "MCP"
   | "DRIFT"
   | "SECRET"
-  | "SKILL";
+  | "SKILL"
+  | "FILE";
 
-export const CHECK_IDS: CheckId[] = [
+/** The checks that read settings and are scored by the eval. FILE only reports files that couldn't be read, so it has no accuracy figures. */
+export const CHECK_IDS: Exclude<CheckId, "FILE">[] = [
   "MODE",
   "ALLOW",
   "DENY",
@@ -57,6 +59,12 @@ export interface ConfigFile {
   gitIgnored?: boolean;
 }
 
+/** A config file the tool found but did not read, because it is over the size limit. */
+export interface UncheckedFile extends ConfigFile {
+  /** Size on disk in bytes. */
+  bytes: number;
+}
+
 export interface Finding {
   rule: string;
   check: CheckId;
@@ -64,7 +72,7 @@ export interface Finding {
   title: string;
   file: string;
   line: number;
-  /** What was matched. Never contains a full secret. */
+  /** What was matched. Passwords and tokens are masked. */
   match: string;
   why: string;
   fix: string;

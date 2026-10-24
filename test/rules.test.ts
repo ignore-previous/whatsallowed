@@ -1,6 +1,7 @@
 // One risky fixture and one near miss per rule ID. Each risky fixture checks rule, file, line and that the
 // finding explains itself. Made-up keys below are in real formats but are not real credentials.
 import { describe, expect, it } from "vitest";
+import { MAX_BYTES } from "../src/fsys.ts";
 import { RULES } from "../src/rules.ts";
 import { lineOf, scanFiles } from "./helpers.ts";
 
@@ -23,7 +24,11 @@ const ANT = "sk-ant-api03-" + "Zq8RkT2vLw9XyB4nMc7pQe1sJd6fHa3gUo5iKr0tWm-AbCdEf
 const GH = "ghp_" + "8fK2mQ9xLr4Tz7Wv1Bn6Cs3Dy0Eh5Ga";
 const mcp = (servers: Record<string, unknown>): string => j({ mcpServers: servers });
 
+const padded = (extra: number): string => JSON.stringify({ permissions: { allow: ["Bash(*)"] }, note: "x".repeat(extra) });
+
 const F: Fixture[] = [
+  { rule: "FILE-001", files: { "./.claude/settings.json": padded(MAX_BYTES) }, file: "./.claude/settings.json", at: '"permissions"',
+    benign: { "./.claude/settings.json": padded(1000) } },
   { rule: "MODE-001", files: { "~/.claude/settings.json": j({ permissions: { defaultMode: "bypassPermissions" } }) }, file: "~/.claude/settings.json", at: "bypassPermissions",
     benign: { "~/.claude/settings.json": j({ permissions: { defaultMode: "acceptEdits" } }) } },
   { rule: "MODE-003", files: { "./.claude/settings.json": j({ permissions: { defaultMode: "auto" } }) }, file: "./.claude/settings.json", at: "auto",

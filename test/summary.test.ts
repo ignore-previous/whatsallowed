@@ -27,7 +27,7 @@ describe("summary: files", () => {
       "./AGENTS.md": "# agents",
       "./.env": "A=1",
     });
-    expect(s.files).toEqual({ total: 6, claude: 2, codex: 1, cursor: 1, other: 2 });
+    expect(s.files).toEqual({ total: 6, claude: 2, codex: 1, cursor: 1, other: 2, unchecked: 0 });
     expect(s.scope).toBe("all");
   });
 });

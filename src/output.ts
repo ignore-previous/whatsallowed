@@ -27,6 +27,7 @@ const TERMS: Partial<Record<CheckId, string>> = {
   DRIFT: "Baseline: a saved copy of your MCP server settings, used to spot later changes.",
   SECRET: "Secret: a password, key or token. Anyone who has it can act as you.",
   SKILL: "Skill or plugin: an add-on that gives your agent extra abilities, often with its own scripts.",
+  FILE: "Unchecked file: a config file we skipped, so nothing in it was looked at.",
 };
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
@@ -56,6 +57,7 @@ export function formatSummary(s: Summary, opts: { color: boolean; verbose?: bool
     `${pad("Files")}${f.total} read: ${found.join(", ")}.${missing.length ? ` ${missing.length > 1 ? `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}` : missing[0]}: no files found.` : ""}`,
     c("dim", `${indent}Settings, instruction files, skill scripts, and secrets files such as .env.`),
   );
+  if (f.unchecked) lines.push(`${pad("")}${plural(f.unchecked, "config file was", "config files were")} too large to check, so ${f.unchecked === 1 ? "it was" : "they were"} skipped.`);
   for (const x of s.checks) {
     lines.push(`${pad(x.check)}${x.text}${x.fix ? ` Run: ${x.fix}` : ""}`, c("dim", `${indent}${x.meaning}`));
     if (opts.verbose) for (const item of x.items) lines.push(c("dim", `${indent}- ${item}`));
@@ -77,9 +79,11 @@ export function formatText(r: ScanResult, opts: { color: boolean; verbose?: bool
   lines.push(`${c("bold", TOOL_NAME)} ${TOOL_VERSION}. This is a read-only check: it changes nothing and sends nothing anywhere.`, "");
 
   // One-line verdict first.
-  if (!r.files.length) {
+  if (!r.files.length && !r.unchecked.length) {
     lines.push(c("bold", "Nothing was checked: no agent settings files were found here."));
     lines.push("Run it from a project folder, or see --help.");
+  } else if (!r.files.length) {
+    lines.push(c(high.length ? "red" : "yellow", `${plural(alerts, "thing", "things")} to look at. No config file could be checked: ${r.unchecked.length === 1 ? "the one" : "those"} we found ${r.unchecked.length === 1 ? "is" : "are"} too large.`));
   } else if (!alerts) {
     lines.push(c("bold", `No high or medium findings in the ${checked} checked.`));
     lines.push("The summary at the end shows what was checked.");
@@ -117,7 +121,7 @@ export function formatText(r: ScanResult, opts: { color: boolean; verbose?: bool
   for (const n of r.notes) lines.push(c("dim", `Note: ${n}`));
   if (r.notes.length) lines.push("");
 
-  if (r.files.length) lines.push(...formatSummary(summarize(r), opts));
+  if (r.files.length || r.unchecked.length) lines.push(...formatSummary(summarize(r), opts));
 
   if (alerts) lines.push("Nothing has been changed. If you decide to act, you make the change yourself; the \"What you could do\" lines say how.");
   lines.push(c("dim", "This is a configuration check, not a security assessment. A clean result doesn't mean a setup is safe."));
@@ -200,8 +204,11 @@ export function formatRules(): string {
 }
 
 export function formatInventory(r: ScanResult): string {
-  if (!r.files.length) return "No agent config files found.\n";
-  const rows = r.files.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display}`);
+  if (!r.files.length && !r.unchecked.length) return "No agent config files found.\n";
+  const rows = [
+    ...r.files.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display}`),
+    ...r.unchecked.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display} (too large, not checked)`),
+  ];
   return `${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path\n${rows.join("\n")}\n`;
 }
 

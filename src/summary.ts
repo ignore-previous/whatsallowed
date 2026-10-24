@@ -33,7 +33,7 @@ export interface CheckSummary {
 
 export interface Summary {
   scope: ScanMode;
-  files: { total: number; claude: number; codex: number; cursor: number; other: number };
+  files: { total: number; claude: number; codex: number; cursor: number; other: number; unchecked: number };
   checks: CheckSummary[];
 }
 
@@ -496,7 +496,7 @@ function base(
   return { check, checked: s.checked ?? true, count: s.count, findings, broadest: s.broadest, text: s.text, meaning: s.meaning, fix: s.fix, items: s.items };
 }
 
-const BUILDERS: Record<CheckId, (m: Model, f: Finding[]) => CheckSummary> = {
+const BUILDERS: Record<Exclude<CheckId, "FILE">, (m: Model, f: Finding[]) => CheckSummary> = {
   MODE: modeSummary,
   ALLOW: allowSummary,
   DENY: denySummary,
@@ -509,14 +509,14 @@ const BUILDERS: Record<CheckId, (m: Model, f: Finding[]) => CheckSummary> = {
   SKILL: skillSummary,
 };
 
-export function summarize(r: { mode: ScanMode; files: Model["ctx"]["files"]; findings: Finding[]; model: Model }): Summary {
+export function summarize(r: { mode: ScanMode; files: Model["ctx"]["files"]; unchecked: unknown[]; findings: Finding[]; model: Model }): Summary {
   const byTool = (t: string): number => r.files.filter((f) => f.tool === t).length;
   const claude = byTool("claude");
   const codex = byTool("codex");
   const cursor = byTool("cursor");
   return {
     scope: r.mode,
-    files: { total: r.files.length, claude, codex, cursor, other: r.files.length - claude - codex - cursor },
-    checks: (Object.keys(BUILDERS) as CheckId[]).map((id) => BUILDERS[id](r.model, r.findings.filter((f) => f.check === id))),
+    files: { total: r.files.length, claude, codex, cursor, other: r.files.length - claude - codex - cursor, unchecked: r.unchecked.length },
+    checks: (Object.keys(BUILDERS) as Array<keyof typeof BUILDERS>).map((id) => BUILDERS[id](r.model, r.findings.filter((f) => f.check === id))),
   };
 }

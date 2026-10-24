@@ -2339,7 +2339,7 @@ function checkDrift(m) {
 
 // src/name.ts
 var TOOL_NAME = "whatsallowed";
-var TOOL_VERSION = "0.2.0";
+var TOOL_VERSION = "0.2.1";
 var BASELINE_DIR = ".whatsallowed";
 var BASELINE_FILE = "baseline.json";
 

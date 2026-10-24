@@ -23,7 +23,7 @@ To see a full report first, we recommend `npx whatsallowed demo`. It scans a mad
 It checks the project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). A scan only reads files and changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means and what you could do about it. You make any change yourself. A summary at the end shows what each of the ten checks looked at, including those that found nothing.
 
 ```
-whatsallowed 0.2.0. This is a read-only check: it changes nothing and sends nothing anywhere.
+whatsallowed 0.2.1. This is a read-only check: it changes nothing and sends nothing anywhere.
 
 2 things to look at in the 2 files checked. 1 needs attention first.
 

@@ -1,5 +1,7 @@
 import { ruleById, RULES } from "./rules.ts";
 import { SEVERITY_RANK, type ScanResult } from "./scan.ts";
+import { type Summary, summarize } from "./summary.ts";
+import type { ScanMode } from "./discover.ts";
 import { TOOL_NAME, TOOL_VERSION } from "./name.ts";
 import type { CheckId, Finding, Severity } from "./types.ts";
 
@@ -29,6 +31,40 @@ const TERMS: Partial<Record<CheckId, string>> = {
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
+const SCOPE_TEXT: Record<ScanMode, string> = {
+  all: "this project folder and your user settings. Other projects on this machine aren't read.",
+  project: "this project folder only (--project-only).",
+  user: "your user settings only (--user-only).",
+};
+
+/** The per-check summary block, printed after the findings on every scan that found files. */
+export function formatSummary(s: Summary, opts: { color: boolean; verbose?: boolean }): string[] {
+  const c = (code: keyof typeof ANSI, x: string): string => (opts.color ? `${ANSI[code]}${x}${ANSI.reset}` : x);
+  const pad = (label: string): string => `  ${label.padEnd(10)}`;
+  const indent = " ".repeat(12);
+  const lines: string[] = [c("bold", `Summary: ${SCOPE_TEXT[s.scope]}`), ""];
+  const f = s.files;
+  const tools = [
+    ["Claude Code", f.claude],
+    ["Codex", f.codex],
+    ["Cursor", f.cursor],
+  ] as const;
+  const found = tools.filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`);
+  if (f.other) found.push(`other ${f.other}`);
+  const missing = tools.filter(([, n]) => n === 0).map(([t]) => t);
+  lines.push(
+    `${pad("Files")}${f.total} read: ${found.join(", ")}.${missing.length ? ` ${missing.join(" or ")}: no files found.` : ""}`,
+    c("dim", `${indent}Settings, instruction files, skill scripts, and secrets files such as .env.`),
+  );
+  for (const x of s.checks) {
+    lines.push(`${pad(x.check)}${x.text}${x.fix ? ` Run: ${x.fix}` : ""}`, c("dim", `${indent}${x.meaning}`));
+    if (opts.verbose) for (const item of x.items) lines.push(c("dim", `${indent}- ${item}`));
+  }
+  if (!opts.verbose && s.checks.some((x) => x.items.length)) lines.push("", c("dim", "Add --verbose to list every rule, server, hook and file counted."));
+  lines.push("");
+  return lines;
+}
+
 export function formatText(r: ScanResult, opts: { color: boolean; verbose?: boolean }): string {
   const c = (code: keyof typeof ANSI, s: string): string => (opts.color ? `${ANSI[code]}${s}${ANSI.reset}` : s);
   const lines: string[] = [];
@@ -36,7 +72,7 @@ export function formatText(r: ScanResult, opts: { color: boolean; verbose?: bool
   const medium = r.findings.filter((f) => f.severity === "medium");
   const infos = r.findings.filter((f) => f.severity === "info");
   const alerts = high.length + medium.length;
-  const checked = plural(r.files.length, "settings file", "settings files");
+  const checked = plural(r.files.length, "file", "files");
 
   lines.push(`${c("bold", TOOL_NAME)} ${TOOL_VERSION}. This is a read-only check: it changes nothing and sends nothing anywhere.`, "");
 
@@ -46,7 +82,7 @@ export function formatText(r: ScanResult, opts: { color: boolean; verbose?: bool
     lines.push("Run it from a project folder, or see --help.");
   } else if (!alerts) {
     lines.push(c("bold", `No high or medium findings in the ${checked} checked.`));
-    lines.push("That is good news, but it does not promise your setup is safe.");
+    lines.push("The summary at the end shows what was checked.");
   } else if (high.length) {
     lines.push(c("red", `${plural(alerts, "thing", "things")} to look at in the ${checked} checked. ${plural(high.length, "needs", "need")} attention first.`));
   } else {
@@ -81,6 +117,8 @@ export function formatText(r: ScanResult, opts: { color: boolean; verbose?: bool
   for (const n of r.notes) lines.push(c("dim", `Note: ${n}`));
   if (r.notes.length) lines.push("");
 
+  if (r.files.length) lines.push(...formatSummary(summarize(r), opts));
+
   if (alerts) lines.push("Nothing has been changed. If you decide to act, you make the change yourself; the \"What you could do\" lines say how.");
   lines.push(c("dim", "This is a configuration check, not a security assessment. A clean result doesn't mean a setup is safe."));
   lines.push(c("dim", "Writing a script? Use --format json for the same findings in a stable, machine-readable form."));
@@ -96,6 +134,7 @@ export function formatJson(r: ScanResult): string {
         files: r.files.map((f) => ({ path: f.display, tool: f.tool, kind: f.kind, scope: f.scope })),
         findings: r.findings,
         notes: r.notes,
+        summary: summarize(r),
       },
       null,
       2,

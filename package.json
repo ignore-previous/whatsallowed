@@ -1,6 +1,6 @@
 {
   "name": "whatsallowed",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local checker for Claude Code, Codex and Cursor agent config. Flags risky settings and publishes its own precision and recall. No network calls.",
   "homepage": "https://github.com/ignore-previous/whatsallowed#readme",
   "repository": {

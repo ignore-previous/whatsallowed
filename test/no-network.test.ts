@@ -2,11 +2,12 @@
 // 1. a full scan runs in a child process with every network and process API replaced by a tripwire;
 // 2. a static check that src/ never imports a network or process module.
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { cliEntries, nodeFlags } from "./node-entry.ts";
 
 const repo = resolve(import.meta.dirname, "..");
 const preload = pathToFileURL(join(repo, "test/fixtures/no-network-preload.mjs")).href;
@@ -34,7 +35,7 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 function runWithTripwire(entry: string, args: string[]): ReturnType<typeof spawnSync> {
   const home = join(root, "home");
-  return spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", preload, entry, ...args], {
+  return spawnSync(process.execPath, [...nodeFlags(entry), "--import", preload, entry, ...args], {
     cwd: join(home, "project"),
     env: { ...process.env, HOME: home, USERPROFILE: home, NO_COLOR: "1" },
     encoding: "utf8",
@@ -50,7 +51,7 @@ describe("no network", () => {
     expect(r.stderr).toContain("NETWORK-ATTEMPT fetch");
   });
 
-  const entries = [join(repo, "src/cli.ts"), join(repo, "dist/cli.mjs")].filter((p) => existsSync(p));
+  const entries = cliEntries(repo);
   for (const entry of entries) {
     for (const args of [["--format", "json"], ["--format", "sarif"], ["inventory"], ["baseline", "--baseline", "BL"]]) {
       it(`${entry.endsWith(".mjs") ? "dist" : "src"} ${args[0]} ${args[1] ?? ""} makes no network calls`, () => {

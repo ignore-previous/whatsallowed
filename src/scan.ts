@@ -22,6 +22,8 @@ export interface ScanOptions {
 }
 
 export interface ScanResult {
+  /** Which config was scanned: the project and user config ("all"), or one of them. */
+  mode: ScanMode;
   files: ConfigFile[];
   findings: Finding[];
   notes: string[];
@@ -49,5 +51,5 @@ export function scan(opts: ScanOptions): ScanResult {
   findings.sort(
     (a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity] || a.file.localeCompare(b.file) || a.line - b.line || a.rule.localeCompare(b.rule),
   );
-  return { files, findings, notes: [...new Set(notes)], model };
+  return { mode: opts.mode, files, findings, notes: [...new Set(notes)], model };
 }

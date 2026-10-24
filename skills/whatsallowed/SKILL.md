@@ -15,7 +15,7 @@ Add `--project-only` to check just this project, or `--user-only` for just the u
 
 Then tell the user:
 
-1. How many high and medium findings there are. If there are none, say so plainly and add that this is a configuration check, not a security assessment.
+1. How many high and medium findings there are. If there are none, say so plainly, say briefly what was checked using the `summary` field (files read, and the counts per check), and add that this is a configuration check, not a security assessment.
 2. For each high finding, then each medium one: the file and line, what it means in one sentence, and the fix from the `fix` field. Group repeats of the same rule.
 3. Info findings only if the user asks for them.
 

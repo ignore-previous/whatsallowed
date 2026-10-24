@@ -3681,8 +3681,10 @@ function scan(opts) {
 // src/summary.ts
 var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 var cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+var MAX_SHOWN = 300;
 function scrub(text) {
-  return text.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]*Api-Key|X-[A-Za-z-]*Token)(\s*:\s*)[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s+[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(/(^|[\s('"?&])([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s'")&]+)/g, "$1$2=\u2022\u2022\u2022").replace(/(--?[A-Za-z-]*(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]*)([=\s]\s*)([^\s'")*]+)/gi, "$1$2\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s*[^\s:'"]+:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]+@/g, "$1\u2022\u2022\u2022@");
+  const t = text.length > MAX_SHOWN ? `${text.slice(0, MAX_SHOWN)}\u2026` : text;
+  return t.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(/(^|[\s('"?&])([A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]*"?|'[^']*'?|[^\s'")&]+)/g, "$1$2=\u2022\u2022\u2022").replace(/(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)/gi, "$1$2\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]{1,200}@/g, "$1\u2022\u2022\u2022@");
 }
 var CLAUDE_MODES = ["plan", "dontAsk", "default", "acceptEdits", "auto", "bypassPermissions"];
 var CLAUDE_MEANING = {

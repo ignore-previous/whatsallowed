@@ -36,7 +36,7 @@ The person running a coding agent (Claude Code, Codex CLI, Cursor) on their own 
 
 - **No network.** It has no network code, and a test runs every command with network and process APIs replaced by tripwires.
 - **No telemetry.** Nothing is collected or sent.
-- **Secrets stay masked.** Findings show a prefix and a length, never a full value. JSON and SARIF output are masked the same way, so they're safe to upload to CI.
+- **Keys and tokens are masked.** When the SECRET or ENDPOINT checks find a key or token, output shows a prefix and a length, never the full value, in text, JSON and SARIF alike. Other findings quote the setting they matched, so a password or token written inside an address or command (in `ANTHROPIC_BASE_URL`, an HTTP hook URL or an MCP package address, for example) can appear in full in a finding's match and fix text. Read the output before you upload it to CI or paste it anywhere.
 - **Read-only.** It never changes your config. A test ([test/no-writes.test.ts](test/no-writes.test.ts)) runs full scans on a sample home and project and checks that no file or folder was created, changed or removed anywhere in that tree.
 - **Two runtime dependencies**, both parsers: `jsonc-parser` and `smol-toml`, pinned to exact versions. The npm package ships one bundled file.
 - **Paths in output.** Text and JSON output name files in your home folder (`~/...`). Think about that before you paste output in public.

@@ -323,6 +323,15 @@ describe("summary: no secret values in items, broadest or text (review findings)
       "hook in ./.claude/settings.json: ruby",
     ]);
   });
+  it("stays fast on long, hostile rules", async () => {
+    const { scrub } = await import("../src/summary.ts");
+    const inputs = ["-" + "key-".repeat(4000), "a-".repeat(100_000), "Bash(" + "x".repeat(200_000) + ")", "-u " + "a".repeat(100_000)];
+    for (const s of inputs) {
+      const t = performance.now();
+      scrub(s);
+      expect(performance.now() - t).toBeLessThan(250);
+    }
+  });
   it("keeps ordinary rules as they are", () => {
     const { c } = sum(settings({ permissions: { allow: ["Bash(npm run *)", "Bash(git commit --format=oneline *)", "Read(~/.ssh/**)"] } }));
     expect(c.ALLOW.items).toEqual([

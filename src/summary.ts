@@ -58,7 +58,9 @@ export function scrub(text: string): string {
     .replace(/(^|[\s('"?&])([A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]*"?|'[^']*'?|[^\s'")&]+)/g, "$1$2=•••")
     .replace(/(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)/gi, "$1$2•••")
     .replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1•••")
-    .replace(/(\/\/)[^/\s@]{1,200}@/g, "$1•••@");
+    .replace(/(\/\/)[^/\s@]{1,200}@/g, "$1•••@")
+    // An address cut off by the length limit before its "@" may still be holding a password.
+    .replace(/(\/\/)[^/\s@]{1,200}…$/, "$1•••…");
 }
 
 // ---- MODE ----

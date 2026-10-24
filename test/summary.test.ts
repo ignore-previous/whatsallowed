@@ -332,6 +332,13 @@ describe("summary: no secret values in items, broadest or text (review findings)
       expect(performance.now() - t).toBeLessThan(250);
     }
   });
+  it("masks an address password cut off at the length limit", async () => {
+    const { scrub } = await import("../src/summary.ts");
+    for (let pad = 280; pad < 300; pad++) {
+      const out = scrub(`Bash(${"x".repeat(pad)} https://u:CUTSECRET99@h.example/p)`);
+      expect(out).not.toMatch(/CUTS|SECRET99/);
+    }
+  });
   it("keeps ordinary rules as they are", () => {
     const { c } = sum(settings({ permissions: { allow: ["Bash(npm run *)", "Bash(git commit --format=oneline *)", "Read(~/.ssh/**)"] } }));
     expect(c.ALLOW.items).toEqual([

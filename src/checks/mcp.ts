@@ -60,6 +60,23 @@ interface RunnerHit {
   pinned: boolean;
 }
 
+/** Options of the package runners that take a value as the next word. */
+const VALUE_FLAGS = new Set([
+  "-r", "-w", "-c", "-C", "--python", "--registry", "--with", "--with-requirements", "--index-url", "--extra-index-url", "--index",
+  "--default-index", "--cache", "--cache-dir", "--userconfig", "--globalconfig", "--prefix", "--proxy", "--https-proxy", "--cwd",
+  "--node-options", "--loglevel", "--workspace", "--scope", "--env-file", "--directory", "--project", "--constraint", "--exclude-newer",
+  "--call", "--shell", "--config", "--cafile", "--fetch-retries", "--tag", "--filter", "--dir",
+]);
+
+/** Credential-looking option names. Their values are secrets, never the package. */
+const SECRET_FLAG = /(?:token|secret|passw|pass$|auth|key|otp|cred)/i;
+
+/** Does this option, written without "=", take the next word as its value? Booleans like -y and --no-install do not. */
+function takesValue(flag: string): boolean {
+  if (/^--no-/.test(flag)) return false;
+  return VALUE_FLAGS.has(flag) || (flag.startsWith("--") && SECRET_FLAG.test(flag));
+}
+
 /** Find a package runner and the package it runs. */
 export function findRunner(argv: string[]): RunnerHit | undefined {
   for (let i = 0; i < argv.length; i++) {
@@ -86,8 +103,8 @@ export function findRunner(argv: string[]): RunnerHit | undefined {
       }
       if (a === "--") continue;
       if (a.startsWith("-")) {
-        // flags that take a value
-        if (/^(?:--python|-r|--registry|--with|--index-url|--cache|--userconfig)$/.test(a)) j++;
+        // A flag written as "--flag value" takes the next word as its value, which is not the package.
+        if (!a.includes("=") && takesValue(a)) j++;
         continue;
       }
       pkg = a;
@@ -137,7 +154,7 @@ function checkServer(s: McpServer): Finding[] {
           title: `MCP server "${s.name}" is launched through a shell script`,
           file: s.file,
           line: cmdLine,
-          match: launch.shellScript.slice(0, 100),
+          match: launch.shellScript,
           why: "Chaining commands in a shell string hides extra steps in the launch, and the shell runs whatever the string expands to.",
           fix: "Point command at the server's executable and pass its options in args.",
         }),

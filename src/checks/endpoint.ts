@@ -47,7 +47,7 @@ function checkFile(p: Parsed): Finding[] {
               : `${where} change where your requests go`,
           file: p.file,
           line,
-          match: `${key}=${value.slice(0, 80)}`,
+          match: `${key}=${value}`,
           why: ownLoopback
             ? "This file is git-ignored and the address is on this machine, so it's most likely your own local proxy. Noted in case you didn't set it."
             : proxy
@@ -66,7 +66,7 @@ function checkFile(p: Parsed): Finding[] {
           title: key === "NODE_OPTIONS" ? `${where} change how Claude Code's runtime starts` : `${where} weaken TLS checks`,
           file: p.file,
           line,
-          match: `${key}=${value.slice(0, 80)}`,
+          match: `${key}=${value}`,
           why:
             key === "NODE_OPTIONS"
               ? "NODE_OPTIONS can load extra code into Claude Code and the tools it starts."
@@ -84,6 +84,7 @@ function checkFile(p: Parsed): Finding[] {
           file: p.file,
           line,
           match: cred ? `${key}=${mask(value)}` : `${key}=${value}`,
+          masked: cred,
           why: cred
             ? "A repository that supplies credentials or auth headers decides which account your requests are billed to and logged under."
             : "Requests go to a different cloud provider and account than the one you set up.",
@@ -102,7 +103,7 @@ function checkFile(p: Parsed): Finding[] {
         title: `${where} set a credential helper command`,
         file: p.file,
         line: p.doc.lineOf([key]),
-        match: `${key}: ${cmd.slice(0, 80)}`,
+        match: `${key}: ${cmd}`,
         why: `${key} runs a command to produce your credentials or auth headers, so the project controls what runs and what gets sent.`,
         fix: "Remove it from the project file. Set helpers in your own user settings.",
       }),
@@ -117,7 +118,7 @@ function checkFile(p: Parsed): Finding[] {
         title: "The repository sets a status line command",
         file: p.file,
         line: p.doc.lineOf(["statusLine"]),
-        match: `statusLine: ${sl.command.slice(0, 80)}`,
+        match: `statusLine: ${sl.command}`,
         why: "This command runs often in the background once you trust the folder. Check what it does.",
         fix: "Remove it if you don't recognise it.",
       }),

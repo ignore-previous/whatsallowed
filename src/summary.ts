@@ -10,7 +10,10 @@ import type { HookHandler, McpServer, Model } from "./model.ts";
 import { TOOL_NAME } from "./name.ts";
 import { get, isObj, str, strArr } from "./parse.ts";
 import { isLoopback, parseUrl } from "./patterns.ts";
+import { scrub } from "./scrub.ts";
 import type { CheckId, Finding, Severity } from "./types.ts";
+
+export { scrub };
 
 export interface CheckSummary {
   check: CheckId;
@@ -33,35 +36,12 @@ export interface CheckSummary {
 
 export interface Summary {
   scope: ScanMode;
-  files: { total: number; claude: number; codex: number; cursor: number; other: number };
+  files: { total: number; claude: number; codex: number; cursor: number; other: number; unchecked: number };
   checks: CheckSummary[];
 }
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
-
-/** Longest rule or package text the summary shows; longer ones are cut. */
-const MAX_SHOWN = 300;
-
-/**
- * Hide anything in a rule that could be a credential: values of NAME=value assignments (quoted or not, and
- * query parameters), Bearer and Basic tokens, auth and API-key header values, values of --token/--key/--password
- * style flags, user:password after -u or --user, and the user and password part of an address.
- */
-export function scrub(text: string): string {
-  // Long rules are cut first, and every repeat in the patterns below is bounded, so a hostile rule can't make
-  // the scan slow.
-  const t = text.length > MAX_SHOWN ? `${text.slice(0, MAX_SHOWN)}…` : text;
-  return t
-    .replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2•••")
-    .replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 •••")
-    .replace(/(^|[\s('"?&])([A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]*"?|'[^']*'?|[^\s'")&]+)/g, "$1$2=•••")
-    .replace(/(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)/gi, "$1$2•••")
-    .replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1•••")
-    .replace(/(\/\/)[^/\s@]{1,200}@/g, "$1•••@")
-    // An address cut off by the length limit before its "@" may still be holding a password.
-    .replace(/(\/\/)[^/\s@]{1,200}…$/, "$1•••…");
-}
 
 // ---- MODE ----
 
@@ -430,7 +410,6 @@ function driftSummary(m: Model, findings: Finding[]): CheckSummary {
   const items = [
     ...changed.map((f) => `changed: "${f.match}" (${f.file})`),
     ...added.map((f) => `new: "${f.match}" (${f.file})`),
-    ...removed.map((k) => `removed: "${k.slice(k.lastIndexOf("#") + 1)}"`),
   ];
   return base("DRIFT", findings, {
     count: Object.keys(b.servers).length,
@@ -496,7 +475,7 @@ function base(
   return { check, checked: s.checked ?? true, count: s.count, findings, broadest: s.broadest, text: s.text, meaning: s.meaning, fix: s.fix, items: s.items };
 }
 
-const BUILDERS: Record<CheckId, (m: Model, f: Finding[]) => CheckSummary> = {
+const BUILDERS: Record<Exclude<CheckId, "FILE">, (m: Model, f: Finding[]) => CheckSummary> = {
   MODE: modeSummary,
   ALLOW: allowSummary,
   DENY: denySummary,
@@ -509,14 +488,14 @@ const BUILDERS: Record<CheckId, (m: Model, f: Finding[]) => CheckSummary> = {
   SKILL: skillSummary,
 };
 
-export function summarize(r: { mode: ScanMode; files: Model["ctx"]["files"]; findings: Finding[]; model: Model }): Summary {
+export function summarize(r: { mode: ScanMode; files: Model["ctx"]["files"]; unchecked: unknown[]; findings: Finding[]; model: Model }): Summary {
   const byTool = (t: string): number => r.files.filter((f) => f.tool === t).length;
   const claude = byTool("claude");
   const codex = byTool("codex");
   const cursor = byTool("cursor");
   return {
     scope: r.mode,
-    files: { total: r.files.length, claude, codex, cursor, other: r.files.length - claude - codex - cursor },
-    checks: (Object.keys(BUILDERS) as CheckId[]).map((id) => BUILDERS[id](r.model, r.findings.filter((f) => f.check === id))),
+    files: { total: r.files.length, claude, codex, cursor, other: r.files.length - claude - codex - cursor, unchecked: r.unchecked.length },
+    checks: (Object.keys(BUILDERS) as Array<keyof typeof BUILDERS>).map((id) => BUILDERS[id](r.model, r.findings.filter((f) => f.check === id))),
   };
 }

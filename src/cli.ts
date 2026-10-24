@@ -1,7 +1,7 @@
 import * as os from "node:os";
 import { readBaseline, writeBaseline } from "./baseline.ts";
 import { recordBaseline } from "./checks/drift.ts";
-import { DEMO_INTRO, scanDemo } from "./demo.ts";
+import { DEMO_INTRO, DEMO_SCOPE, scanDemo } from "./demo.ts";
 import { defaultManagedDirs, type ScanMode } from "./discover.ts";
 import { join, nodeFs, resolveAbs, toPosix } from "./fsys.ts";
 import { BASELINE_DIR, BASELINE_FILE, TOOL_NAME, TOOL_VERSION } from "./name.ts";
@@ -135,10 +135,11 @@ export function run(argv: string[], io: Io): number {
   if (args.command === "demo") {
     // Reads nothing from disk: the setup is held in memory. Exits 0 whatever it finds, since nothing of yours was checked.
     if (args.path) return (io.err(`${TOOL_NAME}: demo checks its own made-up setup and takes no folder.\n`), 2);
+    // SARIF is for code scanning, where made-up findings would show up as real alerts.
+    if (args.format === "sarif") return (io.err(`${TOOL_NAME}: demo prints text or JSON, not SARIF, so its made-up findings can't end up in code scanning.\n`), 2);
     const r = scanDemo(args.mode);
-    if (args.format === "json") io.out(formatJson(r));
-    else if (args.format === "sarif") io.out(formatSarif(r));
-    else io.out(DEMO_INTRO + formatText(r, { color: args.color && io.isTty, verbose: args.verbose }));
+    if (args.format === "json") io.out(JSON.stringify({ demo: true, ...JSON.parse(formatJson(r)) }, null, 2) + "\n");
+    else io.out(DEMO_INTRO + formatText(r, { color: args.color && io.isTty, verbose: args.verbose, scopeText: DEMO_SCOPE[args.mode] }));
     return 0;
   }
   try {

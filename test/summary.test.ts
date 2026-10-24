@@ -279,6 +279,50 @@ describe("summary: no secret values in items, broadest or text (review findings)
     leaks(c, "ALLOWSECRET1", "ALLOWSECRET2", "ALLOWSECRET3", "DENYSECRET1");
     expect(c.ALLOW.items).toContain("Bash(API_KEY=••• npm test) (./.claude/settings.json)");
   });
+  it("masks quoted assignment values, login flags, auth headers and query tokens in rules", () => {
+    const { c } = sum(
+      settings({
+        permissions: {
+          allow: [
+            "Bash(FOO='QSECRET1' cmd)",
+            'Bash(API_KEY="QSECRET2 with space" npm test)',
+            "Bash(curl -u admin:QSECRET3 *)",
+            "Bash(curl --user admin:QSECRET4 *)",
+            "Bash(curl -H 'X-Api-Key: QSECRET5' *)",
+            'Bash(curl -H "Authorization: Token QSECRET6" *)',
+            "Bash(curl https://h.example/p?token=QSECRET7 *)",
+            "Bash(tool --token\tQSECRET8 run)",
+          ],
+        },
+      }),
+    );
+    leaks(c, "QSECRET1", "QSECRET2", "with space", "QSECRET3", "QSECRET4", "QSECRET5", "QSECRET6", "QSECRET7", "QSECRET8");
+    expect(c.ALLOW.items).toContain("Bash(FOO=••• cmd) (./.claude/settings.json)");
+    expect(c.ALLOW.items).toContain("Bash(curl -u admin:••• *) (./.claude/settings.json)");
+  });
+  it("skips quoted assignments and env options before a hook program", () => {
+    const { c } = sum(
+      settings({
+        hooks: {
+          Stop: [
+            {
+              hooks: [
+                { type: "command", command: 'TOKEN="H5SECRET spaced" node x.js' },
+                { type: "command", command: "env -i TOKEN=H6SECRET python3 y.py" },
+                { type: "command", command: "/usr/bin/env A='H7 x' B=H8SECRET ruby z.rb" },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+    leaks(c, "H5SECRET", "spaced", "H6SECRET", "H7", "H8SECRET");
+    expect(c.HOOK.items).toEqual([
+      "hook in ./.claude/settings.json: node",
+      "hook in ./.claude/settings.json: env",
+      "hook in ./.claude/settings.json: ruby",
+    ]);
+  });
   it("keeps ordinary rules as they are", () => {
     const { c } = sum(settings({ permissions: { allow: ["Bash(npm run *)", "Bash(git commit --format=oneline *)", "Read(~/.ssh/**)"] } }));
     expect(c.ALLOW.items).toEqual([

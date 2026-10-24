@@ -41,14 +41,17 @@ const plural = (n: number, one: string, many: string): string => `${n} ${n === 1
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
- * Hide anything in a rule that could be a credential: values of NAME=value assignments, Bearer and Basic
- * tokens, values of --token/--key/--password style flags, and the user and password part of an address.
+ * Hide anything in a rule that could be a credential: values of NAME=value assignments (quoted or not, and
+ * query parameters), Bearer and Basic tokens, auth and API-key header values, values of --token/--key/--password
+ * style flags, user:password after -u or --user, and the user and password part of an address.
  */
 export function scrub(text: string): string {
   return text
+    .replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]*Api-Key|X-[A-Za-z-]*Token)(\s*:\s*)[^'")]+/gi, "$1$2•••")
     .replace(/\b(Bearer|Basic)\s+[^\s'")]+/gi, "$1 •••")
-    .replace(/(^|[\s('"])([A-Za-z_][A-Za-z0-9_]*)=([^\s'")]+)/g, "$1$2=•••")
-    .replace(/(--?[A-Za-z-]*(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]*)([= ])([^\s'")*]+)/gi, "$1$2•••")
+    .replace(/(^|[\s('"?&])([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s'")&]+)/g, "$1$2=•••")
+    .replace(/(--?[A-Za-z-]*(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]*)([=\s]\s*)([^\s'")*]+)/gi, "$1$2•••")
+    .replace(/((?:^|\s)(?:-u|--user)[=\s]\s*[^\s:'"]+:)[^\s'")]+/g, "$1•••")
     .replace(/(\/\/)[^/\s@]+@/g, "$1•••@");
 }
 
@@ -266,11 +269,15 @@ function endpointSummary(m: Model, findings: Finding[]): CheckSummary {
 
 /** The program a command runs, without its path, arguments or any NAME=value assignments in front of it. */
 const program = (h: HookHandler): string => {
-  const words = shellWords(h.command ?? "");
-  let i = 0;
-  while (i < words.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[i]!) || (words[i] === "env" && i === 0))) i++;
-  const w = words[i];
-  if (!w) return "(shell command)";
+  // Strip a leading env and the assignments before splitting into words, so a quoted value with spaces
+  // can't leave part of itself behind as the "program".
+  let rest = (h.command ?? "").trimStart();
+  const env = /^(?:\S*[\\/])?env(?=\s|$)/.exec(rest);
+  if (env) rest = rest.slice(env[0].length).trimStart();
+  for (let m; (m = /^[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s"'])*/.exec(rest)); ) rest = rest.slice(m[0].length).trimStart();
+  const w = shellWords(rest)[0];
+  if (!w) return env ? "env" : "(shell command)";
+  if (env && w.startsWith("-")) return "env";
   return w.split(/[\\/]/).pop() || w;
 };
 

@@ -2,7 +2,7 @@
 
 `whatsallowed` reads your Claude Code, Codex and Cursor config and flags risky settings, each with the file, the line and a rule ID. Examples: a hook that pipes `curl` into `sh`, an MCP server run with `npx` and no version, a repository that sets `ANTHROPIC_BASE_URL`, or a `.env` file the agent can read without asking.
 
-It runs on your machine and only reads files. It makes no network calls and sends no telemetry, and a test checks the first of those on every build ([test/no-network.test.ts](test/no-network.test.ts)).
+A scan runs on your machine and only reads files. The `baseline` command also writes one file of its own, `~/.whatsallowed/baseline.json`, and never changes your config. It makes no network calls and sends no telemetry, and a test checks the first of those on every build ([test/no-network.test.ts](test/no-network.test.ts)).
 
 Every check publishes its precision and recall against a labelled set you can rerun: see [docs/ACCURACY.md](docs/ACCURACY.md). AI models wrote and labelled that set, and every label in it came from a model, not a person, so the figures show how well each check follows its written rule. How often it catches risky settings in real projects isn't known.
 
@@ -16,7 +16,7 @@ You need Node.js 20 or later. In the folder of a project you work on with an age
 npx whatsallowed
 ```
 
-It checks that project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). It only reads files, so it changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means in plain words and what you could do about it. You make any change yourself. A summary at the end shows what each check looked at, including the checks that found nothing.
+It checks that project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). A scan only reads files and changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means and what you could do about it. You make any change yourself. A summary at the end shows what each check looked at, including the checks that found nothing.
 
 ```
 whatsallowed 0.2.0. This is a read-only check: it changes nothing and sends nothing anywhere.
@@ -114,7 +114,7 @@ Ten checks, 35 rules: [docs/checks.md](docs/checks.md). The vendor docs each che
 
 ## What it doesn't do
 
-- It doesn't run, connect to or install anything, so it can't see what an MCP server does at run time or what tools it offers.
+- It doesn't run, connect to or install any server or package named in your config, so it can't see what an MCP server does at run time or what tools it offers.
 - It doesn't read prose in skills or instruction files for hidden instructions (prompt injection).
 - It doesn't change your config.
 - It doesn't follow a hook to a local script it runs, except scripts in skill, plugin and hooks folders.

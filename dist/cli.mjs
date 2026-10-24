@@ -3682,7 +3682,7 @@ function scan(opts) {
 var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 var cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 function scrub(text) {
-  return text.replace(/\b(Bearer|Basic)\s+[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(/(^|[\s('"])([A-Za-z_][A-Za-z0-9_]*)=([^\s'")]+)/g, "$1$2=\u2022\u2022\u2022").replace(/(--?[A-Za-z-]*(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]*)([= ])([^\s'")*]+)/gi, "$1$2\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]+@/g, "$1\u2022\u2022\u2022@");
+  return text.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]*Api-Key|X-[A-Za-z-]*Token)(\s*:\s*)[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s+[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(/(^|[\s('"?&])([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s'")&]+)/g, "$1$2=\u2022\u2022\u2022").replace(/(--?[A-Za-z-]*(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]*)([=\s]\s*)([^\s'")*]+)/gi, "$1$2\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s*[^\s:'"]+:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]+@/g, "$1\u2022\u2022\u2022@");
 }
 var CLAUDE_MODES = ["plan", "dontAsk", "default", "acceptEdits", "auto", "bypassPermissions"];
 var CLAUDE_MEANING = {
@@ -3857,11 +3857,13 @@ function endpointSummary(m, findings) {
   });
 }
 var program = (h) => {
-  const words = shellWords(h.command ?? "");
-  let i = 0;
-  while (i < words.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[i]) || words[i] === "env" && i === 0)) i++;
-  const w = words[i];
-  if (!w) return "(shell command)";
+  let rest = (h.command ?? "").trimStart();
+  const env = /^(?:\S*[\\/])?env(?=\s|$)/.exec(rest);
+  if (env) rest = rest.slice(env[0].length).trimStart();
+  for (let m; m = /^[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s"'])*/.exec(rest); ) rest = rest.slice(m[0].length).trimStart();
+  const w = shellWords(rest)[0];
+  if (!w) return env ? "env" : "(shell command)";
+  if (env && w.startsWith("-")) return "env";
   return w.split(/[\\/]/).pop() || w;
 };
 function hookSummary(m, findings) {
@@ -4225,7 +4227,7 @@ ${rows.join("\n")}
 
 // src/cli.ts
 var HELP = `${TOOL_NAME} ${TOOL_VERSION}: checks Claude Code, Codex and Cursor config for risky settings.
-Reads files only. Makes no network calls and sends no telemetry.
+A scan only reads files; "baseline" also writes its own baseline file. Makes no network calls and sends no telemetry.
 
 Usage:
   ${TOOL_NAME} [scan] [path]        Check the project at [path] (default: current folder) and your user config

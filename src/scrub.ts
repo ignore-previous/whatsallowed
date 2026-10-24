@@ -30,9 +30,9 @@ const MYSQL_P_QUOTED = new RegExp(
 
 // Options whose name contains a credential word but whose next word is not a secret: flags that take no value
 // (--password-stdin, --passWithNoTests) and --author. Anything not listed here, and any of these given an
-// explicit =value, is still hidden. Digits, underscores and dots count as part of the name (--api_key).
+// explicit =value or :value, is still hidden. Digits, underscores and dots count as part of the name (--api_key).
 const LONG_FLAG = new RegExp(
-  String.raw`(?!--?(?:[\w.-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![\w.-]|=))(--?[\w.-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[\w.-]{0,30})([=:\s]\s{0,5})("[^"\n]{0,200}"?|'[^'\n]{0,200}'?|[^\s'")*]+)`,
+  String.raw`(?!--?(?:[\w.-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![\w.-]|[=:]))(--?[\w.-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[\w.-]{0,30})([=:\s]\s{0,5})("[^"\n]{0,200}"?|'[^'\n]{0,200}'?|[^\s'")*]+)`,
   "gi",
 );
 // Only credential-like names match. A value that is not hidden is left unconsumed, so a credential inside it is still found.

@@ -340,7 +340,7 @@ describe("scrub: long flags", () => {
     }
   });
   it("hides an explicit =value even on flags that usually take none", () => {
-    for (const s of ["--password-stdin=hunter2", "--author=hunter2", "--passthrough=hunter2", "--api-key-stdin=hunter2", "--password-stdin_x=hunter2", "--password-stdin1=hunter2", "--password-stdin.x=hunter2"]) {
+    for (const s of ["--password-stdin=hunter2", "--author=hunter2", "--passthrough=hunter2", "--api-key-stdin=hunter2", "--password-stdin_x=hunter2", "--password-stdin1=hunter2", "--password-stdin.x=hunter2", "--author:hunter2", "--password-stdin:hunter2", "--passwithnotests:hunter2"]) {
       expect(scrub(`tool ${s}`), s).not.toContain("hunter2");
     }
   });

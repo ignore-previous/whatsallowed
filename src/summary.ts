@@ -410,7 +410,6 @@ function driftSummary(m: Model, findings: Finding[]): CheckSummary {
   const items = [
     ...changed.map((f) => `changed: "${f.match}" (${f.file})`),
     ...added.map((f) => `new: "${f.match}" (${f.file})`),
-    ...removed.map((k) => `removed: "${k.slice(k.lastIndexOf("#") + 1)}"`),
   ];
   return base("DRIFT", findings, {
     count: Object.keys(b.servers).length,

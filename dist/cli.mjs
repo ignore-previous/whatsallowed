@@ -1867,6 +1867,347 @@ function writeBaseline(file, b, reset) {
 // src/checks/drift.ts
 import { createHash } from "node:crypto";
 
+// src/fsys.ts
+import * as fs2 from "node:fs";
+import * as nodePath from "node:path";
+var MAX_BYTES = 1024 * 1024;
+function utf16Order(buf) {
+  const pairs = Math.floor(Math.min(buf.length, 4096) / 2);
+  if (pairs < 2) return void 0;
+  let evenZero = 0;
+  let oddZero = 0;
+  for (let i = 0; i < pairs; i++) {
+    if (buf[2 * i] === 0) evenZero++;
+    if (buf[2 * i + 1] === 0) oddZero++;
+  }
+  if (oddZero >= pairs * 0.4 && evenZero <= pairs * 0.05) return "le";
+  if (evenZero >= pairs * 0.4 && oddZero <= pairs * 0.05) return "be";
+  return void 0;
+}
+function decodeText(buf) {
+  let order;
+  let body = buf;
+  if (buf[0] === 255 && buf[1] === 254) order = "le", body = buf.subarray(2);
+  else if (buf[0] === 254 && buf[1] === 255) order = "be", body = buf.subarray(2);
+  else order = utf16Order(buf);
+  let text;
+  if (order) {
+    const even = Buffer.from(body.subarray(0, body.length - body.length % 2));
+    text = (order === "be" ? even.swap16() : even).toString("utf16le");
+  } else text = body.toString("utf8");
+  return text.charCodeAt(0) === 65279 ? text.slice(1) : text;
+}
+var toPosix = (p) => p.replaceAll("\\", "/").replace(/\/+$/, "") || "/";
+var join = (...parts) => toPosix(parts.join("/").replace(/\/+/g, "/"));
+var nodeFs = {
+  readText(path2) {
+    try {
+      const st = fs2.statSync(path2);
+      if (!st.isFile() || st.size > MAX_BYTES) return void 0;
+      return decodeText(fs2.readFileSync(path2));
+    } catch {
+      return void 0;
+    }
+  },
+  oversize(path2) {
+    try {
+      const st = fs2.statSync(path2);
+      return st.isFile() && st.size > MAX_BYTES ? st.size : void 0;
+    } catch {
+      return void 0;
+    }
+  },
+  list(dir) {
+    try {
+      return fs2.readdirSync(dir, { withFileTypes: true }).map((d) => ({ name: d.name, isDir: d.isDirectory() }));
+    } catch {
+      return void 0;
+    }
+  }
+};
+function memFs(files) {
+  const norm = {};
+  for (const [k, v] of Object.entries(files)) norm[toPosix(k)] = v;
+  return {
+    readText: (p) => {
+      const t = norm[toPosix(p)];
+      return t !== void 0 && t.length > MAX_BYTES ? void 0 : t;
+    },
+    oversize: (p) => {
+      const t = norm[toPosix(p)];
+      return t !== void 0 && t.length > MAX_BYTES ? t.length : void 0;
+    },
+    list(dir) {
+      const d = toPosix(dir);
+      const prefix = d === "/" ? "/" : d + "/";
+      const seen = /* @__PURE__ */ new Map();
+      for (const k of Object.keys(norm)) {
+        if (!k.startsWith(prefix)) continue;
+        const rest = k.slice(prefix.length);
+        const slash = rest.indexOf("/");
+        const name = slash === -1 ? rest : rest.slice(0, slash);
+        if (!name) continue;
+        seen.set(name, (seen.get(name) ?? false) || slash !== -1);
+      }
+      if (seen.size === 0) return void 0;
+      return [...seen].map(([name, isDir]) => ({ name, isDir }));
+    }
+  };
+}
+var resolveAbs = (p) => toPosix(nodePath.resolve(p));
+
+// src/gitignore.ts
+function globBody(pat) {
+  let out = "";
+  for (let i = 0; i < pat.length; i++) {
+    const c = pat[i] ?? "";
+    if (c === "*") {
+      if (pat[i + 1] === "*") {
+        if (pat[i + 2] === "/") {
+          out += "(?:.*/)?";
+          i += 2;
+        } else {
+          out += ".*";
+          i += 1;
+        }
+      } else out += "[^/]*";
+    } else if (c === "?") out += "[^/]";
+    else if (c === "[") {
+      const end = pat.indexOf("]", i + 1);
+      if (end > i) {
+        out += pat.slice(i, end + 1).replace(/^\[!/, "[^");
+        i = end;
+      } else out += "\\[";
+    } else if (c === "\\" && i + 1 < pat.length) {
+      out += (pat[++i] ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    } else out += c.replace(/[.+^${}()|\\]/g, "\\$&");
+  }
+  return out;
+}
+function parseIgnore(text, base3 = "") {
+  const out = [];
+  for (const raw of text.split(/\r?\n/)) {
+    let line = raw.replace(/(?<!\\)\s+$/, "");
+    if (!line || line.startsWith("#")) continue;
+    const negate = line.startsWith("!");
+    if (negate) line = line.slice(1);
+    const dirOnly = line.endsWith("/");
+    line = line.replace(/\/+$/, "");
+    if (!line) continue;
+    const anchored = line.includes("/");
+    line = line.replace(/^\//, "");
+    const prefix = base3 ? `${base3.replace(/\/+$/, "")}/` : "";
+    const lead = anchored ? "" : "(?:.*/)?";
+    const esc = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out.push({ re: new RegExp(`^${esc}${lead}${globBody(line)}$`), negate, dirOnly });
+  }
+  return out;
+}
+function verdict(patterns, rel, isDir) {
+  let v;
+  for (const p of patterns) {
+    if (p.dirOnly && !isDir) continue;
+    if (p.re.test(rel)) v = !p.negate;
+  }
+  return v;
+}
+function isIgnored(patterns, rel) {
+  const parts = toPosix(rel).split("/");
+  for (let i = 1; i < parts.length; i++) {
+    if (verdict(patterns, parts.slice(0, i).join("/"), true)) return true;
+  }
+  return verdict(patterns, parts.join("/"), false) ?? false;
+}
+function excludesFileFrom(gitconfig, home) {
+  if (!gitconfig) return void 0;
+  let inCore = false;
+  for (const line of gitconfig.split(/\r?\n/)) {
+    const sec = /^\s*\[([^\]]+)\]/.exec(line);
+    if (sec) {
+      inCore = (sec[1] ?? "").trim().toLowerCase() === "core";
+      continue;
+    }
+    const m = inCore ? /^\s*excludesfile\s*=\s*"?([^"#;]+?)"?\s*(?:[#;].*)?$/i.exec(line) : null;
+    if (m?.[1]) return toPosix(m[1].replace(/^~(?=\/|\\|$)/, home));
+  }
+  return void 0;
+}
+function gitIgnoresFile(fs3, home, project, rel) {
+  const index = fs3.readText(join(project, ".git/index"));
+  if (index?.includes(rel)) return false;
+  const patterns = [];
+  const globalFile = excludesFileFrom(fs3.readText(join(home, ".gitconfig")), home) ?? join(home, ".config/git/ignore");
+  const sources = [
+    [globalFile, ""],
+    [join(project, ".git/info/exclude"), ""],
+    [join(project, ".gitignore"), ""]
+  ];
+  const dirs = rel.split("/").slice(0, -1);
+  for (let i = 1; i <= dirs.length; i++) {
+    const d = dirs.slice(0, i).join("/");
+    sources.push([join(project, d, ".gitignore"), d]);
+  }
+  for (const [path2, base3] of sources) {
+    const text = fs3.readText(path2);
+    if (text !== void 0) patterns.push(...parseIgnore(text, base3));
+  }
+  return isIgnored(patterns, rel);
+}
+
+// src/discover.ts
+var SCRIPT_EXT = /\.(sh|bash|zsh|ksh|fish|ps1|psm1|py|js|mjs|cjs|ts|rb|pl|bat|cmd)$/i;
+var SKIP_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", ".trash", ".venv", "venv", "__pycache__", "dist", "build"]);
+var MAX_WALK_FILES = 5e3;
+function displayPath(abs, home, project) {
+  const p = toPosix(abs);
+  const proj = toPosix(project);
+  const h = toPosix(home);
+  if (p === proj) return ".";
+  if (p.startsWith(proj + "/")) return "./" + p.slice(proj.length + 1);
+  if (p.startsWith(h + "/")) return "~/" + p.slice(h.length + 1);
+  return p;
+}
+function walk(fs3, dir, maxDepth, budget = { left: MAX_WALK_FILES }) {
+  const out = [];
+  const entries = fs3.list(dir);
+  if (!entries) return out;
+  for (const e of entries) {
+    if (budget.left <= 0) break;
+    const p = join(dir, e.name);
+    if (e.isDir) {
+      if (SKIP_DIRS.has(e.name) || maxDepth <= 0) continue;
+      out.push(...walk(fs3, p, maxDepth - 1, budget));
+    } else {
+      budget.left--;
+      out.push(p);
+    }
+  }
+  return out;
+}
+var CONFIG_KINDS = /* @__PURE__ */ new Set([
+  "claude-settings",
+  "claude-json",
+  "mcp-json",
+  "codex-config",
+  "codex-hooks",
+  "cursor-mcp",
+  "plugin-hooks",
+  "plugin-manifest"
+]);
+var ENV_TEMPLATE = /^\.env\.(example|sample|template|dist)$/i;
+function isSecretFileName(name) {
+  if (name === ".env") return true;
+  if (/^\.env\..+/i.test(name)) return !ENV_TEMPLATE.test(name);
+  if (/\.(pem|key)$/i.test(name)) return true;
+  return /^(id_rsa|id_ed25519|id_ecdsa|id_dsa|credentials\.json|\.npmrc|\.pypirc)$/i.test(name);
+}
+var hasShebang = (text) => !!text && text.startsWith("#!");
+function discover(opts) {
+  const { fs: fs3, mode } = opts;
+  const home = toPosix(opts.home);
+  const project = toPosix(opts.project);
+  const files = [];
+  const unchecked = [];
+  const seen = /* @__PURE__ */ new Set();
+  const add = (path2, tool, kind, scope) => {
+    const p = toPosix(path2);
+    if (seen.has(p)) return;
+    const text = fs3.readText(p);
+    if (text === void 0) {
+      const bytes = CONFIG_KINDS.has(kind) ? fs3.oversize(p) : void 0;
+      if (bytes !== void 0) {
+        seen.add(p);
+        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, bytes });
+      }
+      return;
+    }
+    seen.add(p);
+    files.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, text });
+  };
+  const addScripts = (dir, tool, scope, depth = 4) => {
+    for (const p of walk(fs3, dir, depth)) {
+      const name = p.slice(p.lastIndexOf("/") + 1);
+      if (SCRIPT_EXT.test(name) && !name.endsWith(".d.ts")) add(p, tool, "script", scope);
+      else if (!name.includes(".") && hasShebang(fs3.readText(p))) add(p, tool, "script", scope);
+    }
+  };
+  const addRules = (dir, tool, scope) => {
+    for (const p of walk(fs3, dir, 3)) {
+      if (/\.(md|mdc)$/i.test(p)) add(p, tool, "instructions", scope);
+    }
+  };
+  if (mode !== "project") {
+    for (const dir of opts.managedDirs ?? []) {
+      add(join(dir, "managed-settings.json"), "claude", "claude-settings", "managed");
+      add(join(dir, "managed-mcp.json"), "claude", "mcp-json", "managed");
+    }
+    add(join(home, ".claude/settings.json"), "claude", "claude-settings", "user");
+    add(join(home, ".claude.json"), "claude", "claude-json", "user");
+    add(join(home, ".claude/CLAUDE.md"), "claude", "instructions", "user");
+    addRules(join(home, ".claude/rules"), "claude", "user");
+    addScripts(join(home, ".claude/skills"), "claude", "user");
+    addScripts(join(home, ".claude/hooks"), "claude", "user", 2);
+    const cache = join(home, ".claude/plugins/cache");
+    for (const p of walk(fs3, cache, 8)) {
+      const rel = p.slice(cache.length + 1);
+      const name = p.slice(p.lastIndexOf("/") + 1);
+      if (rel.endsWith("/hooks/hooks.json")) add(p, "claude", "plugin-hooks", "plugin");
+      else if (rel.endsWith("/.claude-plugin/plugin.json")) add(p, "claude", "plugin-manifest", "plugin");
+      else if (name === ".mcp.json") add(p, "claude", "mcp-json", "plugin");
+      else if (SCRIPT_EXT.test(name) && !name.endsWith(".d.ts")) add(p, "claude", "script", "plugin");
+    }
+    add(join(home, ".codex/config.toml"), "codex", "codex-config", "user");
+    for (const e of fs3.list(join(home, ".codex")) ?? []) {
+      if (!e.isDir && e.name.endsWith(".config.toml")) add(join(home, ".codex", e.name), "codex", "codex-config", "user");
+    }
+    add(join(home, ".codex/hooks.json"), "codex", "codex-hooks", "user");
+    add(join(home, ".codex/AGENTS.md"), "codex", "instructions", "user");
+    addScripts(join(home, ".codex/skills"), "codex", "user");
+    addScripts(join(home, ".agents/skills"), "agents", "user");
+    add(join(home, ".cursor/mcp.json"), "cursor", "cursor-mcp", "user");
+    add(join(home, ".gemini/GEMINI.md"), "gemini", "instructions", "user");
+  }
+  const projectEntries = [];
+  if (mode !== "user" && project !== home) {
+    add(join(project, ".claude/settings.json"), "claude", "claude-settings", "project");
+    add(join(project, ".claude/settings.local.json"), "claude", "claude-settings", "local");
+    const local = files.find((f5) => f5.path === join(project, ".claude/settings.local.json"));
+    if (local) local.gitIgnored = gitIgnoresFile(fs3, home, project, ".claude/settings.local.json");
+    add(join(project, ".mcp.json"), "claude", "mcp-json", "project");
+    for (const n of ["CLAUDE.md", "CLAUDE.local.md", ".claude/CLAUDE.md"]) {
+      add(join(project, n), "claude", "instructions", n === "CLAUDE.local.md" ? "local" : "project");
+    }
+    addRules(join(project, ".claude/rules"), "claude", "project");
+    addScripts(join(project, ".claude/skills"), "claude", "project");
+    addScripts(join(project, ".claude/hooks"), "claude", "project", 2);
+    add(join(project, "AGENTS.md"), "agents", "instructions", "project");
+    add(join(project, "AGENTS.override.md"), "agents", "instructions", "project");
+    add(join(project, "GEMINI.md"), "gemini", "instructions", "project");
+    add(join(project, ".cursorrules"), "cursor", "instructions", "project");
+    addRules(join(project, ".cursor/rules"), "cursor", "project");
+    add(join(project, ".cursor/mcp.json"), "cursor", "cursor-mcp", "project");
+    add(join(project, ".codex/config.toml"), "codex", "codex-config", "project");
+    add(join(project, ".codex/hooks.json"), "codex", "codex-hooks", "project");
+    addScripts(join(project, ".codex/skills"), "codex", "project");
+    addScripts(join(project, ".agents/skills"), "agents", "project");
+    for (const p of walk(fs3, project, 1)) {
+      projectEntries.push(p);
+      const name = p.slice(p.lastIndexOf("/") + 1);
+      if (!seen.has(p) && isSecretFileName(name)) {
+        seen.add(p);
+        const text = /^\.(npmrc|pypirc)$/i.test(name) ? fs3.readText(p) : void 0;
+        files.push({ path: p, display: displayPath(p, home, project), tool: "agents", kind: "secret-file", scope: "project", text });
+      }
+    }
+  }
+  return { files, projectEntries, unchecked };
+}
+function defaultManagedDirs(platform) {
+  if (platform === "win32") return ["C:/Program Files/ClaudeCode"];
+  if (platform === "darwin") return ["/Library/Application Support/ClaudeCode"];
+  return ["/etc/claude-code"];
+}
+
 // src/scrub.ts
 var MAX_SHOWN = 300;
 var CREDENTIAL_WORD = "token|secret|passw|pwd|passphrase|(?<!by)pass|key|auth|cred|bearer|cookie|session|signature|jwt|private|dsn|salt|otp";
@@ -1990,99 +2331,11 @@ function checkDrift(m) {
   }
   for (const key of removedSinceBaseline(m)) {
     if (seen.has(key)) continue;
-    m.ctx.notes.push(`MCP server ${key.slice(key.lastIndexOf("#") + 1)} in ${key.slice(0, key.lastIndexOf("#"))} was removed since the baseline.`);
+    const at = key.lastIndexOf("#");
+    m.ctx.notes.push(`MCP server ${key.slice(at + 1)} in ${displayPath(key.slice(0, at), m.ctx.home, m.ctx.project)} was removed since the baseline.`);
   }
   return out;
 }
-
-// src/fsys.ts
-import * as fs2 from "node:fs";
-import * as nodePath from "node:path";
-var MAX_BYTES = 1024 * 1024;
-function utf16Order(buf) {
-  const pairs = Math.floor(Math.min(buf.length, 4096) / 2);
-  if (pairs < 2) return void 0;
-  let evenZero = 0;
-  let oddZero = 0;
-  for (let i = 0; i < pairs; i++) {
-    if (buf[2 * i] === 0) evenZero++;
-    if (buf[2 * i + 1] === 0) oddZero++;
-  }
-  if (oddZero >= pairs * 0.4 && evenZero <= pairs * 0.05) return "le";
-  if (evenZero >= pairs * 0.4 && oddZero <= pairs * 0.05) return "be";
-  return void 0;
-}
-function decodeText(buf) {
-  let order;
-  let body = buf;
-  if (buf[0] === 255 && buf[1] === 254) order = "le", body = buf.subarray(2);
-  else if (buf[0] === 254 && buf[1] === 255) order = "be", body = buf.subarray(2);
-  else order = utf16Order(buf);
-  let text;
-  if (order) {
-    const even = Buffer.from(body.subarray(0, body.length - body.length % 2));
-    text = (order === "be" ? even.swap16() : even).toString("utf16le");
-  } else text = body.toString("utf8");
-  return text.charCodeAt(0) === 65279 ? text.slice(1) : text;
-}
-var toPosix = (p) => p.replaceAll("\\", "/").replace(/\/+$/, "") || "/";
-var join = (...parts) => toPosix(parts.join("/").replace(/\/+/g, "/"));
-var nodeFs = {
-  readText(path2) {
-    try {
-      const st = fs2.statSync(path2);
-      if (!st.isFile() || st.size > MAX_BYTES) return void 0;
-      return decodeText(fs2.readFileSync(path2));
-    } catch {
-      return void 0;
-    }
-  },
-  oversize(path2) {
-    try {
-      const st = fs2.statSync(path2);
-      return st.isFile() && st.size > MAX_BYTES ? st.size : void 0;
-    } catch {
-      return void 0;
-    }
-  },
-  list(dir) {
-    try {
-      return fs2.readdirSync(dir, { withFileTypes: true }).map((d) => ({ name: d.name, isDir: d.isDirectory() }));
-    } catch {
-      return void 0;
-    }
-  }
-};
-function memFs(files) {
-  const norm = {};
-  for (const [k, v] of Object.entries(files)) norm[toPosix(k)] = v;
-  return {
-    readText: (p) => {
-      const t = norm[toPosix(p)];
-      return t !== void 0 && t.length > MAX_BYTES ? void 0 : t;
-    },
-    oversize: (p) => {
-      const t = norm[toPosix(p)];
-      return t !== void 0 && t.length > MAX_BYTES ? t.length : void 0;
-    },
-    list(dir) {
-      const d = toPosix(dir);
-      const prefix = d === "/" ? "/" : d + "/";
-      const seen = /* @__PURE__ */ new Map();
-      for (const k of Object.keys(norm)) {
-        if (!k.startsWith(prefix)) continue;
-        const rest = k.slice(prefix.length);
-        const slash = rest.indexOf("/");
-        const name = slash === -1 ? rest : rest.slice(0, slash);
-        if (!name) continue;
-        seen.set(name, (seen.get(name) ?? false) || slash !== -1);
-      }
-      if (seen.size === 0) return void 0;
-      return [...seen].map(([name, isDir]) => ({ name, isDir }));
-    }
-  };
-}
-var resolveAbs = (p) => toPosix(nodePath.resolve(p));
 
 // src/name.ts
 var TOOL_NAME = "whatsallowed";
@@ -3659,258 +3912,6 @@ function checkSkills(m) {
   return out;
 }
 
-// src/gitignore.ts
-function globBody(pat) {
-  let out = "";
-  for (let i = 0; i < pat.length; i++) {
-    const c = pat[i] ?? "";
-    if (c === "*") {
-      if (pat[i + 1] === "*") {
-        if (pat[i + 2] === "/") {
-          out += "(?:.*/)?";
-          i += 2;
-        } else {
-          out += ".*";
-          i += 1;
-        }
-      } else out += "[^/]*";
-    } else if (c === "?") out += "[^/]";
-    else if (c === "[") {
-      const end = pat.indexOf("]", i + 1);
-      if (end > i) {
-        out += pat.slice(i, end + 1).replace(/^\[!/, "[^");
-        i = end;
-      } else out += "\\[";
-    } else if (c === "\\" && i + 1 < pat.length) {
-      out += (pat[++i] ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    } else out += c.replace(/[.+^${}()|\\]/g, "\\$&");
-  }
-  return out;
-}
-function parseIgnore(text, base3 = "") {
-  const out = [];
-  for (const raw of text.split(/\r?\n/)) {
-    let line = raw.replace(/(?<!\\)\s+$/, "");
-    if (!line || line.startsWith("#")) continue;
-    const negate = line.startsWith("!");
-    if (negate) line = line.slice(1);
-    const dirOnly = line.endsWith("/");
-    line = line.replace(/\/+$/, "");
-    if (!line) continue;
-    const anchored = line.includes("/");
-    line = line.replace(/^\//, "");
-    const prefix = base3 ? `${base3.replace(/\/+$/, "")}/` : "";
-    const lead = anchored ? "" : "(?:.*/)?";
-    const esc = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    out.push({ re: new RegExp(`^${esc}${lead}${globBody(line)}$`), negate, dirOnly });
-  }
-  return out;
-}
-function verdict(patterns, rel, isDir) {
-  let v;
-  for (const p of patterns) {
-    if (p.dirOnly && !isDir) continue;
-    if (p.re.test(rel)) v = !p.negate;
-  }
-  return v;
-}
-function isIgnored(patterns, rel) {
-  const parts = toPosix(rel).split("/");
-  for (let i = 1; i < parts.length; i++) {
-    if (verdict(patterns, parts.slice(0, i).join("/"), true)) return true;
-  }
-  return verdict(patterns, parts.join("/"), false) ?? false;
-}
-function excludesFileFrom(gitconfig, home) {
-  if (!gitconfig) return void 0;
-  let inCore = false;
-  for (const line of gitconfig.split(/\r?\n/)) {
-    const sec = /^\s*\[([^\]]+)\]/.exec(line);
-    if (sec) {
-      inCore = (sec[1] ?? "").trim().toLowerCase() === "core";
-      continue;
-    }
-    const m = inCore ? /^\s*excludesfile\s*=\s*"?([^"#;]+?)"?\s*(?:[#;].*)?$/i.exec(line) : null;
-    if (m?.[1]) return toPosix(m[1].replace(/^~(?=\/|\\|$)/, home));
-  }
-  return void 0;
-}
-function gitIgnoresFile(fs3, home, project, rel) {
-  const index = fs3.readText(join(project, ".git/index"));
-  if (index?.includes(rel)) return false;
-  const patterns = [];
-  const globalFile = excludesFileFrom(fs3.readText(join(home, ".gitconfig")), home) ?? join(home, ".config/git/ignore");
-  const sources = [
-    [globalFile, ""],
-    [join(project, ".git/info/exclude"), ""],
-    [join(project, ".gitignore"), ""]
-  ];
-  const dirs = rel.split("/").slice(0, -1);
-  for (let i = 1; i <= dirs.length; i++) {
-    const d = dirs.slice(0, i).join("/");
-    sources.push([join(project, d, ".gitignore"), d]);
-  }
-  for (const [path2, base3] of sources) {
-    const text = fs3.readText(path2);
-    if (text !== void 0) patterns.push(...parseIgnore(text, base3));
-  }
-  return isIgnored(patterns, rel);
-}
-
-// src/discover.ts
-var SCRIPT_EXT = /\.(sh|bash|zsh|ksh|fish|ps1|psm1|py|js|mjs|cjs|ts|rb|pl|bat|cmd)$/i;
-var SKIP_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", ".trash", ".venv", "venv", "__pycache__", "dist", "build"]);
-var MAX_WALK_FILES = 5e3;
-function displayPath(abs, home, project) {
-  const p = toPosix(abs);
-  const proj = toPosix(project);
-  const h = toPosix(home);
-  if (p === proj) return ".";
-  if (p.startsWith(proj + "/")) return "./" + p.slice(proj.length + 1);
-  if (p.startsWith(h + "/")) return "~/" + p.slice(h.length + 1);
-  return p;
-}
-function walk(fs3, dir, maxDepth, budget = { left: MAX_WALK_FILES }) {
-  const out = [];
-  const entries = fs3.list(dir);
-  if (!entries) return out;
-  for (const e of entries) {
-    if (budget.left <= 0) break;
-    const p = join(dir, e.name);
-    if (e.isDir) {
-      if (SKIP_DIRS.has(e.name) || maxDepth <= 0) continue;
-      out.push(...walk(fs3, p, maxDepth - 1, budget));
-    } else {
-      budget.left--;
-      out.push(p);
-    }
-  }
-  return out;
-}
-var CONFIG_KINDS = /* @__PURE__ */ new Set([
-  "claude-settings",
-  "claude-json",
-  "mcp-json",
-  "codex-config",
-  "codex-hooks",
-  "cursor-mcp",
-  "plugin-hooks",
-  "plugin-manifest"
-]);
-var ENV_TEMPLATE = /^\.env\.(example|sample|template|dist)$/i;
-function isSecretFileName(name) {
-  if (name === ".env") return true;
-  if (/^\.env\..+/i.test(name)) return !ENV_TEMPLATE.test(name);
-  if (/\.(pem|key)$/i.test(name)) return true;
-  return /^(id_rsa|id_ed25519|id_ecdsa|id_dsa|credentials\.json|\.npmrc|\.pypirc)$/i.test(name);
-}
-var hasShebang = (text) => !!text && text.startsWith("#!");
-function discover(opts) {
-  const { fs: fs3, mode } = opts;
-  const home = toPosix(opts.home);
-  const project = toPosix(opts.project);
-  const files = [];
-  const unchecked = [];
-  const seen = /* @__PURE__ */ new Set();
-  const add = (path2, tool, kind, scope) => {
-    const p = toPosix(path2);
-    if (seen.has(p)) return;
-    const text = fs3.readText(p);
-    if (text === void 0) {
-      const bytes = CONFIG_KINDS.has(kind) ? fs3.oversize(p) : void 0;
-      if (bytes !== void 0) {
-        seen.add(p);
-        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, bytes });
-      }
-      return;
-    }
-    seen.add(p);
-    files.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, text });
-  };
-  const addScripts = (dir, tool, scope, depth = 4) => {
-    for (const p of walk(fs3, dir, depth)) {
-      const name = p.slice(p.lastIndexOf("/") + 1);
-      if (SCRIPT_EXT.test(name) && !name.endsWith(".d.ts")) add(p, tool, "script", scope);
-      else if (!name.includes(".") && hasShebang(fs3.readText(p))) add(p, tool, "script", scope);
-    }
-  };
-  const addRules = (dir, tool, scope) => {
-    for (const p of walk(fs3, dir, 3)) {
-      if (/\.(md|mdc)$/i.test(p)) add(p, tool, "instructions", scope);
-    }
-  };
-  if (mode !== "project") {
-    for (const dir of opts.managedDirs ?? []) {
-      add(join(dir, "managed-settings.json"), "claude", "claude-settings", "managed");
-      add(join(dir, "managed-mcp.json"), "claude", "mcp-json", "managed");
-    }
-    add(join(home, ".claude/settings.json"), "claude", "claude-settings", "user");
-    add(join(home, ".claude.json"), "claude", "claude-json", "user");
-    add(join(home, ".claude/CLAUDE.md"), "claude", "instructions", "user");
-    addRules(join(home, ".claude/rules"), "claude", "user");
-    addScripts(join(home, ".claude/skills"), "claude", "user");
-    addScripts(join(home, ".claude/hooks"), "claude", "user", 2);
-    const cache = join(home, ".claude/plugins/cache");
-    for (const p of walk(fs3, cache, 8)) {
-      const rel = p.slice(cache.length + 1);
-      const name = p.slice(p.lastIndexOf("/") + 1);
-      if (rel.endsWith("/hooks/hooks.json")) add(p, "claude", "plugin-hooks", "plugin");
-      else if (rel.endsWith("/.claude-plugin/plugin.json")) add(p, "claude", "plugin-manifest", "plugin");
-      else if (name === ".mcp.json") add(p, "claude", "mcp-json", "plugin");
-      else if (SCRIPT_EXT.test(name) && !name.endsWith(".d.ts")) add(p, "claude", "script", "plugin");
-    }
-    add(join(home, ".codex/config.toml"), "codex", "codex-config", "user");
-    for (const e of fs3.list(join(home, ".codex")) ?? []) {
-      if (!e.isDir && e.name.endsWith(".config.toml")) add(join(home, ".codex", e.name), "codex", "codex-config", "user");
-    }
-    add(join(home, ".codex/hooks.json"), "codex", "codex-hooks", "user");
-    add(join(home, ".codex/AGENTS.md"), "codex", "instructions", "user");
-    addScripts(join(home, ".codex/skills"), "codex", "user");
-    addScripts(join(home, ".agents/skills"), "agents", "user");
-    add(join(home, ".cursor/mcp.json"), "cursor", "cursor-mcp", "user");
-    add(join(home, ".gemini/GEMINI.md"), "gemini", "instructions", "user");
-  }
-  const projectEntries = [];
-  if (mode !== "user" && project !== home) {
-    add(join(project, ".claude/settings.json"), "claude", "claude-settings", "project");
-    add(join(project, ".claude/settings.local.json"), "claude", "claude-settings", "local");
-    const local = files.find((f5) => f5.path === join(project, ".claude/settings.local.json"));
-    if (local) local.gitIgnored = gitIgnoresFile(fs3, home, project, ".claude/settings.local.json");
-    add(join(project, ".mcp.json"), "claude", "mcp-json", "project");
-    for (const n of ["CLAUDE.md", "CLAUDE.local.md", ".claude/CLAUDE.md"]) {
-      add(join(project, n), "claude", "instructions", n === "CLAUDE.local.md" ? "local" : "project");
-    }
-    addRules(join(project, ".claude/rules"), "claude", "project");
-    addScripts(join(project, ".claude/skills"), "claude", "project");
-    addScripts(join(project, ".claude/hooks"), "claude", "project", 2);
-    add(join(project, "AGENTS.md"), "agents", "instructions", "project");
-    add(join(project, "AGENTS.override.md"), "agents", "instructions", "project");
-    add(join(project, "GEMINI.md"), "gemini", "instructions", "project");
-    add(join(project, ".cursorrules"), "cursor", "instructions", "project");
-    addRules(join(project, ".cursor/rules"), "cursor", "project");
-    add(join(project, ".cursor/mcp.json"), "cursor", "cursor-mcp", "project");
-    add(join(project, ".codex/config.toml"), "codex", "codex-config", "project");
-    add(join(project, ".codex/hooks.json"), "codex", "codex-hooks", "project");
-    addScripts(join(project, ".codex/skills"), "codex", "project");
-    addScripts(join(project, ".agents/skills"), "agents", "project");
-    for (const p of walk(fs3, project, 1)) {
-      projectEntries.push(p);
-      const name = p.slice(p.lastIndexOf("/") + 1);
-      if (!seen.has(p) && isSecretFileName(name)) {
-        seen.add(p);
-        const text = /^\.(npmrc|pypirc)$/i.test(name) ? fs3.readText(p) : void 0;
-        files.push({ path: p, display: displayPath(p, home, project), tool: "agents", kind: "secret-file", scope: "project", text });
-      }
-    }
-  }
-  return { files, projectEntries, unchecked };
-}
-function defaultManagedDirs(platform) {
-  if (platform === "win32") return ["C:/Program Files/ClaudeCode"];
-  if (platform === "darwin") return ["/Library/Application Support/ClaudeCode"];
-  return ["/etc/claude-code"];
-}
-
 // src/scan.ts
 var CHECKS = [checkMode, checkAllow, checkDeny, checkEndpoint, checkHooks, checkMcp, checkDrift, checkSecrets, checkSkills];
 var mib = (n) => `${(n / (1024 * 1024)).toFixed(1)} MiB`;
@@ -4344,8 +4345,7 @@ function driftSummary(m, findings) {
   const removed = removedSinceBaseline(m);
   const items = [
     ...changed.map((f5) => `changed: "${f5.match}" (${f5.file})`),
-    ...added.map((f5) => `new: "${f5.match}" (${f5.file})`),
-    ...removed.map((k) => `removed: "${k.slice(k.lastIndexOf("#") + 1)}"`)
+    ...added.map((f5) => `new: "${f5.match}" (${f5.file})`)
   ];
   return base2("DRIFT", findings, {
     count: Object.keys(b.servers).length,

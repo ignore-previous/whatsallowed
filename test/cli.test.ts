@@ -179,6 +179,21 @@ describe("baseline", () => {
     expect(j.findings.map((f: { rule: string }) => f.rule)).toContain("DRIFT-001");
     expect(cli(["baseline", "--baseline", bl, "--reset-baseline"]).code).toBe(0);
   });
+  it("names a removed server once, with a relative path", () => {
+    const bl = join(root, "bl.json");
+    put(project, ".mcp.json", { mcpServers: { keep: { command: "npx", args: ["k@1.0.0"] }, gone: { command: "npx", args: ["g@1.0.0"] } } });
+    expect(cli(["baseline", "--baseline", bl]).code).toBe(0);
+    put(project, ".mcp.json", { mcpServers: { keep: { command: "npx", args: ["k@1.0.0"] } } });
+    const text = cli(["--baseline", bl, "--verbose"]).out;
+    expect(text).toContain("MCP server gone in ./.mcp.json was removed since the baseline.");
+    expect(text).toContain("1 removed since then");
+    expect(text.match(/\bgone\b/g)).toHaveLength(1);
+    expect(text).not.toContain(root);
+    const j = JSON.parse(cli(["--format", "json", "--baseline", bl]).out);
+    const drift = j.summary.checks.find((c: { check: string }) => c.check === "DRIFT");
+    expect(drift.items.join("\n")).not.toContain("removed:");
+    expect(j.notes.join("\n")).toContain("MCP server gone in ./.mcp.json was removed since the baseline.");
+  });
   it("2 on a corrupt baseline", () => {
     const bl = join(root, "bad.json");
     writeFileSync(bl, '{"hello":1}');

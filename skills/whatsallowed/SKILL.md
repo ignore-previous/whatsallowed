@@ -5,7 +5,7 @@ description: Check this project's and the user's Claude Code, Codex and Cursor c
 
 # Check agent config
 
-Run the bundled checker. It only reads files and makes no network calls.
+Run the bundled checker. It only reads files and, once installed, makes no network calls.
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" --format json

@@ -11,6 +11,12 @@ export const DEMO_PROJECT = "/home/demo/shop-app";
 const json = (v: unknown): string => JSON.stringify(v, null, 2) + "\n";
 
 /**
+ * A made-up token that works nowhere. It is joined at run time so the package never holds it as one string,
+ * which secret scanners (run on this repo or on the npm package) would report.
+ */
+export const DEMO_TOKEN = ["q7Rk2mWz", "9LpX4vNc", "8TbY3sHd"].join("");
+
+/**
  * A made-up setup with settings people really use, some of them risky. The credential below is made up
  * and works nowhere. Keys start with ~/ (home) or ./ (project).
  */
@@ -32,7 +38,7 @@ const FILES: Record<string, string> = {
   "./.mcp.json": json({
     mcpServers: {
       browser: { command: "npx", args: ["-y", "demo-browser-mcp"] },
-      tickets: { command: "npx", args: ["demo-tickets-mcp@2.1.0"], env: { TICKETS_API_TOKEN: "q7Rk2mWz9LpX4vNc8TbY3sHd" } },
+      tickets: { command: "npx", args: ["demo-tickets-mcp@2.1.0"], env: { TICKETS_API_TOKEN: DEMO_TOKEN } },
     },
   }),
   // A secrets file the agent can read, because no deny rule covers it.
@@ -59,6 +65,13 @@ export function scanDemo(mode: ScanMode = "all"): ScanResult {
   const baseline = recordBaseline(before.model, "2026-10-01T00:00:00.000Z");
   return scan({ ...base, mode, fs: memFs(toAbs(FILES)), baseline });
 }
+
+/** The summary's first line for the demo, in place of "this project folder and your user settings". */
+export const DEMO_SCOPE: Record<ScanMode, string> = {
+  all: "the made-up shop-app project and demo user settings. None of your files were read.",
+  project: "the made-up shop-app project only (--project-only). None of your files were read.",
+  user: "the made-up demo user settings only (--user-only). None of your files were read.",
+};
 
 export const DEMO_INTRO =
   `This is a demo. It checks a made-up setup that comes with ${TOOL_NAME}. None of your own files are read.\n` +

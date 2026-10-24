@@ -38,11 +38,11 @@ const SCOPE_TEXT: Record<ScanMode, string> = {
 };
 
 /** The per-check summary block, printed after the findings on every scan that found files. */
-export function formatSummary(s: Summary, opts: { color: boolean; verbose?: boolean }): string[] {
+export function formatSummary(s: Summary, opts: { color: boolean; verbose?: boolean; scopeText?: string }): string[] {
   const c = (code: keyof typeof ANSI, x: string): string => (opts.color ? `${ANSI[code]}${x}${ANSI.reset}` : x);
   const pad = (label: string): string => `  ${label.padEnd(10)}`;
   const indent = " ".repeat(12);
-  const lines: string[] = [c("bold", `Summary: ${SCOPE_TEXT[s.scope]}`), ""];
+  const lines: string[] = [c("bold", `Summary: ${opts.scopeText ?? SCOPE_TEXT[s.scope]}`), ""];
   const f = s.files;
   const tools = [
     ["Claude Code", f.claude],
@@ -65,7 +65,7 @@ export function formatSummary(s: Summary, opts: { color: boolean; verbose?: bool
   return lines;
 }
 
-export function formatText(r: ScanResult, opts: { color: boolean; verbose?: boolean }): string {
+export function formatText(r: ScanResult, opts: { color: boolean; verbose?: boolean; scopeText?: string }): string {
   const c = (code: keyof typeof ANSI, s: string): string => (opts.color ? `${ANSI[code]}${s}${ANSI.reset}` : s);
   const lines: string[] = [];
   const high = r.findings.filter((f) => f.severity === "high");

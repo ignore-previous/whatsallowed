@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type Io, run } from "../src/cli.ts";
-import { DEMO_PROJECT, scanDemo } from "../src/demo.ts";
-
-const TOKEN = "q7Rk2mWz9LpX4vNc8TbY3sHd";
+import { DEMO_PROJECT, DEMO_TOKEN as TOKEN, scanDemo } from "../src/demo.ts";
 
 // cwd and home point nowhere: the demo must not need or read either.
 function cli(argv: string[]): { code: number; out: string; err: string } {
@@ -34,18 +32,30 @@ describe("demo", () => {
   });
 
   it("masks the made-up token in every format", () => {
-    for (const args of [["demo"], ["demo", "--verbose"], ["demo", "--format", "json"], ["demo", "--format", "sarif"]]) {
+    for (const args of [["demo"], ["demo", "--verbose"], ["demo", "--format", "json"], ["demo", "--verbose", "--format", "json"]]) {
       const r = cli(args);
       expect(r.out).not.toContain(TOKEN);
     }
     expect(cli(["demo"]).out).toContain("q7Rk");
   });
 
-  it("gives parseable JSON and SARIF without the intro", () => {
+  it("gives parseable JSON marked as a demo, without the intro", () => {
     const j = JSON.parse(cli(["demo", "--format", "json"]).out);
+    expect(j.demo).toBe(true);
     expect(j.findings.length).toBeGreaterThan(5);
-    const s = JSON.parse(cli(["demo", "--format", "sarif"]).out);
-    expect(s.version).toBe("2.1.0");
+  });
+
+  it("refuses SARIF, so made-up findings can't reach code scanning", () => {
+    const r = cli(["demo", "--format", "sarif"]);
+    expect(r.code).toBe(2);
+    expect(r.out).toBe("");
+    expect(r.err).toContain("not SARIF");
+  });
+
+  it("says in the summary that the setup is made up", () => {
+    expect(cli(["demo"]).out).toContain("Summary: the made-up shop-app project and demo user settings. None of your files were read.");
+    expect(cli(["demo", "--project-only"]).out).toContain("Summary: the made-up shop-app project only");
+    expect(cli(["demo"]).out).not.toContain("this project folder");
   });
 
   it("respects --project-only and --user-only", () => {

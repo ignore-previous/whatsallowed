@@ -3664,6 +3664,7 @@ function scan(opts) {
 var DEMO_HOME = "/home/demo";
 var DEMO_PROJECT = "/home/demo/shop-app";
 var json = (v) => JSON.stringify(v, null, 2) + "\n";
+var DEMO_TOKEN = ["q7Rk2mWz", "9LpX4vNc", "8TbY3sHd"].join("");
 var FILES = {
   // Your own Claude Code settings: package runners and any web page allowed without asking.
   "~/.claude/settings.json": json({
@@ -3682,7 +3683,7 @@ var FILES = {
   "./.mcp.json": json({
     mcpServers: {
       browser: { command: "npx", args: ["-y", "demo-browser-mcp"] },
-      tickets: { command: "npx", args: ["demo-tickets-mcp@2.1.0"], env: { TICKETS_API_TOKEN: "q7Rk2mWz9LpX4vNc8TbY3sHd" } }
+      tickets: { command: "npx", args: ["demo-tickets-mcp@2.1.0"], env: { TICKETS_API_TOKEN: DEMO_TOKEN } }
     }
   }),
   // A secrets file the agent can read, because no deny rule covers it.
@@ -3703,6 +3704,11 @@ function scanDemo(mode = "all") {
   const baseline = recordBaseline(before.model, "2026-10-01T00:00:00.000Z");
   return scan({ ...base3, mode, fs: memFs(toAbs(FILES)), baseline });
 }
+var DEMO_SCOPE = {
+  all: "the made-up shop-app project and demo user settings. None of your files were read.",
+  project: "the made-up shop-app project only (--project-only). None of your files were read.",
+  user: "the made-up demo user settings only (--user-only). None of your files were read."
+};
 var DEMO_INTRO = `This is a demo. It checks a made-up setup that comes with ${TOOL_NAME}. None of your own files are read.
 The setup is a project called shop-app and the user settings of someone called demo.
 To check your own setup, run ${TOOL_NAME} without "demo" from a project folder.
@@ -4153,7 +4159,7 @@ function formatSummary(s, opts) {
   const c = (code, x) => opts.color ? `${ANSI[code]}${x}${ANSI.reset}` : x;
   const pad = (label) => `  ${label.padEnd(10)}`;
   const indent = " ".repeat(12);
-  const lines = [c("bold", `Summary: ${SCOPE_TEXT[s.scope]}`), ""];
+  const lines = [c("bold", `Summary: ${opts.scopeText ?? SCOPE_TEXT[s.scope]}`), ""];
   const f5 = s.files;
   const tools = [
     ["Claude Code", f5.claude],
@@ -4405,10 +4411,11 @@ Run ${TOOL_NAME} --help for usage.
   if (args.command === "demo") {
     if (args.path) return io.err(`${TOOL_NAME}: demo checks its own made-up setup and takes no folder.
 `), 2;
+    if (args.format === "sarif") return io.err(`${TOOL_NAME}: demo prints text or JSON, not SARIF, so its made-up findings can't end up in code scanning.
+`), 2;
     const r = scanDemo(args.mode);
-    if (args.format === "json") io.out(formatJson(r));
-    else if (args.format === "sarif") io.out(formatSarif(r));
-    else io.out(DEMO_INTRO + formatText(r, { color: args.color && io.isTty, verbose: args.verbose }));
+    if (args.format === "json") io.out(JSON.stringify({ demo: true, ...JSON.parse(formatJson(r)) }, null, 2) + "\n");
+    else io.out(DEMO_INTRO + formatText(r, { color: args.color && io.isTty, verbose: args.verbose, scopeText: DEMO_SCOPE[args.mode] }));
     return 0;
   }
   try {

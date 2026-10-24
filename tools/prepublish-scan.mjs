@@ -79,7 +79,7 @@ for (const f of files) {
   for (const k of findRealFormatKeys(text)) problems.push(`${f}: real-format key ${k}`);
   // esbuild marks each bundled module with a path comment. One that climbs out of the repo (a linked
   // node_modules, say) shows how this machine's folders are laid out.
-  if (/^\/\/ (?:\.\.\/)+/m.test(text)) problems.push(`${f}: names a source path outside the repo`);
+  if (/^\/\/ (?:\.\.\/|\/|[A-Za-z]:[\\/])/m.test(text)) problems.push(`${f}: names a source path outside the repo`);
   if (/^progress\.md$/i.test(f)) problems.push(`${f}: progress notes must stay out of the public repo`);
 }
 if (problems.length) {

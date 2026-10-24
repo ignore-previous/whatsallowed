@@ -1867,7 +1867,34 @@ function writeBaseline(file, b, reset) {
 // src/checks/drift.ts
 import { createHash } from "node:crypto";
 
+// src/scrub.ts
+var MAX_SHOWN = 300;
+var CREDENTIAL_WORD = "token|secret|passw|pwd|passphrase|(?<!by)pass|key|auth|cred|bearer|cookie|session|signature|jwt|private|dsn|salt|otp";
+var VALUE = String.raw`"[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")]+`;
+var LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{1,5}))(?:${VALUE})`, "g");
+var SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "gi");
+var MYSQL_P = new RegExp(String.raw`(\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,100}?\s-p)(?!\s)(?:${VALUE})`, "gi");
+var ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");
+var TOKEN_SHAPES = new RegExp(
+  [
+    "sk-[A-Za-z0-9_-]{16,}",
+    "gh[pousr]_[A-Za-z0-9]{20,}",
+    "github_pat_[A-Za-z0-9_]{20,}",
+    "xox[abprs]-[A-Za-z0-9-]{10,}",
+    "AKIA[0-9A-Z]{16}",
+    "AIza[0-9A-Za-z_-]{30,}",
+    String.raw`eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}`
+  ].join("|"),
+  "g"
+);
+function scrub(text, limit = MAX_SHOWN) {
+  const t = text.length > limit ? `${text.slice(0, limit)}\u2026` : text;
+  return t.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(ASSIGNMENT, "$1$2=\u2022\u2022\u2022").replace(/(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)/gi, "$1$2\u2022\u2022\u2022").replace(/\blogin\b[^|;&\n]{0,150}/gi, (seg) => seg.replace(LOGIN_P, "$1\u2022\u2022\u2022")).replace(SSHPASS_P, "$1\u2022\u2022\u2022").replace(MYSQL_P, "$1\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]{1,200}@/g, "$1\u2022\u2022\u2022@").replace(/(\/\/)[^/\s@]{1,200}…$/, "$1\u2022\u2022\u2022\u2026").replace(TOKEN_SHAPES, "\u2022\u2022\u2022");
+}
+
 // src/checks/util.ts
+var MATCH_LIMIT = 100;
+var FIX_LIMIT = 300;
 var make = (check, f5) => ({
   rule: f5.rule,
   check,
@@ -1875,9 +1902,9 @@ var make = (check, f5) => ({
   title: f5.title,
   file: f5.file.display,
   line: f5.line,
-  match: f5.match,
+  match: f5.masked ? f5.match : scrub(f5.match, MATCH_LIMIT),
   why: f5.why,
-  fix: f5.fix
+  fix: scrub(f5.fix, FIX_LIMIT)
 });
 function mask(value) {
   const v = value.trim();
@@ -2542,7 +2569,7 @@ function checkDeny(m) {
 
 // src/shape.ts
 var HELPER_KEYS_LIST = ["apiKeyHelper", "awsCredentialExport", "awsAuthRefresh", "otelHeadersHelper"];
-var MAX_SHOWN = 3;
+var MAX_SHOWN2 = 3;
 var kindOf = (v) => v === null ? "null" : Array.isArray(v) ? "a list" : typeof v === "string" ? "text" : typeof v === "number" ? "a number" : typeof v === "boolean" ? "true or false" : "an object";
 var WORD = {
   object: "an object",
@@ -2631,7 +2658,7 @@ function shapeProblems(kind, root) {
   } else if (kind === "codex-hooks" || kind === "plugin-hooks") {
     p.expect(root, ["hooks"], "object");
   }
-  if (p.list.length > MAX_SHOWN) return [...p.list.slice(0, MAX_SHOWN), `and ${p.list.length - MAX_SHOWN} more`];
+  if (p.list.length > MAX_SHOWN2) return [...p.list.slice(0, MAX_SHOWN2), `and ${p.list.length - MAX_SHOWN2} more`];
   return p.list;
 }
 
@@ -3072,7 +3099,7 @@ function checkFile2(p) {
           title: ownLoopback ? `Your local project settings send requests to ${proxy ? "a proxy" : "an address"} on this machine` : proxy ? `${where} send your traffic through a proxy` : `${where} change where your requests go`,
           file: p.file,
           line,
-          match: `${key}=${value.slice(0, 80)}`,
+          match: `${key}=${value}`,
           why: ownLoopback ? "This file is git-ignored and the address is on this machine, so it's most likely your own local proxy. Noted in case you didn't set it." : proxy ? "Every request Claude Code makes, including your prompts and code, passes through this proxy once you trust the folder." : "Your prompts, code and credentials are sent to this address instead of the provider you chose, once you trust the folder.",
           fix: ownLoopback ? "Nothing to do if you set it. Otherwise remove it from .claude/settings.local.json." : "Remove it from the project file. Set endpoints in your own user settings if you need them."
         })
@@ -3085,7 +3112,7 @@ function checkFile2(p) {
           title: key === "NODE_OPTIONS" ? `${where} change how Claude Code's runtime starts` : `${where} weaken TLS checks`,
           file: p.file,
           line,
-          match: `${key}=${value.slice(0, 80)}`,
+          match: `${key}=${value}`,
           why: key === "NODE_OPTIONS" ? "NODE_OPTIONS can load extra code into Claude Code and the tools it starts." : "This lets a third party read or change encrypted traffic without a certificate error.",
           fix: "Remove it from the project file."
         })
@@ -3100,6 +3127,7 @@ function checkFile2(p) {
           file: p.file,
           line,
           match: cred ? `${key}=${mask(value)}` : `${key}=${value}`,
+          masked: cred,
           why: cred ? "A repository that supplies credentials or auth headers decides which account your requests are billed to and logged under." : "Requests go to a different cloud provider and account than the one you set up.",
           fix: "Remove it from the project file and keep credentials in your own environment or user settings."
         })
@@ -3116,7 +3144,7 @@ function checkFile2(p) {
         title: `${where} set a credential helper command`,
         file: p.file,
         line: p.doc.lineOf([key]),
-        match: `${key}: ${cmd.slice(0, 80)}`,
+        match: `${key}: ${cmd}`,
         why: `${key} runs a command to produce your credentials or auth headers, so the project controls what runs and what gets sent.`,
         fix: "Remove it from the project file. Set helpers in your own user settings."
       })
@@ -3131,7 +3159,7 @@ function checkFile2(p) {
         title: "The repository sets a status line command",
         file: p.file,
         line: p.doc.lineOf(["statusLine"]),
-        match: `statusLine: ${sl.command.slice(0, 80)}`,
+        match: `statusLine: ${sl.command}`,
         why: "This command runs often in the background once you trust the folder. Check what it does.",
         fix: "Remove it if you don't recognise it."
       })
@@ -3218,7 +3246,7 @@ function checkHttp(h, userAllow) {
         title: shared ? `A hook from a ${scopeWord(h.scope)} posts your session to another host` : "An HTTP hook sends session data unencrypted",
         file: h.file,
         line,
-        match: h.url.slice(0, 100),
+        match: h.url,
         why: shared ? `Hook events include prompts, file paths and tool output. A ${scopeWord(h.scope)} decides where they go${plain ? ", here over plain http" : ""}.` : "Hook events include prompts and tool output, and plain http lets anyone on the network path read them.",
         fix: shared ? "Remove the hook, or set allowedHttpHookUrls in your user settings to limit where hooks may post." : "Use https."
       })
@@ -3231,7 +3259,7 @@ function checkHttp(h, userAllow) {
         title: "An HTTP hook posts session events to another host",
         file: h.file,
         line,
-        match: h.url.slice(0, 100),
+        match: h.url,
         why: "You set this up in your own settings. Listing the host in allowedHttpHookUrls stops a repository adding others.",
         fix: `Add "${u.origin}/*" to allowedHttpHookUrls in your user settings.`
       })
@@ -3282,6 +3310,50 @@ function unwrap(argv) {
 }
 var NPM_EXACT = /^(?:@[^@/\s]+\/)?[^@/\s]+@v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 var PY_EXACT = /^[A-Za-z0-9_.\-[\],]+(?:==|@)v?\d+(?:\.\d+)*(?:[-+.]?[0-9A-Za-z.]+)?$/;
+var VALUE_FLAGS = /* @__PURE__ */ new Set([
+  "-r",
+  "-w",
+  "-c",
+  "-C",
+  "--python",
+  "--registry",
+  "--with",
+  "--with-requirements",
+  "--index-url",
+  "--extra-index-url",
+  "--index",
+  "--default-index",
+  "--cache",
+  "--cache-dir",
+  "--userconfig",
+  "--globalconfig",
+  "--prefix",
+  "--proxy",
+  "--https-proxy",
+  "--cwd",
+  "--node-options",
+  "--loglevel",
+  "--workspace",
+  "--scope",
+  "--env-file",
+  "--directory",
+  "--project",
+  "--constraint",
+  "--exclude-newer",
+  "--call",
+  "--shell",
+  "--config",
+  "--cafile",
+  "--fetch-retries",
+  "--tag",
+  "--filter",
+  "--dir"
+]);
+var SECRET_FLAG = /(?:token|secret|passw|pass$|auth|key|otp|cred)/i;
+function takesValue(flag) {
+  if (/^--no-/.test(flag)) return false;
+  return VALUE_FLAGS.has(flag) || flag.startsWith("--") && SECRET_FLAG.test(flag);
+}
 function findRunner(argv) {
   for (let i = 0; i < argv.length; i++) {
     const w = base(argv[i] ?? "");
@@ -3307,7 +3379,7 @@ function findRunner(argv) {
       }
       if (a === "--") continue;
       if (a.startsWith("-")) {
-        if (/^(?:--python|-r|--registry|--with|--index-url|--cache|--userconfig)$/.test(a)) j++;
+        if (!a.includes("=") && takesValue(a)) j++;
         continue;
       }
       pkg = a;
@@ -3355,7 +3427,7 @@ function checkServer(s) {
           title: `MCP server "${s.name}" is launched through a shell script`,
           file: s.file,
           line: cmdLine,
-          match: launch.shellScript.slice(0, 100),
+          match: launch.shellScript,
           why: "Chaining commands in a shell string hides extra steps in the launch, and the shell runs whatever the string expands to.",
           fix: "Point command at the server's executable and pass its options in args."
         })
@@ -3512,6 +3584,7 @@ function finding(file, line, hit, where, severity) {
     file,
     line,
     match: `${hit.kind}: ${mask(hit.value)}`,
+    masked: true,
     why: where === "instructions" ? "Instruction files are sent to the model with every request and are often committed and shared, so the key leaks to everyone who sees them." : "Anyone who can read this file, or a backup or dotfiles repo that copies it, gets the credential.",
     fix: where === "instructions" ? "Remove it, rotate the key, and tell the agent to read it from an environment variable instead." : "Rotate the key and reference it instead, for example ${API_KEY}, so the value stays in your environment."
   });
@@ -3975,11 +4048,6 @@ var ruleById = new Map(RULES2.map((r) => [r.id, r]));
 // src/summary.ts
 var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 var cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-var MAX_SHOWN2 = 300;
-function scrub(text) {
-  const t = text.length > MAX_SHOWN2 ? `${text.slice(0, MAX_SHOWN2)}\u2026` : text;
-  return t.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(/(^|[\s('"?&])([A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]*"?|'[^']*'?|[^\s'")&]+)/g, "$1$2=\u2022\u2022\u2022").replace(/(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)/gi, "$1$2\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]{1,200}@/g, "$1\u2022\u2022\u2022@").replace(/(\/\/)[^/\s@]{1,200}…$/, "$1\u2022\u2022\u2022\u2026");
-}
 var CLAUDE_MODES = ["plan", "dontAsk", "default", "acceptEdits", "auto", "bypassPermissions"];
 var CLAUDE_MEANING = {
   plan: "Claude Code can read files but not change them or run commands.",

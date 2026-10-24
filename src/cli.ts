@@ -8,7 +8,7 @@ import { exitCodeFor, type FailOn, formatInventory, formatJson, formatRules, for
 import { scan } from "./scan.ts";
 
 const HELP = `${TOOL_NAME} ${TOOL_VERSION}: checks Claude Code, Codex and Cursor config for risky settings.
-Reads files only. Makes no network calls and sends no telemetry.
+A scan only reads files; "baseline" also writes its own baseline file. Makes no network calls and sends no telemetry.
 
 Usage:
   ${TOOL_NAME} [scan] [path]        Check the project at [path] (default: current folder) and your user config

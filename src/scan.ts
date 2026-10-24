@@ -40,13 +40,26 @@ const size = (n: number): string => (n < 2 * 1024 * 1024 ? `${n.toLocaleString("
 /** A file we didn't read must not look like a file with nothing wrong in it. */
 function uncheckedFinding(u: UncheckedFile): Finding {
   const shared = u.scope === "project" || u.scope === "local" || u.scope === "plugin";
+  if (u.reason === "unopenable") {
+    return make("FILE", {
+      rule: "FILE-002",
+      severity: shared ? "high" : "medium",
+      title: `Couldn't open ${u.display}, so it wasn't checked`,
+      file: u,
+      line: 1,
+      match: `the file is there but could not be opened (${u.error ?? "UNKNOWN"})`,
+      why: "We couldn't open this config file, often because of its permissions, so nothing in it was checked. A file that can't be read can hide risky settings from a check like this.",
+      fix: "Make sure you can read the file, then run the check again. If it isn't yours, ask whoever owns it to look at it.",
+    });
+  }
+  const bytes = u.bytes ?? 0;
   return make("FILE", {
     rule: "FILE-001",
     severity: shared ? "high" : "medium",
     title: `${u.display} is too large to check`,
     file: u,
     line: 1,
-    match: `${size(u.bytes)}, limit ${size(MAX_BYTES)}`,
+    match: `${size(bytes)}, limit ${size(MAX_BYTES)}`,
     why:
       u.kind === "claude-json"
         ? "We skip config files over 1 MiB, so nothing in this one was checked, including its MCP servers. Claude Code grows this file as you use it, so it may be harmless."

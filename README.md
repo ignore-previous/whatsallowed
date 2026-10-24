@@ -1,12 +1,14 @@
 # What's Allowed
 
-`whatsallowed` reads your Claude Code, Codex and Cursor config and flags risky settings, each with the file, the line and a rule ID. Examples: a hook that pipes `curl` into `sh`, an MCP server run with `npx` and no version, a repository that sets `ANTHROPIC_BASE_URL`, or a `.env` file the agent can read without asking.
+What's Allowed reads your Claude Code, Codex and Cursor config and flags risky settings, each with the file, the line and a rule ID.
 
-A scan runs on your machine and only reads files. The `baseline` command also writes one file of its own, `~/.whatsallowed/baseline.json`, and never changes your config. It makes no network calls and sends no telemetry, and a test checks the first of those on every build ([test/no-network.test.ts](test/no-network.test.ts)).
+Examples: a hook that pipes `curl` into `sh`, an MCP server run with `npx` and no version, a repository that sets `ANTHROPIC_BASE_URL`, or a `.env` file the agent can read without asking.
 
-Every check publishes its precision and recall against a labelled set you can rerun: see [docs/ACCURACY.md](docs/ACCURACY.md). AI models wrote and labelled that set, and every label in it came from a model, not a person, so the figures show how well each check follows its written rule. How often it catches risky settings in real projects isn't known.
+Runs: [on your computer](docs/THREAT_MODEL.md#assumptions) · Sends: [nothing once installed (tested)](test/no-network.test.ts) · Won't: [change your config](test/no-writes.test.ts), or [tell you a setup is safe](docs/THREAT_MODEL.md#what-it-cant-see)
 
-This is a configuration check, not a security assessment. A clean result doesn't mean a setup is safe.
+Every check publishes its test results: [docs/ACCURACY.md](docs/ACCURACY.md).
+
+The `baseline` command writes one file of its own, `~/.whatsallowed/baseline.json`, and only when you run it. Once installed, What's Allowed sends no telemetry and makes no network calls; a test checks that on every build.
 
 ## First run
 
@@ -16,9 +18,9 @@ You need Node.js 20 or later. In the folder of a project you work on with an age
 npx whatsallowed
 ```
 
-To see a full report before checking your own setup, run `npx whatsallowed demo`. It checks a made-up project with risky settings and reads none of your files.
+To see a full report first, we recommend `npx whatsallowed demo`. It scans a made-up project with risky settings and reads none of your files.
 
-It checks that project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). A scan only reads files and changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means and what you could do about it. You make any change yourself. A summary at the end shows what each check looked at, including the checks that found nothing.
+It checks the project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). A scan only reads files and changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means and what you could do about it. You make any change yourself. A summary at the end shows what each of the ten checks looked at, including those that found nothing.
 
 ```
 whatsallowed 0.2.0. This is a read-only check: it changes nothing and sends nothing anywhere.
@@ -53,7 +55,7 @@ Summary: this project folder and your user settings. Other projects on this mach
 
 The file, line and rule ID are on each finding's last line, for when you want to look it up. The summary has one row per check, with a count and what it means. Lower-priority notes and the full list behind each summary count are hidden unless you add `--verbose`. For scripts and other tools, `--format json` gives the same findings in a stable, machine-readable form (and `--format sarif` for GitHub code scanning).
 
-Exit code 0 means nothing at or above the `--fail-on` level (default `high`). 1 means there were findings, and 2 means the tool couldn't run.
+Exit code 0 means nothing at or above the `--fail-on` level (default `high`). 1 means findings at or above the `--fail-on` level, and 2 means the tool couldn't run.
 
 ## Commands
 
@@ -113,13 +115,16 @@ Ten checks, 35 rules: [docs/checks.md](docs/checks.md). The vendor docs each che
 
 ## How accurate is it?
 
-[docs/ACCURACY.md](docs/ACCURACY.md) gives per-check precision and recall with 95% intervals, measured on a separate test set that was run once after tuning (later changes are listed), and lists the known misses and false alarms. Its Label agreement section says who labelled what. Rerun it with `npm run eval`. How cases are labelled: [eval/LABELLING.md](eval/LABELLING.md).
+AI models wrote and labelled the test set, so the figures show how well each check follows its written rule. How often it catches risky settings in real projects isn't known.
+
+[docs/ACCURACY.md](docs/ACCURACY.md) gives per-check precision and recall with 95% intervals, measured on a separate test set that was run once after tuning (later changes are listed), and lists the known misses and false alarms. Its Label agreement section says no person has labelled a case yet. Rerun it with `npm run eval`. How cases are labelled: [eval/LABELLING.md](eval/LABELLING.md).
 
 ## What it doesn't do
 
 - It doesn't run, connect to or install any server or package named in your config, so it can't see what an MCP server does at run time or what tools it offers.
 - It doesn't read prose in skills or instruction files for hidden instructions (prompt injection).
 - It doesn't change your config.
+- It doesn't tell you a setup is safe. It's a configuration check, not a security assessment, and a clean result only means these rules found nothing in the files they read.
 - It doesn't follow a hook to a local script it runs, except scripts in skill, plugin and hooks folders.
 
 More in [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
@@ -127,3 +132,5 @@ More in [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 ## Licence
 
 Code: MIT ([LICENSE](LICENSE)). Labelled cases in `eval/cases`: CC BY 4.0 ([LICENSE-DATA](LICENSE-DATA)).
+
+Built with Claude.

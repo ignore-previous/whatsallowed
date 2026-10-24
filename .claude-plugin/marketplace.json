@@ -11,7 +11,7 @@
     {
       "name": "whatsallowed",
       "source": "./",
-      "description": "Checks your Claude Code, Codex and Cursor config for risky settings. Reads files only; no network calls."
+      "description": "Checks your Claude Code, Codex and Cursor config for risky settings. Reads files only; once installed, no network calls."
     }
   ]
 }

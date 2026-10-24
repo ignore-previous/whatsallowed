@@ -40,6 +40,18 @@ export interface Summary {
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
+/**
+ * Hide anything in a rule that could be a credential: values of NAME=value assignments, Bearer and Basic
+ * tokens, values of --token/--key/--password style flags, and the user and password part of an address.
+ */
+export function scrub(text: string): string {
+  return text
+    .replace(/\b(Bearer|Basic)\s+[^\s'")]+/gi, "$1 •••")
+    .replace(/(^|[\s('"])([A-Za-z_][A-Za-z0-9_]*)=([^\s'")]+)/g, "$1$2=•••")
+    .replace(/(--?[A-Za-z-]*(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]*)([= ])([^\s'")*]+)/gi, "$1$2•••")
+    .replace(/(\/\/)[^/\s@]+@/g, "$1•••@");
+}
+
 // ---- MODE ----
 
 /** Claude Code permission modes, least to most permissive. */
@@ -61,7 +73,7 @@ const SANDBOX_MEANING: Record<string, string> = {
 const CODEX_APPROVAL = ["untrusted", "on-request", "on-failure", "never"];
 const APPROVAL_MEANING: Record<string, string> = {
   untrusted: "and Codex asks before running anything not on its trusted list.",
-  "on-request": "and Codex asks before going outside that.",
+  "on-request": "and Codex asks before going outside the sandbox.",
   "on-failure": "and Codex asks only when a command fails in the sandbox.",
   never: "and Codex never asks first.",
 };
@@ -71,12 +83,14 @@ const rankIn = (list: string[], v: string): number => list.indexOf(v);
 function modeSummary(m: Model, findings: Finding[]): CheckSummary {
   const items: string[] = [];
   let claude: string | undefined;
+  let ignoredModes = 0;
   for (const p of m.settings) {
     const mode = str(get(p.doc.value, "permissions", "defaultMode")) ?? str(get(p.doc.value, "defaultMode"));
     if (!mode) continue;
     // Claude Code ignores bypassPermissions and auto when a project file asks for them.
     const ignored = (mode === "bypassPermissions" || mode === "auto") && (p.file.scope === "project" || p.file.scope === "local");
     items.push(`Claude Code defaultMode "${mode}" (${p.file.display})${ignored ? ", ignored in a project file" : ""}`);
+    if (ignored) ignoredModes++;
     if (!ignored && rankIn(CLAUDE_MODES, mode) > rankIn(CLAUDE_MODES, claude ?? "")) claude = mode;
   }
   let sandbox: string | undefined;
@@ -126,7 +140,11 @@ function modeSummary(m: Model, findings: Finding[]): CheckSummary {
     count: items.length,
     broadest: broad.join("; ") || undefined,
     text: `${plural(items.length, "mode setting", "mode settings")}.${broad.length ? ` Broadest: ${broad.join("; ")}.` : ""}`,
-    meaning: meaning.join(" ") || "Claude Code ignores these modes in project files, so your own setting or its default applies.",
+    meaning:
+      meaning.join(" ") ||
+      (ignoredModes === items.length
+        ? "Claude Code ignores these modes in project files, so your own setting or its default applies."
+        : "This check doesn't recognise the mode values set here, so it can't say what they do."),
     items,
   });
 }
@@ -152,9 +170,9 @@ function allowSummary(m: Model, findings: Finding[]): CheckSummary {
   let dirs = 0;
   for (const p of m.settings) {
     for (const rule of strArr(get(p.doc.value, "permissions", "allow"))) {
-      items.push(`${rule} (${p.file.display})`);
+      items.push(`${scrub(rule)} (${p.file.display})`);
       const r = allowRank(rule);
-      if (r > best) ((best = r), (broadest = rule));
+      if (r > best) ((best = r), (broadest = scrub(rule)));
     }
     dirs += strArr(get(p.doc.value, "permissions", "additionalDirectories")).length;
   }
@@ -173,7 +191,7 @@ function allowSummary(m: Model, findings: Finding[]): CheckSummary {
     count: rules,
     broadest,
     text: `${plural(rules, "allow rule", "allow rules")}. Broadest: ${broadest}.${extra}`,
-    meaning: `Claude Code does what these rules match without asking you. ${
+    meaning: `Claude Code does what these match without asking. ${
       wide
         ? `${plural(wide, "rule approves", "rules approve")} every command, a powerful program with any arguments, or any web address.`
         : "None approves every command, a powerful program with any arguments, or any web address."
@@ -186,7 +204,7 @@ function allowSummary(m: Model, findings: Finding[]): CheckSummary {
 
 function denySummary(m: Model, findings: Finding[]): CheckSummary {
   const items: string[] = [];
-  for (const p of m.settings) for (const rule of strArr(get(p.doc.value, "permissions", "deny"))) items.push(`${rule} (${p.file.display})`);
+  for (const p of m.settings) for (const rule of strArr(get(p.doc.value, "permissions", "deny"))) items.push(`${scrub(rule)} (${p.file.display})`);
   const rules = plural(items.length, "deny rule", "deny rules");
   if (!projectUsesClaude(m)) {
     return base("DENY", findings, {
@@ -203,10 +221,10 @@ function denySummary(m: Model, findings: Finding[]): CheckSummary {
   const fileText = !secrets.length
     ? `No .env, key or credentials files ${where}.`
     : secrets.length === 1
-      ? `The 1 secrets file ${where} ${open ? "isn't" : "is"} blocked from reading.`
+      ? `The 1 secrets file ${where} ${open ? "isn't" : "is"} covered by a deny rule.`
       : open
-        ? `${open} of ${secrets.length} secrets files ${where} ${open === 1 ? "isn't" : "aren't"} blocked from reading.`
-        : `All ${secrets.length} secrets files ${where} are blocked from reading.`;
+        ? `${open} of ${secrets.length} secrets files ${where} ${open === 1 ? "isn't" : "aren't"} covered by a deny rule.`
+        : `All ${secrets.length} secrets files ${where} are covered by a deny rule.`;
   return base("DENY", findings, {
     count: items.length,
     text: `${cap(rules)}. ${fileText}`,
@@ -230,12 +248,14 @@ function endpointSummary(m: Model, findings: Finding[]): CheckSummary {
     });
   }
   const n = plural(files.length, "project settings file", "project settings files");
+  // A repository status line (ENDPOINT-004) runs a command but doesn't redirect requests; HOOK counts it.
+  const redirects = findings.filter((f) => f.rule !== "ENDPOINT-004").length;
   return base("ENDPOINT", findings, {
     count: files.length,
-    text: findings.length
-      ? `${n}. ${plural(findings.length, "setting changes", "settings change")} where your requests go or which credentials they use.`
+    text: redirects
+      ? `${n}. ${plural(redirects, "setting changes", "settings change")} where your requests go or which credentials they use.`
       : `${n}. None changes where your requests go or which credentials they use.`,
-    meaning: findings.length
+    meaning: redirects
       ? "A project setting can send your prompts and code somewhere other than the provider you chose."
       : "Your prompts and code go where your own settings send them.",
     items,
@@ -244,9 +264,14 @@ function endpointSummary(m: Model, findings: Finding[]): CheckSummary {
 
 // ---- HOOK and HTTPHOOK ----
 
+/** The program a command runs, without its path, arguments or any NAME=value assignments in front of it. */
 const program = (h: HookHandler): string => {
-  const w = shellWords(h.command ?? "")[0] ?? "";
-  return w.split(/[\\/]/).pop() ?? w;
+  const words = shellWords(h.command ?? "");
+  let i = 0;
+  while (i < words.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[i]!) || (words[i] === "env" && i === 0))) i++;
+  const w = words[i];
+  if (!w) return "(shell command)";
+  return w.split(/[\\/]/).pop() || w;
 };
 
 function hookSummary(m: Model, findings: Finding[]): CheckSummary {
@@ -342,7 +367,9 @@ function mcpSummary(m: Model, findings: Finding[]): CheckSummary {
     if (r) {
       packages++;
       if (!r.pinned) unpinned++;
-      return `"${s.name}" (${where}): ${r.runner} ${r.pkg}`;
+      // A package given as an address can carry a token or password: show only its host.
+      const pkg = /^[a-z][a-z0-9+.-]*:\/\//i.test(r.pkg) ? `package at ${parseUrl(r.pkg.replace(/^[a-z0-9.-]+\+/i, ""))?.host ?? "an unreadable address"}` : scrub(r.pkg);
+      return `"${s.name}" (${where}): ${r.runner} ${pkg}`;
     }
     return `"${s.name}" (${where}): local program`;
   });
@@ -423,12 +450,17 @@ function skillSummary(m: Model, findings: Finding[]): CheckSummary {
   const scripts = m.ctx.files.filter((f) => f.kind === "script" && f.text !== undefined && !/\.min\.[cm]?js$/i.test(f.path));
   const plugin = scripts.filter((f) => f.scope === "plugin").length;
   if (!scripts.length) {
-    return base("SKILL", findings, { count: 0, text: "No skill or plugin scripts.", meaning: "No skill or plugin in these folders brings its own scripts.", items: [] });
+    return base("SKILL", findings, {
+      count: 0,
+      text: "No skill, plugin or hooks-folder scripts.",
+      meaning: "No skill, plugin or hooks folder in the folders checked brings its own scripts.",
+      items: [],
+    });
   }
   return base("SKILL", findings, {
     count: scripts.length,
-    text: `${plural(scripts.length, "skill or plugin script", "skill and plugin scripts")}${plugin ? `, ${plugin} of them from plugins` : ""}.`,
-    meaning: `Your agent can run these when it uses a skill or plugin. ${
+    text: `${plural(scripts.length, "skill, plugin or hooks-folder script", "skill, plugin and hooks-folder scripts")}${plugin ? `, ${plugin} of them from plugins` : ""}.`,
+    meaning: `Your agent can run these when it uses a skill or plugin, or when a hook fires. ${
       findings.length
         ? `${plural(findings.length, "line downloads and runs code, runs an encoded payload or opens a reverse shell", "lines download and run code, run an encoded payload or open a reverse shell")}.`
         : "None downloads and runs code, runs an encoded payload or opens a reverse shell."

@@ -80,11 +80,11 @@ describe("summary: DENY", () => {
     const { c } = sum({ ...settings({ permissions: { deny: ["Read(./.env)", "Bash(rm *)"] } }), "./.env": "A=1", "./keys/id_rsa": "x" });
     expect(c.DENY.checked).toBe(true);
     expect(c.DENY.count).toBe(2);
-    expect(c.DENY.text).toBe("2 deny rules. 1 of 2 secrets files in the top two folder levels of this project isn't blocked from reading.");
+    expect(c.DENY.text).toBe("2 deny rules. 1 of 2 secrets files in the top two folder levels of this project isn't covered by a deny rule.");
   });
   it("says when every secrets file is blocked", () => {
     const { c } = sum({ ...settings({ permissions: { deny: ["Read(./.env)"] } }), "./.env": "A=1" });
-    expect(c.DENY.text).toBe("1 deny rule. The 1 secrets file in the top two folder levels of this project is blocked from reading.");
+    expect(c.DENY.text).toBe("1 deny rule. The 1 secrets file in the top two folder levels of this project is covered by a deny rule.");
   });
   it("says when there are no secrets files", () => {
     const { c } = sum(settings({}));
@@ -196,7 +196,7 @@ describe("summary: SECRET and SKILL", () => {
   it("counts skill scripts, leaving out minified files", () => {
     const { c } = sum({ "~/.claude/skills/x/run.sh": "#!/bin/sh\necho hi\n", "~/.claude/skills/x/lib.min.js": "x" });
     expect(c.SKILL.count).toBe(1);
-    expect(c.SKILL.text).toBe("1 skill or plugin script.");
+    expect(c.SKILL.text).toBe("1 skill, plugin or hooks-folder script.");
     expect(c.SKILL.meaning).toContain("None downloads and runs code");
   });
 });
@@ -230,5 +230,89 @@ describe("summary text", () => {
   it("names the scope for --project-only", () => {
     const r = scanFiles(settings({}));
     expect(formatText({ ...r, mode: "project" }, { color: false })).toContain("Summary: this project folder only (--project-only).");
+  });
+});
+
+describe("summary: no secret values in items, broadest or text (review findings)", () => {
+  const leaks = (c: Record<CheckId, CheckSummary>, ...secrets: string[]): void => {
+    const all = JSON.stringify(c);
+    for (const s of secrets) expect(all).not.toContain(s);
+  };
+  it("skips NAME=value assignments before a hook, status line or helper program", () => {
+    const { c } = sum(
+      settings({
+        hooks: { Stop: [{ hooks: [{ type: "command", command: "TOKEN=HOOKSECRET1 python3 x.py" }] }] },
+        statusLine: { type: "command", command: "env TOKEN=ENVPFX777 node ./sl.js" },
+        apiKeyHelper: "SECRETCMD=abc999 /usr/bin/helper",
+      }),
+    );
+    leaks(c, "HOOKSECRET1", "ENVPFX777", "abc999");
+    expect(c.HOOK.items).toContain("hook in ./.claude/settings.json: python3");
+    expect(c.HOOK.items).toContain("statusLine in ./.claude/settings.json: node");
+  });
+  it("says (shell command) when a command is only assignments", () => {
+    const { c } = sum(settings({ hooks: { Stop: [{ hooks: [{ type: "command", command: "A=SECRETONLY1" }] }] } }));
+    leaks(c, "SECRETONLY1");
+    expect(c.HOOK.items).toEqual(["hook in ./.claude/settings.json: (shell command)"]);
+  });
+  it("shows only the host of an MCP package given as an address", () => {
+    const { c } = sum({
+      "./.mcp.json": {
+        mcpServers: {
+          a: { command: "uvx", args: ["--from", "git+https://ghp_FAKETOKEN0000@github.com/o/r", "tool"] },
+          b: { command: "npx", args: ["-y", "https://u:NPXPASS99@h.example/p.tgz"] },
+        },
+      },
+    });
+    leaks(c, "ghp_FAKETOKEN0000", "NPXPASS99");
+    expect(c.MCP.items.join("\n")).toContain("package at h.example");
+  });
+  it("masks tokens and assignments inside allow and deny rules", () => {
+    const { c } = sum(
+      settings({
+        permissions: {
+          allow: ["Bash(curl -H 'Authorization: Bearer ALLOWSECRET1' *)", "Bash(API_KEY=ALLOWSECRET2 npm test)", "Bash(tool --token=ALLOWSECRET3 run)"],
+          deny: ["Bash(curl https://user:DENYSECRET1@h.example/*)"],
+        },
+      }),
+    );
+    leaks(c, "ALLOWSECRET1", "ALLOWSECRET2", "ALLOWSECRET3", "DENYSECRET1");
+    expect(c.ALLOW.items).toContain("Bash(API_KEY=••• npm test) (./.claude/settings.json)");
+  });
+  it("keeps ordinary rules as they are", () => {
+    const { c } = sum(settings({ permissions: { allow: ["Bash(npm run *)", "Bash(git commit --format=oneline *)", "Read(~/.ssh/**)"] } }));
+    expect(c.ALLOW.items).toEqual([
+      "Bash(npm run *) (./.claude/settings.json)",
+      "Bash(git commit --format=oneline *) (./.claude/settings.json)",
+      "Read(~/.ssh/**) (./.claude/settings.json)",
+    ]);
+  });
+});
+
+describe("summary: wording branches (review findings)", () => {
+  it("MODE: says when it doesn't recognise a mode value", () => {
+    const { c } = sum({ "~/.claude/settings.json": { permissions: { defaultMode: "foo" } } });
+    expect(c.MODE.meaning).toBe("This check doesn't recognise the mode values set here, so it can't say what they do.");
+  });
+  it("MODE: a Codex approval policy alone still makes sense", () => {
+    const { c } = sum({ "~/.codex/config.toml": 'approval_policy = "on-request"\n' });
+    expect(c.MODE.meaning).toBe("Codex asks before going outside the sandbox.");
+  });
+  it("ENDPOINT: a repository status line alone doesn't count as redirecting requests", () => {
+    const { c } = sum(settings({ statusLine: { type: "command", command: "node ./sl.js" } }));
+    expect(c.ENDPOINT.text).toBe("1 project settings file. None changes where your requests go or which credentials they use.");
+    expect(c.ENDPOINT.meaning).toBe("Your prompts and code go where your own settings send them.");
+  });
+  it("Files: lists the tools with no files as a list", () => {
+    const out = formatText(scanFiles({ "./AGENTS.md": "# agents" }), { color: false });
+    expect(out).toContain("Claude Code, Codex or Cursor: no files found.");
+  });
+});
+
+describe("summary: JSON carries the same data as the text", () => {
+  it("formatJson's summary equals summarize()", async () => {
+    const { formatJson } = await import("../src/output.ts");
+    const r = scanFiles({ ...settings({ permissions: { allow: ["Bash(*)"] } }), "./.mcp.json": { mcpServers: { a: { command: "npx", args: ["a"] } } } });
+    expect(JSON.parse(formatJson(r)).summary).toEqual(JSON.parse(JSON.stringify(summarize(r))));
   });
 });

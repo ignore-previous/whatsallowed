@@ -16,6 +16,8 @@ You need Node.js 20 or later. In the folder of a project you work on with an age
 npx whatsallowed
 ```
 
+To see a full report before checking your own setup, run `npx whatsallowed demo`. It checks a made-up project with risky settings and reads none of your files.
+
 It checks that project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). A scan only reads files and changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means and what you could do about it. You make any change yourself. A summary at the end shows what each check looked at, including the checks that found nothing.
 
 ```
@@ -61,6 +63,7 @@ Exit code 0 means nothing at or above the `--fail-on` level (default `high`). 1 
 | `whatsallowed baseline [path]` | Record your MCP server definitions in `~/.whatsallowed/baseline.json`, so later scans flag changes (`DRIFT`) |
 | `whatsallowed inventory [path]` | List every config file found, with tool and scope |
 | `whatsallowed rules` | List every rule ID |
+| `whatsallowed demo` | Check a made-up risky setup that comes with the tool, to see what a report looks like. Reads none of your files and always exits 0 |
 
 | Option | |
 |---|---|

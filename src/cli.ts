@@ -1,6 +1,7 @@
 import * as os from "node:os";
 import { readBaseline, writeBaseline } from "./baseline.ts";
 import { recordBaseline } from "./checks/drift.ts";
+import { DEMO_INTRO, scanDemo } from "./demo.ts";
 import { defaultManagedDirs, type ScanMode } from "./discover.ts";
 import { join, nodeFs, resolveAbs, toPosix } from "./fsys.ts";
 import { BASELINE_DIR, BASELINE_FILE, TOOL_NAME, TOOL_VERSION } from "./name.ts";
@@ -15,6 +16,7 @@ Usage:
   ${TOOL_NAME} baseline [path]      Record your MCP server definitions so later scans can spot changes
   ${TOOL_NAME} inventory [path]     List the config files found, with tool and scope
   ${TOOL_NAME} rules                List every rule
+  ${TOOL_NAME} demo                 Check a made-up risky setup that comes with the tool, to see what the output looks like
 
 Options:
   --project-only          Check only the project folder
@@ -32,7 +34,7 @@ This is a configuration check, not a security assessment.
 `;
 
 interface Args {
-  command: "scan" | "baseline" | "inventory" | "rules" | "help" | "version";
+  command: "scan" | "baseline" | "inventory" | "rules" | "demo" | "help" | "version";
   path?: string;
   mode: ScanMode;
   format: "text" | "json" | "sarif";
@@ -98,7 +100,7 @@ export function parseArgs(argv: string[], env: Record<string, string | undefined
         break;
       default:
         if (t.startsWith("-")) throw new UsageError(`unknown option ${t}`);
-        if (!commandSet && !a.path && ["scan", "baseline", "inventory", "rules"].includes(t)) {
+        if (!commandSet && !a.path && ["scan", "baseline", "inventory", "rules", "demo"].includes(t)) {
           if (a.command !== "help" && a.command !== "version") a.command = t as Args["command"];
           commandSet = true;
         } else if (!a.path) a.path = t;
@@ -130,6 +132,15 @@ export function run(argv: string[], io: Io): number {
   if (args.command === "help") return (io.out(HELP), 0);
   if (args.command === "version") return (io.out(`${TOOL_VERSION}\n`), 0);
   if (args.command === "rules") return (io.out(formatRules()), 0);
+  if (args.command === "demo") {
+    // Reads nothing from disk: the setup is held in memory. Exits 0 whatever it finds, since nothing of yours was checked.
+    if (args.path) return (io.err(`${TOOL_NAME}: demo checks its own made-up setup and takes no folder.\n`), 2);
+    const r = scanDemo(args.mode);
+    if (args.format === "json") io.out(formatJson(r));
+    else if (args.format === "sarif") io.out(formatSarif(r));
+    else io.out(DEMO_INTRO + formatText(r, { color: args.color && io.isTty, verbose: args.verbose }));
+    return 0;
+  }
   try {
     const home = toPosix(io.home);
     const project = resolveAbs(args.path ? (args.path.startsWith("/") || /^[A-Za-z]:/.test(args.path) ? args.path : join(io.cwd, args.path)) : io.cwd);

@@ -84,6 +84,7 @@ const scans: string[][] = [
   ["inventory"],
   ["rules"],
   ["--help"],
+  ["demo"],
 ];
 
 describe("a scan writes no files", () => {

@@ -75,6 +75,8 @@ describe("config file over 1 MiB", () => {
     const j = JSON.parse(cli(["--format", "json"]).out);
     const f = j.findings.find((x: { rule: string }) => x.rule === "FILE-001");
     expect(f.severity).toBe("medium");
+    expect(f.fix).toContain("claude mcp list");
+    expect(f.fix).not.toMatch(/split the file/);
     expect(cli([]).code).toBe(0);
     expect(cli(["--fail-on", "medium"]).code).toBe(1);
   });

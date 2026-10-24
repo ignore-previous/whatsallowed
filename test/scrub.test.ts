@@ -119,6 +119,15 @@ describe("scrub: -p passwords", () => {
   it("hides sshpass -p", () => {
     expect(scrub("sshpass -p hunter2 ssh host")).toBe("sshpass -p ••• ssh host");
   });
+  it("hides an attached docker login -ppassword", () => {
+    expect(scrub("docker login -u me -phunter2 reg")).toBe("docker login -u me -p••• reg");
+  });
+  it("is not fooled by an earlier -P (mysql port, sshpass prompt)", () => {
+    expect(scrub("mysql -P3306 -phunter2 shop")).not.toContain("hunter2");
+    expect(scrub("mysql -P 3306 -u root -phunter2 shop")).not.toContain("hunter2");
+    expect(scrub('sshpass -P "assword:" -p hunter2 ssh host')).not.toContain("hunter2");
+    expect(scrub("mysql -P3306 -phunter2 shop")).toContain("-P3306");
+  });
   it("leaves -p alone where it is not a password", () => {
     for (const s of ["npx -p typescript tsc", "mkdir -p build/out", "mysql -u root -p shop", "pip install -p 3.12 x", "ls -p"]) expect(scrub(s)).toBe(s);
   });
@@ -134,6 +143,12 @@ describe("scrub: NAME=value", () => {
     expect(scrub("Bash(GITHUB_TOKEN=x gh pr list)")).toBe("Bash(GITHUB_TOKEN=••• gh pr list)");
     expect(scrub("curl https://h.example/p?a=1&token=Z&b=2")).toBe("curl https://h.example/p?a=1&token=•••&b=2");
   });
+  it("hides PAT and webhook names, and assignments after a colon", () => {
+    expect(scrub("Bash(GH_PAT=hunter2 gh api)")).not.toContain("hunter2");
+    expect(scrub("Bash(SLACK_WEBHOOK=https://hooks.slack.example/T0/B0/x run)")).not.toContain("hooks.slack");
+    expect(scrub("npm config set //registry.npmjs.org/:_authToken=hunter2")).not.toContain("hunter2");
+    for (const s of ["Bash(PATH=/usr/bin ls)", "Bash(PATTERN=x grep)"]) expect(scrub(s)).toBe(s);
+  });
   it("does not treat bypass as a password word", () => {
     expect(scrub("Bash(BYPASS_CACHE=1 build)")).toBe("Bash(BYPASS_CACHE=1 build)");
   });
@@ -146,6 +161,9 @@ describe("scrub: NAME=value", () => {
     expect(scrub(`run --opt ${gh}`)).not.toContain(gh);
     const aws = "AKIA" + "ABCDEFGHIJKLMNOP";
     expect(scrub(`run ${aws}`)).not.toContain(aws);
+    for (const k of ["npm_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8", "glpat-" + "a1B2c3D4e5F6g7H8i9J0", "hf_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5"]) {
+      expect(scrub(`run ${k}`)).not.toContain(k);
+    }
   });
   it("stays fast on hostile input", () => {
     for (const s of ["a=".repeat(100_000), "key_".repeat(50_000), "login " + "-p ".repeat(50_000), "mysql " + "x ".repeat(50_000)]) {

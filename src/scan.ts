@@ -51,7 +51,10 @@ function uncheckedFinding(u: UncheckedFile): Finding {
       u.kind === "claude-json"
         ? "We skip config files over 1 MiB, so nothing in this one was checked, including its MCP servers. Claude Code grows this file as you use it, so it may be harmless."
         : "We skip config files over 1 MiB, so nothing in this one was checked. Real settings files are a few kilobytes. A padded file can hide risky settings from a check like this.",
-    fix: "Open the file and find out why it is so big. Remove the padding or split the file, then run the check again.",
+    fix:
+      u.kind === "claude-json"
+        ? "Check its MCP servers by hand with `claude mcp list`. Claude Code writes this file itself, so don't edit or split it by hand."
+        : "Open the file and find out why it is so big. Remove the padding or split the file, then run the check again.",
   });
 }
 

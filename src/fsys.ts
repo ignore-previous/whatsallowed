@@ -73,18 +73,24 @@ export const nodeFs: Fs = {
     }
   },
   openError(path) {
+    const codeOf = (e: unknown): string => {
+      const code = (e as { code?: unknown } | null)?.code;
+      return typeof code === "string" && /^[A-Z0-9_]{2,20}$/.test(code) ? code : "UNKNOWN";
+    };
     try {
       const st = fs.statSync(path);
       if (!st.isFile() || st.size > MAX_BYTES) return undefined;
-    } catch {
-      return undefined;
+    } catch (e) {
+      // Missing is normal. Anything else (a folder we may not enter, a symlink loop) means we can't tell
+      // whether the file is there, so it must not read as "nothing here".
+      const code = codeOf(e);
+      return code === "ENOENT" || code === "ENOTDIR" ? undefined : code;
     }
     try {
       decodeText(fs.readFileSync(path));
       return undefined;
     } catch (e) {
-      const code = (e as { code?: unknown } | null)?.code;
-      return typeof code === "string" && /^[A-Z0-9_]{2,20}$/.test(code) ? code : "UNKNOWN";
+      return codeOf(e);
     }
   },
   list(dir) {

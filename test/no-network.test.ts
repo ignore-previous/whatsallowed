@@ -53,7 +53,7 @@ describe("no network", () => {
 
   const entries = cliEntries(repo);
   for (const entry of entries) {
-    for (const args of [["--format", "json"], ["--format", "sarif"], ["inventory"], ["baseline", "--baseline", "BL"]]) {
+    for (const args of [["--format", "json"], ["--format", "sarif"], ["inventory"], ["baseline", "--baseline", "BL"], ["demo"]]) {
       it(`${entry.endsWith(".mjs") ? "dist" : "src"} ${args[0]} ${args[1] ?? ""} makes no network calls`, () => {
         const a = args.map((x) => (x === "BL" ? join(root, `bl-${Math.random().toString(36).slice(2)}.json`) : x));
         const r = runWithTripwire(entry, a);

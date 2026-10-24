@@ -2,7 +2,7 @@
 
 ## Reporting a problem with whatsallowed itself
 
-If whatsallowed makes a network call, writes outside its baseline file, prints a full secret, or can be made to run code, please open a private security advisory on the repository rather than a public issue.
+If What's Allowed makes a network call, writes outside its baseline file, prints a full secret, or can be made to run code, please open a private security advisory on the repository rather than a public issue.
 
 ## Missed or wrong findings
 

@@ -1,7 +1,6 @@
 import { recordBaseline } from "./checks/drift.ts";
 import type { ScanMode } from "./discover.ts";
 import { memFs } from "./fsys.ts";
-import { TOOL_NAME } from "./name.ts";
 import { scan, type ScanResult } from "./scan.ts";
 
 /** Where the made-up setup lives. These folders don't exist; the files are held in memory. */
@@ -73,7 +72,4 @@ export const DEMO_SCOPE: Record<ScanMode, string> = {
   user: "the made-up demo user settings only (--user-only). None of your files were read.",
 };
 
-export const DEMO_INTRO =
-  `This is a demo. It checks a made-up setup that comes with ${TOOL_NAME}. None of your own files are read.\n` +
-  "The setup is a project called shop-app and the user settings of someone called demo.\n" +
-  `To check your own setup, run ${TOOL_NAME} without "demo" from a project folder.\n\n`;
+export const DEMO_INTRO = "Read-only demo. Made-up findings. None of your files were read.";

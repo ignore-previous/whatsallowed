@@ -11,6 +11,8 @@ Run the bundled checker. It only reads files and, once installed, makes no netwo
 node "${CLAUDE_PLUGIN_ROOT}/dist/cli.mjs" --format json
 ```
 
+For a short text report, omit `--format json`. Add `--details` for explanations, suggested changes, matched text, rule IDs and glossary. `--verbose` adds info notes and summary items; it can be combined with `--details`.
+
 Add `--project-only` to check just this project, or `--user-only` for just the user's own config.
 
 Then tell the user:

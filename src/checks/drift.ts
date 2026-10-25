@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { displayPath } from "../discover.ts";
 import type { McpServer, Model } from "../model.ts";
 import { isObj } from "../parse.ts";
+import { scrub } from "../scrub.ts";
 import type { Baseline, Finding } from "../types.ts";
 import { make } from "./util.ts";
 
@@ -88,7 +89,7 @@ export function checkDrift(m: Model): Finding[] {
     // The summary counts removed servers. This note is the one place that names them, with a path relative to
     // the folder or home like every other file shown.
     const at = key.lastIndexOf("#");
-    m.ctx.notes.push(`MCP server ${key.slice(at + 1)} in ${displayPath(key.slice(0, at), m.ctx.home, m.ctx.project)} was removed since the baseline.`);
+    m.ctx.notes.push(`MCP server ${scrub(key.slice(at + 1))} in ${displayPath(key.slice(0, at), m.ctx.home, m.ctx.project)} was removed since the baseline.`);
   }
   return out;
 }

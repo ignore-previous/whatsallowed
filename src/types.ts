@@ -59,10 +59,13 @@ export interface ConfigFile {
   gitIgnored?: boolean;
 }
 
-/** A config file the tool found but did not read, because it is over the size limit. */
+/** A config file the tool found but did not read: it is over the size limit, or it exists but could not be opened. */
 export interface UncheckedFile extends ConfigFile {
-  /** Size on disk in bytes. */
-  bytes: number;
+  reason: "too-large" | "unopenable";
+  /** Size on disk in bytes. Set when the reason is "too-large". */
+  bytes?: number;
+  /** Short error code from the failed open, such as EACCES. Set when the reason is "unopenable". */
+  error?: string;
 }
 
 export interface Finding {

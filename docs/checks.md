@@ -21,7 +21,7 @@ None of this is a security assessment. A clean result doesn't mean a setup is sa
 | `SECRET` | API keys, tokens and private keys written into instruction files (CLAUDE.md, AGENTS.md, GEMINI.md, `.cursorrules`, Cursor rules) or into MCP and settings `env`/header blocks | All |
 | `SKILL` | Scripts shipped in skills, plugins and hook folders that download and run code, decode base64 into a shell, or open a reverse shell | Claude Code, Codex |
 
-Not a check of its own: `FILE-001` is raised when a config file is over 1 MiB. We don't read it, so nothing in it was checked, and the finding says so. A file we can only partly read, or can't read at all, gets a note that names it. See [THREAT_MODEL.md](THREAT_MODEL.md).
+Not a check of its own: `FILE-001` is raised when a config file is over 1 MiB, and `FILE-002` when a config file is there but can't be opened (for example, no permission). We don't read it, so nothing in it was checked, and the finding says so. A file we can only partly read, or can't read at all, gets a note that names it. See [THREAT_MODEL.md](THREAT_MODEL.md).
 
 The inventory (`whatsallowed inventory`) lists every config file the tool found, with its tool and scope.
 
@@ -70,3 +70,4 @@ Generated from `src/rules.ts`. The level shown is the usual one; some rules set 
 | `SKILL-002` | high | A skill, plugin or hooks-folder script runs an encoded payload. |
 | `SKILL-003` | high | A skill, plugin or hooks-folder script opens a reverse shell. |
 | `FILE-001` | high | A config file is over 1 MiB, so it wasn't read and nothing in it was checked (high in a repository, local or plugin file; medium in your own). |
+| `FILE-002` | high | A config file exists but couldn't be opened (for example, no permission), so nothing in it was checked (high in a repository, local or plugin file; medium in your own). |

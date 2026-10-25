@@ -102,7 +102,7 @@ Text wraps to the terminal width, up to 90 columns. Redirected output uses 80 co
 
 Exit code 0 means nothing at or above the `--fail-on` level (default `high`). 1 means findings at or above the `--fail-on` level, and 2 means the tool couldn't run.
 
-A config file over 1 MiB isn't read. It is reported as `FILE-001` (high in a repository, local or plugin file; medium in your own), so it counts toward the exit code and never reads as clean. A file we can read only in part, or not at all because it is binary, nested too deeply or the wrong shape, is named in a note instead. UTF-16 files are read as text.
+A config file over 1 MiB isn't read. It is reported as `FILE-001` (high in a repository, local or plugin file; medium in your own), so it counts toward the exit code and never reads as clean. A file we can read only in part, or not at all because it is binary, nested too deeply or the wrong shape, is named in a note instead. A file that is there but can't be opened, for example because of its permissions, is reported as `FILE-002` and counts the same way. UTF-16 files are read as text.
 
 ## Commands
 
@@ -146,7 +146,7 @@ Then ask Claude to "check my agent config". The plugin runs the same bundled CLI
 
 ## What it checks
 
-Ten checks, 36 rules: [docs/checks.md](docs/checks.md). One rule, `FILE-001`, isn't tied to a check: it flags a config file over 1 MiB that we couldn't read. The vendor docs each check relies on: [docs/config-surface.md](docs/config-surface.md).
+Ten checks, 37 rules: [docs/checks.md](docs/checks.md). Two rules, `FILE-001` and `FILE-002`, aren't tied to a check: they flag a config file we couldn't read, because it is over 1 MiB or couldn't be opened. The vendor docs each check relies on: [docs/config-surface.md](docs/config-surface.md).
 
 | Check | Looks for |
 |---|---|

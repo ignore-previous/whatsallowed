@@ -13,6 +13,8 @@ interface Fixture {
   /** Text on the line the finding should point at. */
   at: string;
   before?: Record<string, string>;
+  /** Files that exist but can't be opened (display paths). */
+  unopenable?: string[];
   /** Near miss: same shape, must not raise this rule. */
   benign: Record<string, string>;
 }
@@ -27,6 +29,8 @@ const mcp = (servers: Record<string, unknown>): string => j({ mcpServers: server
 const padded = (extra: number): string => JSON.stringify({ permissions: { allow: ["Bash(*)"] }, note: "x".repeat(extra) });
 
 const F: Fixture[] = [
+  { rule: "FILE-002", files: {}, unopenable: ["./.claude/settings.json"], file: "./.claude/settings.json", at: "",
+    benign: { "./.claude/settings.json": j({ permissions: { allow: ["Bash(npm test)"] } }) } },
   { rule: "FILE-001", files: { "./.claude/settings.json": padded(MAX_BYTES) }, file: "./.claude/settings.json", at: '"permissions"',
     benign: { "./.claude/settings.json": padded(1000) } },
   { rule: "MODE-001", files: { "~/.claude/settings.json": j({ permissions: { defaultMode: "bypassPermissions" } }) }, file: "~/.claude/settings.json", at: "bypassPermissions",
@@ -109,11 +113,11 @@ describe("rule fixtures", () => {
   for (const f of F) {
     describe(f.rule, () => {
       it("fires with file, line and an explanation", () => {
-        const r = scanFiles(f.files, f.before);
+        const r = scanFiles(f.files, f.before, f.unopenable);
         const hit = r.findings.find((x) => x.rule === f.rule);
         expect(hit, `${f.rule} did not fire; got ${r.findings.map((x) => x.rule).join(", ")}`).toBeDefined();
         expect(hit!.file).toBe(f.file);
-        const src = f.files[f.file.replace(/^\.\//, "./")]!;
+        const src = f.files[f.file.replace(/^\.\//, "./")] ?? "";
         expect(hit!.line).toBe(lineOf(src, f.at));
         expect(hit!.title.length).toBeGreaterThan(10);
         expect(hit!.why.length).toBeGreaterThan(20);

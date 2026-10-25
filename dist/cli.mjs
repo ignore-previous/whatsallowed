@@ -2341,12 +2341,6 @@ function checkDrift(m) {
   return out;
 }
 
-// src/name.ts
-var TOOL_NAME = "whatsallowed";
-var TOOL_VERSION = "0.2.1";
-var BASELINE_DIR = ".whatsallowed";
-var BASELINE_FILE = "baseline.json";
-
 // src/checks/mode.ts
 var f = (x) => make("MODE", x);
 function claudeMode(p) {
@@ -4003,11 +3997,13 @@ var DEMO_SCOPE = {
   project: "the made-up shop-app project only (--project-only). None of your files were read.",
   user: "the made-up demo user settings only (--user-only). None of your files were read."
 };
-var DEMO_INTRO = `This is a demo. It checks a made-up setup that comes with ${TOOL_NAME}. None of your own files are read.
-The setup is a project called shop-app and the user settings of someone called demo.
-To check your own setup, run ${TOOL_NAME} without "demo" from a project folder.
+var DEMO_INTRO = "Read-only demo. Made-up findings. None of your files were read.";
 
-`;
+// src/name.ts
+var TOOL_NAME = "whatsallowed";
+var TOOL_VERSION = "0.2.1";
+var BASELINE_DIR = ".whatsallowed";
+var BASELINE_FILE = "baseline.json";
 
 // src/rules.ts
 var RULES2 = [
@@ -4427,16 +4423,16 @@ function exitCodeFor(findings, failOn) {
 }
 var ANSI = { red: "\x1B[31m", yellow: "\x1B[33m", dim: "\x1B[2m", bold: "\x1B[1m", reset: "\x1B[0m", cyan: "\x1B[36m" };
 var TERMS = {
-  MODE: "Permission mode: how often your agent stops to ask before it acts.",
-  ALLOW: "Allow rule: a setting that lets your agent do something without asking you first.",
-  DENY: "Deny rule: a setting that stops your agent reading a file or running a command.",
-  ENDPOINT: "API address: where your agent sends its requests, and the credentials that go with them.",
+  MODE: "Permission mode: how often your AI stops to ask before it acts.",
+  ALLOW: "Allow rule: a setting that lets your AI do something without asking you first.",
+  DENY: "Deny rule: a setting that stops your AI reading a file or running a command.",
+  ENDPOINT: "API address: where your AI sends its requests, and the credentials that go with them.",
   HOOK: "Hook: a command that Claude Code or Codex runs by itself when something happens, such as after a file edit.",
-  HTTPHOOK: "HTTP hook: a hook that sends details of what your agent is doing to a web address.",
-  MCP: "MCP server: a helper program your agent can call to use other tools or services.",
+  HTTPHOOK: "HTTP hook: a hook that sends details of what your AI is doing to a web address.",
+  MCP: "MCP server: a helper program your AI can call to use other tools or services.",
   DRIFT: "Baseline: a saved copy of your MCP server settings, used to spot later changes.",
   SECRET: "Secret: a password, key or token. Anyone who has it can act as you.",
-  SKILL: "Skill or plugin: an add-on that gives your agent extra abilities, often with its own scripts.",
+  SKILL: "Skill or plugin: an add-on that gives your AI extra abilities, often with its own scripts.",
   FILE: "Unchecked file: a config file we skipped, so nothing in it was looked at."
 };
 var plural2 = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -4445,85 +4441,172 @@ var SCOPE_TEXT = {
   project: "this project folder only (--project-only).",
   user: "your user settings only (--user-only)."
 };
-function formatSummary(s, opts) {
-  const c = (code, x) => opts.color ? `${ANSI[code]}${x}${ANSI.reset}` : x;
-  const pad = (label) => `  ${label.padEnd(10)}`;
-  const indent = " ".repeat(12);
-  const lines = [c("bold", `Summary: ${opts.scopeText ?? SCOPE_TEXT[s.scope]}`), ""];
-  const f5 = s.files;
-  const tools = [
-    ["Claude Code", f5.claude],
-    ["Codex", f5.codex],
-    ["Cursor", f5.cursor]
-  ];
-  const found = tools.filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`);
-  if (f5.other) found.push(`other ${f5.other}`);
-  const missing = tools.filter(([, n]) => n === 0).map(([t]) => t);
-  lines.push(
-    `${pad("Files")}${f5.total} read${found.length ? `: ${found.join(", ")}` : ""}.${missing.length ? ` ${missing.length > 1 ? `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}` : missing[0]}: no files found.` : ""}`,
-    c("dim", `${indent}Settings, instruction files, skill scripts, and secrets files such as .env.`)
-  );
-  if (f5.unchecked) lines.push(`${pad("")}${plural2(f5.unchecked, "config file was", "config files were")} too large to check, so ${f5.unchecked === 1 ? "it was" : "they were"} skipped.`);
-  for (const x of s.checks) {
-    lines.push(`${pad(x.check)}${x.text}${x.fix ? ` Run: ${x.fix}` : ""}`, c("dim", `${indent}${x.meaning}`));
-    if (opts.verbose) for (const item of x.items) lines.push(c("dim", `${indent}- ${item}`));
+var AREA_NAMES = {
+  MODE: "Permission modes",
+  ALLOW: "Allowed actions",
+  DENY: "Protected files",
+  ENDPOINT: "Request addresses",
+  HOOK: "Automatic commands",
+  HTTPHOOK: "Web notifications",
+  MCP: "Extra tools",
+  DRIFT: "Changes since baseline",
+  SECRET: "Keys and tokens",
+  SKILL: "Add-on scripts",
+  FILE: "Unchecked files"
+};
+function plainWords(text) {
+  return text.replace(/\bAn allow rule approves\b/g, "A permission allows").replace(/\bshell command\b/g, "command").replace(/\bThe repository (?:pre-)?approves its own MCP servers\b/g, "The project approves its own extra tools").replace(/\bThe repository\b/g, "The project").replace(/\bAn HTTP hook\b/g, "A web notification").replace(/\bA hook\b/g, "An automatic command").replace(/^MCP servers\b/g, "Extra tools").replace(/^MCP server\b/g, "Extra tool").replace(/\bMCP servers\b/g, "extra tools").replace(/\bMCP server\b/g, "extra tool").replace(/\ban unpinned package\b/g, "a package without a fixed version").replace(/\bthe baseline\b/g, "the saved settings").replace(/\bThe agent's\b/g, "The AI's").replace(/\bthe agent\b/g, "the AI").replace(/\bThe agent\b/g, "The AI");
+}
+function shortTitle(f5) {
+  if (f5.rule === "SECRET-002") return "A key or token is written directly in the tool settings";
+  return f5.title.split(/("[^"]*")/).map((part, i) => i % 2 ? part : plainWords(part)).join("");
+}
+function firstStep(fix) {
+  const m = fix.match(/^.*?[.!?](?=\s+[A-Z]|$)/);
+  return (m ? m[0] : fix).trim();
+}
+function shortDestination(f5) {
+  const route = f5.rule === "ENDPOINT-001" ? f5.match.match(/^(?:ANTHROPIC_(?:[A-Z]+_)?BASE_URL|CLAUDE_CODE_(?:[A-Z]+_)?BASE_URL|(?:HTTPS?|ALL)_PROXY)=(.*)$/i)?.[1] : void 0;
+  const download = f5.rule.startsWith("HOOK-") ? f5.match.match(/\bhttps?:\/\/[^\s'"<>`|;)]+/i)?.[0] : void 0;
+  const address = route ?? download ?? (f5.rule === "HTTPHOOK-001" ? f5.match : void 0) ?? (f5.rule === "HTTPHOOK-002" ? `hook://${f5.match.split(" with ")[0]}` : void 0);
+  if (!address) return void 0;
+  try {
+    const value = address.includes("://") ? address : `http://${address}`;
+    const authority = value.split("://")[1]?.split(/[/?#]/)[0]?.split("@").at(-1);
+    if (!authority || /[\s…•$%]/u.test(authority)) return void 0;
+    const url = new URL(value);
+    if (!url.host) return void 0;
+    return `${download ? "Downloads from" : "Sends to"}: ${url.host}`;
+  } catch {
+    return void 0;
   }
-  if (!opts.verbose && s.checks.some((x) => x.items.length)) lines.push("", c("dim", "Add --verbose to list every rule, server, hook and file counted."));
-  lines.push("");
-  return lines;
+}
+function shortSummary(x) {
+  if (!x.checked || x.fix) return x.text;
+  switch (x.check) {
+    case "MODE":
+      return `${plural2(x.count, "setting", "settings")}.`;
+    case "ALLOW":
+      return `${plural2(x.count, "permission rule", "permission rules")}.`;
+    case "DENY":
+      return `${plural2(x.count, "rule blocking access", "rules blocking access")}.`;
+    case "HOOK":
+      return `${plural2(x.count, "automatic command", "automatic commands")}.`;
+    case "HTTPHOOK":
+      return `${plural2(x.count, "web notification", "web notifications")}.`;
+    case "MCP":
+      return `${plural2(x.count, "extra tool", "extra tools")}.`;
+    case "SECRET":
+      return `${plural2(x.count, "file or value checked", "files or values checked")}.`;
+    case "SKILL":
+      return `${plural2(x.count, "script", "scripts")}.`;
+    default:
+      return x.text;
+  }
+}
+function wrap(line, width) {
+  if (!line) return [""];
+  const prefix = line.match(/^(\s*[^:]+: )/)?.[0] ?? line.match(/^\s*/)?.[0] ?? "";
+  const indent = " ".repeat(Math.min(prefix.length, Math.max(0, width - 20)));
+  const result = [];
+  let rest = line;
+  while (Array.from(rest).length > width) {
+    const chars = Array.from(rest);
+    const candidate = chars.slice(0, width + 1).join("");
+    const space = candidate.lastIndexOf(" ");
+    const cut = space > indent.length ? space : width;
+    result.push(chars.slice(0, cut).join(""));
+    rest = indent + chars.slice(cut).join("").trimStart();
+  }
+  result.push(rest);
+  return result;
+}
+function textWidth(opts) {
+  const width = opts.width ?? (process.stdout.isTTY ? process.stdout.columns : 80);
+  return Number.isFinite(width) && width > 0 ? Math.min(90, Math.floor(width)) : 80;
+}
+function writer(opts) {
+  const width = textWidth(opts);
+  return (line, color) => wrap(line, width).map((part) => opts.color && color && part ? `${ANSI[color]}${part}${ANSI.reset}` : part);
+}
+function formatSummary(s, opts) {
+  const write = writer(opts);
+  const lines = [...write(`Summary: ${opts.scopeText ?? SCOPE_TEXT[s.scope]}`, "bold")];
+  if (opts.details) {
+    const f5 = s.files;
+    const tools = [["Claude Code", f5.claude], ["Codex", f5.codex], ["Cursor", f5.cursor]];
+    const found = tools.filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`);
+    if (f5.other) found.push(`other ${f5.other}`);
+    const missing = tools.filter(([, n]) => !n).map(([t]) => t);
+    lines.push(...write(`  Files: ${f5.total} read.${found.length ? ` ${found.join(", ")}.` : ""}`));
+    if (missing.length) lines.push(...write(`  ${missing.join(", ")}: no files found.`));
+  }
+  const skipped = s.files.unchecked;
+  if (skipped) lines.push(...write(`  ${plural2(skipped, "config file was", "config files were")} too large to check, so ${skipped === 1 ? "it was" : "they were"} skipped.`));
+  const empty = [];
+  for (const x of s.checks) {
+    const hasFindings = Object.values(x.findings).some((n) => n > 0);
+    if ((!x.count || x.check === "ENDPOINT") && !hasFindings && !x.fix && x.checked) {
+      empty.push(AREA_NAMES[x.check].toLowerCase());
+      continue;
+    }
+    const description = opts.details || opts.verbose ? x.text : shortSummary(x);
+    lines.push(...write(`  ${AREA_NAMES[x.check]}: ${description}${x.fix ? ` Run: ${x.fix}` : ""}`));
+    if (opts.details) lines.push(...write(`    ${x.meaning}`, "dim"));
+    if (opts.verbose) for (const item of x.items) lines.push(...write(`    - ${item}`, "dim"));
+  }
+  if (empty.length) lines.push(...write(`Nothing found${skipped ? " in the files read" : ""} for: ${empty.join(", ")}.`, "dim"));
+  return [...lines, ""];
 }
 function formatText(r, opts) {
-  const c = (code, s) => opts.color ? `${ANSI[code]}${s}${ANSI.reset}` : s;
+  const write = writer(opts);
   const lines = [];
   const high = r.findings.filter((f5) => f5.severity === "high");
   const medium = r.findings.filter((f5) => f5.severity === "medium");
   const infos = r.findings.filter((f5) => f5.severity === "info");
-  const alerts = high.length + medium.length;
-  const checked = plural2(r.files.length, "file", "files");
-  lines.push(`${c("bold", TOOL_NAME)} ${TOOL_VERSION}. This is a read-only check: it changes nothing and sends nothing anywhere.`, "");
+  lines.push(...write(`${high.length} high, ${medium.length} medium, ${infos.length} info; ${plural2(r.files.length, "file", "files")} checked.`, "bold"));
+  lines.push(...write(opts.intro ?? "Read-only check. Nothing is changed or sent anywhere.", "dim"), "");
   if (!r.files.length && !r.unchecked.length) {
-    lines.push(c("bold", "Nothing was checked: no agent settings files were found here."));
-    lines.push("Run it from a project folder, or see --help.");
-  } else if (!r.files.length) {
-    lines.push(c(high.length ? "red" : "yellow", `${plural2(alerts, "thing", "things")} to look at. No config file could be checked: ${r.unchecked.length === 1 ? "the one" : "those"} we found ${r.unchecked.length === 1 ? "is" : "are"} too large.`));
-  } else if (!alerts) {
-    lines.push(c("bold", `No high or medium findings in the ${checked} checked.`));
-    lines.push("The summary at the end shows what was checked.");
-  } else if (high.length) {
-    lines.push(c("red", `${plural2(alerts, "thing", "things")} to look at in the ${checked} checked. ${plural2(high.length, "needs", "need")} attention first.`));
-  } else {
-    lines.push(c("yellow", `${plural2(alerts, "thing", "things")} worth a look in the ${checked} checked. Nothing needs urgent attention.`));
+    lines.push(...write("Nothing was checked: no AI settings files were found here."));
+    lines.push(...write("Run it from a project folder, or see --help."), "");
   }
-  lines.push("");
   const seenTerms = /* @__PURE__ */ new Set();
   const show = (f5) => {
-    lines.push(`  ${c("bold", f5.title)}`);
-    if (TERMS[f5.check] && !seenTerms.has(f5.check)) {
-      seenTerms.add(f5.check);
-      lines.push(`    ${c("dim", `(${TERMS[f5.check]})`)}`);
+    lines.push(...write(`  ${opts.details ? f5.title : shortTitle(f5)}`, "bold"));
+    lines.push(...write(`    ${opts.details ? "Where: " : ""}${f5.line > 0 ? `${f5.file}:${f5.line}` : f5.file}`, "cyan"));
+    if (!opts.details) {
+      const destination = shortDestination(f5);
+      if (destination) lines.push(...write(`    ${destination}`));
+      lines.push(...write(`    What to do: ${firstStep(f5.fix)}`));
     }
-    lines.push(`    What this means: ${f5.why}`);
-    lines.push(`    What you could do: ${f5.fix}`);
-    lines.push(`    ${c("dim", "Where:")} ${c("cyan", f5.line > 0 ? `${f5.file}, line ${f5.line}` : f5.file)}  ${c("dim", `Found: ${f5.match}  Rule: ${f5.rule}`)}`);
+    if (opts.details) {
+      lines.push(...write(`    What this means: ${f5.why}`));
+      lines.push(...write(`    What you could do: ${f5.fix}`));
+      lines.push(...write(`    Found: ${f5.match}`, "dim"));
+      lines.push(...write(`    Rule: ${f5.rule}`, "dim"));
+      if (TERMS[f5.check] && !seenTerms.has(f5.check)) {
+        seenTerms.add(f5.check);
+        lines.push(...write(`    ${TERMS[f5.check]}`, "dim"));
+      }
+    }
     lines.push("");
   };
-  const group = (title, note, list, color) => {
+  const group = (title, list, color) => {
     if (!list.length) return;
-    lines.push(c(color, `${title} (${list.length})`) + c("dim", `  ${note}`), "");
+    lines.push(...write(`${title} (${list.length})`, color), "");
     list.forEach(show);
   };
-  group("Look at these first", "High: could let something run or leak without you noticing.", high, "red");
-  group("Worth checking", "Medium: risky in some set-ups, harmless in others.", medium, "yellow");
+  group("Look at these first", high, "red");
+  group("Worth checking", medium, "yellow");
+  if (!opts.details && (high.length || medium.length)) lines.push(...write("Add --details to see why each one matters and more ways to fix it.", "dim"), "");
   if (infos.length) {
-    if (opts.verbose) group("For your information", "Not a problem on its own.", infos, "dim");
-    else lines.push(c("dim", `${plural2(infos.length, "lower-priority note is", "lower-priority notes are")} hidden. Add --verbose to see ${infos.length === 1 ? "it" : "them"}.`), "");
+    if (opts.verbose) group("For your information", infos, "dim");
+    else lines.push(...write(`${plural2(infos.length, "lower-priority note is", "lower-priority notes are")} hidden. Add --verbose to see ${infos.length === 1 ? "it" : "them"}.`, "dim"), "");
   }
-  for (const n of r.notes) lines.push(c("dim", `Note: ${n}`));
+  for (const n of r.notes) lines.push(...write(`Note: ${n}`, "dim"));
   if (r.notes.length) lines.push("");
   if (r.files.length || r.unchecked.length) lines.push(...formatSummary(summarize(r), opts));
-  if (alerts) lines.push('Nothing has been changed. If you decide to act, you make the change yourself; the "What you could do" lines say how.');
-  lines.push(c("dim", "This is a configuration check, not a security assessment. A clean result doesn't mean a setup is safe."));
-  lines.push(c("dim", "Writing a script? Use --format json for the same findings in a stable, machine-readable form."));
+  lines.push(...write("This is not a security assessment. A clean result does not mean it is safe.", "dim"));
   return lines.join("\n") + "\n";
 }
 function formatJson(r) {
@@ -4618,6 +4701,7 @@ Options:
   --fail-on <level>       Exit 1 if any finding is at or above: high (default), medium, info, never
   --baseline <file>       Baseline file (default ~/${BASELINE_DIR}/${BASELINE_FILE})
   --reset-baseline        With "baseline": replace an existing baseline
+  --details               Show explanations, suggested changes, rules and glossary
   --verbose               Show info notes in text output
   --no-color              No colour (NO_COLOR is also respected)
   --version, --help
@@ -4628,7 +4712,7 @@ This is a configuration check, not a security assessment.
 var UsageError = class extends Error {
 };
 function parseArgs(argv, env) {
-  const a = { command: "scan", mode: "all", format: "text", failOn: "high", reset: false, verbose: false, color: !env.NO_COLOR };
+  const a = { command: "scan", mode: "all", format: "text", failOn: "high", reset: false, verbose: false, details: false, color: !env.NO_COLOR };
   let commandSet = false;
   const value = (i, flag) => {
     const v = argv[i + 1];
@@ -4672,6 +4756,9 @@ function parseArgs(argv, env) {
       case "--reset-baseline":
         a.reset = true;
         break;
+      case "--details":
+        a.details = true;
+        break;
       case "--verbose":
         a.verbose = true;
         break;
@@ -4711,7 +4798,7 @@ Run ${TOOL_NAME} --help for usage.
 `), 2;
     const r = scanDemo(args.mode);
     if (args.format === "json") io.out(JSON.stringify({ demo: true, ...JSON.parse(formatJson(r)) }, null, 2) + "\n");
-    else io.out(DEMO_INTRO + formatText(r, { color: args.color && io.isTty, verbose: args.verbose, scopeText: DEMO_SCOPE[args.mode] }));
+    else io.out(formatText(r, { color: args.color && io.isTty, verbose: args.verbose, details: args.details, width: io.isTty ? io.columns ?? 80 : 80, intro: DEMO_INTRO, scopeText: DEMO_SCOPE[args.mode] }));
     return 0;
   }
   try {
@@ -4741,7 +4828,7 @@ Run ${TOOL_NAME} --help for usage.
     if (args.command === "inventory") return io.out(formatInventory(r)), 0;
     if (args.format === "json") io.out(formatJson(r));
     else if (args.format === "sarif") io.out(formatSarif(r));
-    else io.out(formatText(r, { color: args.color && io.isTty, verbose: args.verbose }));
+    else io.out(formatText(r, { color: args.color && io.isTty, verbose: args.verbose, details: args.details, width: io.isTty ? io.columns ?? 80 : 80 }));
     return exitCodeFor(r.findings, args.failOn);
   } catch (e) {
     io.err(`${TOOL_NAME}: ${e.message}
@@ -4761,7 +4848,8 @@ if (isMain()) {
     home: os.homedir(),
     platform: process.platform,
     env: process.env,
-    isTty: !!process.stdout.isTTY
+    isTty: !!process.stdout.isTTY,
+    columns: process.stdout.columns
   });
   process.exitCode = code;
 }

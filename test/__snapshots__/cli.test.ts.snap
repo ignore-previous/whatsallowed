@@ -1,0 +1,35 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`exit codes > snapshots a clean CLI run, details=false 1`] = `
+"0 high, 0 medium, 0 info; 1 file checked.
+Read-only check. Nothing is changed or sent anywhere.
+
+Summary: this project folder and your user settings. Other projects on this
+         machine aren't read.
+  Allowed actions: 1 permission rule.
+Nothing found for: permission modes, protected files, request addresses,
+                   automatic commands, web notifications, extra tools, changes
+                   since baseline, keys and tokens, add-on scripts.
+
+This is not a security assessment. A clean result does not mean it is safe.
+"
+`;
+
+exports[`exit codes > snapshots a clean CLI run, details=true 1`] = `
+"0 high, 0 medium, 0 info; 1 file checked.
+Read-only check. Nothing is changed or sent anywhere.
+
+Summary: this project folder and your user settings. Other projects on this
+         machine aren't read.
+  Files: 1 read. Claude Code 1.
+  Codex, Cursor: no files found.
+  Allowed actions: 1 allow rule. Broadest: Bash(npm test).
+    Claude Code does what these match without asking. None approves every
+    command, a powerful program with any arguments, or any web address.
+Nothing found for: permission modes, protected files, request addresses,
+                   automatic commands, web notifications, extra tools, changes
+                   since baseline, keys and tokens, add-on scripts.
+
+This is not a security assessment. A clean result does not mean it is safe.
+"
+`;

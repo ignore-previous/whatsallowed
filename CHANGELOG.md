@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Text reports are shorter by default and wrap to fit the terminal. Each finding gets a first step to fix it. Add `--details` for the full explanations and glossary.
+JSON and SARIF output are unchanged.
+Short reports show destination hosts for request addresses, HTTP hooks and hook downloads.
+
 ## 0.2.1
 
 Fixes. Nothing here changes what the ten checks look for, and the accuracy figures are the same.

@@ -80,7 +80,7 @@ function modeSummary(m: Model, findings: Finding[]): CheckSummary {
     if (!mode) continue;
     // Claude Code ignores bypassPermissions and auto when a project file asks for them.
     const ignored = (mode === "bypassPermissions" || mode === "auto") && (p.file.scope === "project" || p.file.scope === "local");
-    items.push(`Claude Code defaultMode "${mode}" (${p.file.display})${ignored ? ", ignored in a project file" : ""}`);
+    items.push(`Claude Code defaultMode "${scrub(mode)}" (${p.file.display})${ignored ? ", ignored in a project file" : ""}`);
     if (ignored) ignoredModes++;
     if (!ignored && rankIn(CLAUDE_MODES, mode) > rankIn(CLAUDE_MODES, claude ?? "")) claude = mode;
   }
@@ -90,11 +90,11 @@ function modeSummary(m: Model, findings: Finding[]): CheckSummary {
     const s = str(get(v, "sandbox_mode"));
     const a = str(get(v, "approval_policy"));
     if (s) {
-      items.push(`Codex sandbox_mode "${s}" (${where})`);
+      items.push(`Codex sandbox_mode "${scrub(s)}" (${where})`);
       if (rankIn(CODEX_SANDBOX, s) > rankIn(CODEX_SANDBOX, sandbox ?? "")) sandbox = s;
     }
     if (a) {
-      items.push(`Codex approval_policy "${a}" (${where})`);
+      items.push(`Codex approval_policy "${scrub(a)}" (${where})`);
       if (rankIn(CODEX_APPROVAL, a) > rankIn(CODEX_APPROVAL, approval ?? "")) approval = a;
     }
   };
@@ -354,9 +354,10 @@ function mcpSummary(m: Model, findings: Finding[]): CheckSummary {
   const items = servers.map((s) => {
     const url = str(s.def.url) ?? str(s.def.serverUrl) ?? str(s.def.httpUrl);
     const where = `${TOOL_LABEL[s.tool] ?? s.tool}, ${s.file.display}`;
+    const name = scrub(s.name);
     if (url && s.def.command === undefined) {
       remote++;
-      return `"${s.name}" (${where}): remote, ${parseUrl(url)?.host ?? "unreadable address"}`;
+      return `"${name}" (${where}): remote, ${parseUrl(url)?.host ?? "unreadable address"}`;
     }
     const r = findRunner(launchOf(s));
     if (r) {
@@ -364,9 +365,9 @@ function mcpSummary(m: Model, findings: Finding[]): CheckSummary {
       if (!r.pinned) unpinned++;
       // A package given as an address can carry a token or password: show only its host.
       const pkg = /^[a-z][a-z0-9+.-]*:\/\//i.test(r.pkg) ? `package at ${parseUrl(r.pkg.replace(/^[a-z0-9.-]+\+/i, ""))?.host ?? "an unreadable address"}` : scrub(r.pkg);
-      return `"${s.name}" (${where}): ${r.runner} ${pkg}`;
+      return `"${name}" (${where}): ${r.runner} ${pkg}`;
     }
-    return `"${s.name}" (${where}): local program`;
+    return `"${name}" (${where}): local program`;
   });
   const local = servers.length - remote;
   const tools = Object.entries(

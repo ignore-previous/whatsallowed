@@ -205,11 +205,11 @@ describe("summary text", () => {
   const text = (files: Record<string, unknown>, verbose = false): string => formatText(scanFiles(files), { color: false, verbose });
   it("clean run: verdict, then the summary, and the safety disclaimer once", () => {
     const out = text(settings({ permissions: { allow: ["Bash(npm test)"] } }));
-    expect(out).toContain("No high or medium findings in the 1 file checked.");
-    expect(out).toContain("Summary: this project folder and your user settings. Other projects on this machine aren't read.");
-    expect(out).toContain("  Files     1 read: Claude Code 1. Codex or Cursor: no files found.");
-    expect(out).toContain("  ALLOW     1 allow rule. Broadest: Bash(npm test).");
-    expect(out).toContain("  DRIFT     No MCP servers, so there is nothing to compare.");
+    expect(out).toContain("0 high, 0 medium, 0 info; 1 file checked.");
+    expect(out).toContain("Summary: this project folder and your user settings. Other projects on this\n         machine aren't read.");
+    expect(out).not.toContain("  Files");
+    expect(out).toContain("  Allowed actions: 1 permission rule.");
+    expect(out).toContain("Nothing found for:");
     expect(out.split("not a security assessment").length - 1).toBe(1);
     expect(out).not.toMatch(/\b(?:fine|safe to|looks good)\b|✓|✔/i);
   });
@@ -217,15 +217,14 @@ describe("summary text", () => {
     const out = text({ ...settings({ permissions: { allow: ["Bash(*)"] } }), "./.mcp.json": { mcpServers: { a: { command: "npx", args: ["a"] } } } });
     expect(out.indexOf("Look at these first")).toBeGreaterThan(-1);
     expect(out.indexOf("Look at these first")).toBeLessThan(out.indexOf("Summary:"));
-    expect(out).toContain("  ALLOW     1 allow rule. Broadest: Bash(*).");
-    expect(out).toContain("  DRIFT     Not checked yet: no baseline recorded. Run: npx whatsallowed baseline");
+    expect(out).toContain("  Allowed actions: 1 permission rule.");
+    expect(out).toContain("  Changes since baseline: Not checked yet: no baseline recorded. Run: npx\n                          whatsallowed baseline");
     expect(out).not.toContain("No baseline recorded, so MCP drift");
   });
   it("lists every item only with --verbose", () => {
     const files = settings({ permissions: { allow: ["Bash(npm test)", "Bash(git diff *)"] } });
     expect(text(files)).not.toContain("- Bash(git diff *)");
-    expect(text(files)).toContain("Add --verbose to list every rule");
-    expect(text(files, true)).toContain("            - Bash(git diff *) (./.claude/settings.json)");
+    expect(text(files, true)).toContain("    - Bash(git diff *) (./.claude/settings.json)");
   });
   it("names the scope for --project-only", () => {
     const r = scanFiles(settings({}));
@@ -364,8 +363,8 @@ describe("summary: wording branches (review findings)", () => {
     expect(c.ENDPOINT.meaning).toBe("Your prompts and code go where your own settings send them.");
   });
   it("Files: lists the tools with no files as a list", () => {
-    const out = formatText(scanFiles({ "./AGENTS.md": "# agents" }), { color: false });
-    expect(out).toContain("Claude Code, Codex or Cursor: no files found.");
+    const out = formatText(scanFiles({ "./AGENTS.md": "# agents" }), { color: false, details: true });
+    expect(out).toContain("Claude Code, Codex, Cursor: no files found.");
   });
 });
 

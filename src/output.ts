@@ -1,8 +1,9 @@
 import { ruleById, RULES } from "./rules.ts";
 import { SEVERITY_RANK, type ScanResult } from "./scan.ts";
-import { type Summary, summarize } from "./summary.ts";
+import { type CheckSummary, type Summary, summarize } from "./summary.ts";
 import type { ScanMode } from "./discover.ts";
 import { TOOL_NAME, TOOL_VERSION } from "./name.ts";
+import { noControl } from "./scrub.ts";
 import type { CheckId, Finding, Severity } from "./types.ts";
 
 export type FailOn = Severity | "never";
@@ -17,16 +18,16 @@ const ANSI = { red: "\x1b[31m", yellow: "\x1b[33m", dim: "\x1b[2m", bold: "\x1b[
 
 /** One plain sentence per kind of setting, shown the first time a finding of that kind appears. */
 const TERMS: Partial<Record<CheckId, string>> = {
-  MODE: "Permission mode: how often your agent stops to ask before it acts.",
-  ALLOW: "Allow rule: a setting that lets your agent do something without asking you first.",
-  DENY: "Deny rule: a setting that stops your agent reading a file or running a command.",
-  ENDPOINT: "API address: where your agent sends its requests, and the credentials that go with them.",
+  MODE: "Permission mode: how often your AI stops to ask before it acts.",
+  ALLOW: "Allow rule: a setting that lets your AI do something without asking you first.",
+  DENY: "Deny rule: a setting that stops your AI reading a file or running a command.",
+  ENDPOINT: "API address: where your AI sends its requests, and the credentials that go with them.",
   HOOK: "Hook: a command that Claude Code or Codex runs by itself when something happens, such as after a file edit.",
-  HTTPHOOK: "HTTP hook: a hook that sends details of what your agent is doing to a web address.",
-  MCP: "MCP server: a helper program your agent can call to use other tools or services.",
+  HTTPHOOK: "HTTP hook: a hook that sends details of what your AI is doing to a web address.",
+  MCP: "MCP server: a helper program your AI can call to use other tools or services.",
   DRIFT: "Baseline: a saved copy of your MCP server settings, used to spot later changes.",
   SECRET: "Secret: a password, key or token. Anyone who has it can act as you.",
-  SKILL: "Skill or plugin: an add-on that gives your agent extra abilities, often with its own scripts.",
+  SKILL: "Skill or plugin: an add-on that gives your AI extra abilities, often with its own scripts.",
   FILE: "Unchecked file: a config file we skipped, so nothing in it was looked at.",
 };
 
@@ -38,94 +39,206 @@ const SCOPE_TEXT: Record<ScanMode, string> = {
   user: "your user settings only (--user-only).",
 };
 
-/** The per-check summary block, printed after the findings on every scan that found files. */
-export function formatSummary(s: Summary, opts: { color: boolean; verbose?: boolean; scopeText?: string }): string[] {
-  const c = (code: keyof typeof ANSI, x: string): string => (opts.color ? `${ANSI[code]}${x}${ANSI.reset}` : x);
-  const pad = (label: string): string => `  ${label.padEnd(10)}`;
-  const indent = " ".repeat(12);
-  const lines: string[] = [c("bold", `Summary: ${opts.scopeText ?? SCOPE_TEXT[s.scope]}`), ""];
-  const f = s.files;
-  const tools = [
-    ["Claude Code", f.claude],
-    ["Codex", f.codex],
-    ["Cursor", f.cursor],
-  ] as const;
-  const found = tools.filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`);
-  if (f.other) found.push(`other ${f.other}`);
-  const missing = tools.filter(([, n]) => n === 0).map(([t]) => t);
-  lines.push(
-    `${pad("Files")}${f.total} read${found.length ? `: ${found.join(", ")}` : ""}.${missing.length ? ` ${missing.length > 1 ? `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}` : missing[0]}: no files found.` : ""}`,
-    c("dim", `${indent}Settings, instruction files, skill scripts, and secrets files such as .env.`),
-  );
-  if (f.unchecked) lines.push(`${pad("")}${plural(f.unchecked, "config file was", "config files were")} too large to check, so ${f.unchecked === 1 ? "it was" : "they were"} skipped.`);
-  for (const x of s.checks) {
-    lines.push(`${pad(x.check)}${x.text}${x.fix ? ` Run: ${x.fix}` : ""}`, c("dim", `${indent}${x.meaning}`));
-    if (opts.verbose) for (const item of x.items) lines.push(c("dim", `${indent}- ${item}`));
-  }
-  if (!opts.verbose && s.checks.some((x) => x.items.length)) lines.push("", c("dim", "Add --verbose to list every rule, server, hook and file counted."));
-  lines.push("");
-  return lines;
+interface TextOptions {
+  color: boolean;
+  verbose?: boolean;
+  details?: boolean;
+  scopeText?: string;
+  intro?: string;
+  width?: number;
 }
 
-export function formatText(r: ScanResult, opts: { color: boolean; verbose?: boolean; scopeText?: string }): string {
-  const c = (code: keyof typeof ANSI, s: string): string => (opts.color ? `${ANSI[code]}${s}${ANSI.reset}` : s);
+const AREA_NAMES: Record<CheckId, string> = {
+  MODE: "Permission modes", ALLOW: "Allowed actions", DENY: "Protected files",
+  ENDPOINT: "Request addresses", HOOK: "Automatic commands", HTTPHOOK: "Web notifications",
+  MCP: "Extra tools", DRIFT: "Changes since baseline", SECRET: "Keys and tokens",
+  SKILL: "Add-on scripts", FILE: "Unchecked files",
+};
+
+/** Plain words for the fixed part of a title. Quoted names come from the user's config and are never changed. */
+function plainWords(text: string): string {
+  return text
+    .replace(/\bAn allow rule approves\b/g, "A permission allows")
+    .replace(/\bshell command\b/g, "command")
+    .replace(/\bThe repository (?:pre-)?approves its own MCP servers\b/g, "The project approves its own extra tools")
+    .replace(/\bThe repository\b/g, "The project")
+    .replace(/\bAn HTTP hook\b/g, "A web notification")
+    .replace(/\bA hook\b/g, "An automatic command")
+    .replace(/^MCP servers\b/g, "Extra tools")
+    .replace(/^MCP server\b/g, "Extra tool")
+    .replace(/\bMCP servers\b/g, "extra tools")
+    .replace(/\bMCP server\b/g, "extra tool")
+    .replace(/\ban unpinned package\b/g, "a package without a fixed version")
+    .replace(/\bthe baseline\b/g, "the saved settings")
+    .replace(/\bThe agent's\b/g, "The AI's")
+    .replace(/\bthe agent\b/g, "the AI")
+    .replace(/\bThe agent\b/g, "The AI");
+}
+
+function shortTitle(f: Finding): string {
+  if (f.rule === "SECRET-002") return "A key or token is written directly in the tool settings";
+  // Split on quoted names so only our own wording is rewritten.
+  return f.title.split(/("[^"]*")/).map((part, i) => (i % 2 ? part : plainWords(part))).join("");
+}
+
+/** The first sentence of the suggested fix, for the short report. */
+function firstStep(fix: string): string {
+  const m = fix.match(/^.*?[.!?](?=\s+[A-Z]|$)/);
+  return (m ? m[0] : fix).trim();
+}
+
+/** Read only the address part of a match; never print credentials or URL paths. */
+function shortDestination(f: Finding): string | undefined {
+  const route = f.rule === "ENDPOINT-001"
+    ? f.match.match(/^(?:ANTHROPIC_(?:[A-Z]+_)?BASE_URL|CLAUDE_CODE_(?:[A-Z]+_)?BASE_URL|(?:HTTPS?|ALL)_PROXY)=(.*)$/i)?.[1]
+    : undefined;
+  const download = f.rule.startsWith("HOOK-")
+    ? f.match.match(/\bhttps?:\/\/[^\s'"<>`|;)]+/i)?.[0]
+    : undefined;
+  const address = route ?? download
+    ?? (f.rule === "HTTPHOOK-001" ? f.match : undefined)
+    // This match already contains a normalised host, followed by header names.
+    // Its scheme is unknown, so preserve the port exactly as the check recorded it.
+    ?? (f.rule === "HTTPHOOK-002" ? `hook://${f.match.split(" with ")[0]}` : undefined);
+  if (!address) return undefined;
+  try {
+    const value = address.includes("://") ? address : `http://${address}`;
+    const authority = value.split("://")[1]?.split(/[/?#]/)[0]?.split("@").at(-1);
+    if (!authority || /[\s…•$%]/u.test(authority)) return undefined;
+    const url = new URL(value);
+    if (!url.host) return undefined;
+    return `${download ? "Downloads from" : "Sends to"}: ${url.host}`;
+  } catch {
+    return undefined;
+  }
+}
+
+function shortSummary(x: CheckSummary): string {
+  if (!x.checked || x.fix) return x.text;
+  switch (x.check) {
+    case "MODE": return `${plural(x.count, "setting", "settings")}.`;
+    case "ALLOW": return `${plural(x.count, "permission rule", "permission rules")}.`;
+    case "DENY": return `${plural(x.count, "rule blocking access", "rules blocking access")}.`;
+    case "HOOK": return `${plural(x.count, "automatic command", "automatic commands")}.`;
+    case "HTTPHOOK": return `${plural(x.count, "web notification", "web notifications")}.`;
+    case "MCP": return `${plural(x.count, "extra tool", "extra tools")}.`;
+    case "SECRET": return `${plural(x.count, "file or value checked", "files or values checked")}.`;
+    case "SKILL": return `${plural(x.count, "script", "scripts")}.`;
+    default: return x.text;
+  }
+}
+
+/** Wrap before colouring so escape codes do not count towards the terminal width. */
+function wrap(line: string, width: number): string[] {
+  if (!line) return [""];
+  const prefix = line.match(/^(\s*[^:]+: )/)?.[0] ?? line.match(/^\s*/)?.[0] ?? "";
+  // Very narrow terminals must still leave room for text after the indentation.
+  const indent = " ".repeat(Math.min(prefix.length, Math.max(0, width - 20)));
+  const result: string[] = [];
+  let rest = line;
+  while (Array.from(rest).length > width) {
+    const chars = Array.from(rest);
+    const candidate = chars.slice(0, width + 1).join("");
+    const space = candidate.lastIndexOf(" ");
+    const cut = space > indent.length ? space : width;
+    result.push(chars.slice(0, cut).join(""));
+    rest = indent + chars.slice(cut).join("").trimStart();
+  }
+  result.push(rest);
+  return result;
+}
+
+function textWidth(opts: TextOptions): number {
+  const width = opts.width ?? (process.stdout.isTTY ? process.stdout.columns : 80);
+  return Number.isFinite(width) && width > 0 ? Math.min(90, Math.floor(width)) : 80;
+}
+
+function writer(opts: TextOptions): (line: string, color?: keyof typeof ANSI) => string[] {
+  const width = textWidth(opts);
+  return (line, color) => wrap(noControl(line), width).map((part) =>
+    opts.color && color && part ? `${ANSI[color]}${part}${ANSI.reset}` : part);
+}
+
+/** Keep empty areas together and name the remaining areas without check codes. */
+export function formatSummary(s: Summary, opts: TextOptions): string[] {
+  const write = writer(opts);
+  const lines = [...write(`Summary: ${opts.scopeText ?? SCOPE_TEXT[s.scope]}`, "bold")];
+  if (opts.details) {
+    const f = s.files;
+    const tools = [["Claude Code", f.claude], ["Codex", f.codex], ["Cursor", f.cursor]] as const;
+    const found = tools.filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`);
+    if (f.other) found.push(`other ${f.other}`);
+    const missing = tools.filter(([, n]) => !n).map(([t]) => t);
+    lines.push(...write(`  Files: ${f.total} read.${found.length ? ` ${found.join(", ")}.` : ""}`));
+    if (missing.length) lines.push(...write(`  ${missing.join(", ")}: no files found.`));
+  }
+  const skipped = s.files.unchecked;
+  if (skipped) lines.push(...write(`  ${plural(skipped, "config file", "config files")} couldn't be checked (too large or couldn't be opened), so ${skipped === 1 ? "it was" : "they were"} skipped.`));
+  const empty: string[] = [];
+  for (const x of s.checks) {
+    const hasFindings = Object.values(x.findings).some((n) => n > 0);
+    if ((!x.count || x.check === "ENDPOINT") && !hasFindings && !x.fix && x.checked) {
+      empty.push(AREA_NAMES[x.check].toLowerCase());
+      continue;
+    }
+    const description = opts.details || opts.verbose ? x.text : shortSummary(x);
+    lines.push(...write(`  ${AREA_NAMES[x.check]}: ${description}${x.fix ? ` Run: ${x.fix}` : ""}`));
+    if (opts.details) lines.push(...write(`    ${x.meaning}`, "dim"));
+    if (opts.verbose) for (const item of x.items) lines.push(...write(`    - ${item}`, "dim"));
+  }
+  if (empty.length) lines.push(...write(`Nothing found${skipped ? " in the files read" : ""} for: ${empty.join(", ")}.`, "dim"));
+  return [...lines, ""];
+}
+
+export function formatText(r: ScanResult, opts: TextOptions): string {
+  const write = writer(opts);
   const lines: string[] = [];
   const high = r.findings.filter((f) => f.severity === "high");
   const medium = r.findings.filter((f) => f.severity === "medium");
   const infos = r.findings.filter((f) => f.severity === "info");
-  const alerts = high.length + medium.length;
-  const checked = plural(r.files.length, "file", "files");
-
-  lines.push(`${c("bold", TOOL_NAME)} ${TOOL_VERSION}. This is a read-only check: it changes nothing and sends nothing anywhere.`, "");
-
-  // One-line verdict first.
+  lines.push(...write(`${high.length} high, ${medium.length} medium, ${infos.length} info; ${plural(r.files.length, "file", "files")} checked.`, "bold"));
+  lines.push(...write(opts.intro ?? "Read-only check. Nothing is changed or sent anywhere.", "dim"), "");
   if (!r.files.length && !r.unchecked.length) {
-    lines.push(c("bold", "Nothing was checked: no agent settings files were found here."));
-    lines.push("Run it from a project folder, or see --help.");
-  } else if (!r.files.length) {
-    lines.push(c(high.length ? "red" : "yellow", `${plural(alerts, "thing", "things")} to look at. No config file could be checked: ${r.unchecked.length === 1 ? "the one" : "those"} we found ${r.unchecked.length === 1 ? "is" : "are"} too large.`));
-  } else if (!alerts) {
-    lines.push(c("bold", `No high or medium findings in the ${checked} checked.`));
-    lines.push("The summary at the end shows what was checked.");
-  } else if (high.length) {
-    lines.push(c("red", `${plural(alerts, "thing", "things")} to look at in the ${checked} checked. ${plural(high.length, "needs", "need")} attention first.`));
-  } else {
-    lines.push(c("yellow", `${plural(alerts, "thing", "things")} worth a look in the ${checked} checked. Nothing needs urgent attention.`));
+    lines.push(...write("Nothing was checked: no AI settings files were found here."));
+    lines.push(...write("Run it from a project folder, or see --help."), "");
   }
-  lines.push("");
-
   const seenTerms = new Set<CheckId>();
   const show = (f: Finding): void => {
-    lines.push(`  ${c("bold", f.title)}`);
-    if (TERMS[f.check] && !seenTerms.has(f.check)) {
-      seenTerms.add(f.check);
-      lines.push(`    ${c("dim", `(${TERMS[f.check]})`)}`);
+    lines.push(...write(`  ${opts.details ? f.title : shortTitle(f)}`, "bold"));
+    lines.push(...write(`    ${opts.details ? "Where: " : ""}${f.line > 0 ? `${f.file}:${f.line}` : f.file}`, "cyan"));
+    if (!opts.details) {
+      const destination = shortDestination(f);
+      if (destination) lines.push(...write(`    ${destination}`));
+      lines.push(...write(`    What to do: ${firstStep(f.fix)}`));
     }
-    lines.push(`    What this means: ${f.why}`);
-    lines.push(`    What you could do: ${f.fix}`);
-    lines.push(`    ${c("dim", "Where:")} ${c("cyan", f.line > 0 ? `${f.file}, line ${f.line}` : f.file)}  ${c("dim", `Found: ${f.match}  Rule: ${f.rule}`)}`);
+    if (opts.details) {
+      lines.push(...write(`    What this means: ${f.why}`));
+      lines.push(...write(`    What you could do: ${f.fix}`));
+      lines.push(...write(`    Found: ${f.match}`, "dim"));
+      lines.push(...write(`    Rule: ${f.rule}`, "dim"));
+      if (TERMS[f.check] && !seenTerms.has(f.check)) {
+        seenTerms.add(f.check);
+        lines.push(...write(`    ${TERMS[f.check]}`, "dim"));
+      }
+    }
     lines.push("");
   };
-  const group = (title: string, note: string, list: Finding[], color: keyof typeof ANSI): void => {
+  const group = (title: string, list: Finding[], color: keyof typeof ANSI): void => {
     if (!list.length) return;
-    lines.push(c(color, `${title} (${list.length})`) + c("dim", `  ${note}`), "");
+    lines.push(...write(`${title} (${list.length})`, color), "");
     list.forEach(show);
   };
-  group("Look at these first", "High: could let something run or leak without you noticing.", high, "red");
-  group("Worth checking", "Medium: risky in some set-ups, harmless in others.", medium, "yellow");
+  group("Look at these first", high, "red");
+  group("Worth checking", medium, "yellow");
+  if (!opts.details && (high.length || medium.length)) lines.push(...write("Add --details to see why each one matters and more ways to fix it.", "dim"), "");
   if (infos.length) {
-    if (opts.verbose) group("For your information", "Not a problem on its own.", infos, "dim");
-    else lines.push(c("dim", `${plural(infos.length, "lower-priority note is", "lower-priority notes are")} hidden. Add --verbose to see ${infos.length === 1 ? "it" : "them"}.`), "");
+    if (opts.verbose) group("For your information", infos, "dim");
+    else lines.push(...write(`${plural(infos.length, "lower-priority note is", "lower-priority notes are")} hidden. Add --verbose to see ${infos.length === 1 ? "it" : "them"}.`, "dim"), "");
   }
-
-  for (const n of r.notes) lines.push(c("dim", `Note: ${n}`));
+  for (const n of r.notes) lines.push(...write(`Note: ${n}`, "dim"));
   if (r.notes.length) lines.push("");
-
   if (r.files.length || r.unchecked.length) lines.push(...formatSummary(summarize(r), opts));
-
-  if (alerts) lines.push("Nothing has been changed. If you decide to act, you make the change yourself; the \"What you could do\" lines say how.");
-  lines.push(c("dim", "This is a configuration check, not a security assessment. A clean result doesn't mean a setup is safe."));
-  lines.push(c("dim", "Writing a script? Use --format json for the same findings in a stable, machine-readable form."));
+  lines.push(...write("This is not a security assessment. A clean result does not mean it is safe.", "dim"));
   return lines.join("\n") + "\n";
 }
 
@@ -207,9 +320,9 @@ export function formatInventory(r: ScanResult): string {
   if (!r.files.length && !r.unchecked.length) return "No agent config files found.\n";
   const rows = [
     ...r.files.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display}`),
-    ...r.unchecked.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display} (too large, not checked)`),
+    ...r.unchecked.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display} (${f.reason === "unopenable" ? "couldn't be opened" : "too large"}, not checked)`),
   ];
-  return `${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path\n${rows.join("\n")}\n`;
+  return noControl(`${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path\n${rows.join("\n")}\n`);
 }
 
 export { ruleById };

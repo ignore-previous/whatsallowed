@@ -1917,6 +1917,25 @@ var nodeFs = {
       return void 0;
     }
   },
+  openError(path2) {
+    const codeOf = (e) => {
+      const code = e?.code;
+      return typeof code === "string" && /^[A-Z0-9_]{2,20}$/.test(code) ? code : "UNKNOWN";
+    };
+    try {
+      const st = fs2.statSync(path2);
+      if (!st.isFile() || st.size > MAX_BYTES) return void 0;
+    } catch (e) {
+      const code = codeOf(e);
+      return code === "ENOENT" || code === "ENOTDIR" ? void 0 : code;
+    }
+    try {
+      decodeText(fs2.readFileSync(path2));
+      return void 0;
+    } catch (e) {
+      return codeOf(e);
+    }
+  },
   list(dir) {
     try {
       return fs2.readdirSync(dir, { withFileTypes: true }).map((d) => ({ name: d.name, isDir: d.isDirectory() }));
@@ -1925,14 +1944,16 @@ var nodeFs = {
     }
   }
 };
-function memFs(files) {
+function memFs(files, opts = {}) {
   const norm = {};
   for (const [k, v] of Object.entries(files)) norm[toPosix(k)] = v;
+  const blocked = new Set((opts.unopenable ?? []).map(toPosix));
   return {
     readText: (p) => {
       const t = norm[toPosix(p)];
       return t !== void 0 && t.length > MAX_BYTES ? void 0 : t;
     },
+    openError: (p) => blocked.has(toPosix(p)) ? "EACCES" : void 0,
     oversize: (p) => {
       const t = norm[toPosix(p)];
       return t !== void 0 && t.length > MAX_BYTES ? t.length : void 0;
@@ -2114,10 +2135,17 @@ function discover(opts) {
     if (seen.has(p)) return;
     const text = fs3.readText(p);
     if (text === void 0) {
-      const bytes = CONFIG_KINDS.has(kind) ? fs3.oversize(p) : void 0;
+      if (!CONFIG_KINDS.has(kind)) return;
+      const bytes = fs3.oversize(p);
       if (bytes !== void 0) {
         seen.add(p);
-        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, bytes });
+        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, reason: "too-large", bytes });
+        return;
+      }
+      const error = fs3.openError(p);
+      if (error !== void 0) {
+        seen.add(p);
+        unchecked.push({ path: p, display: displayPath(p, home, project), tool, kind, scope, reason: "unopenable", error });
       }
       return;
     }
@@ -2214,7 +2242,17 @@ var CREDENTIAL_WORD = "token|secret|passw|pwd|passphrase|(?<!by)pass|key|auth|cr
 var VALUE = String.raw`"[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")]+`;
 var LOGIN_P = new RegExp(String.raw`(\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
 var SSHPASS_P = new RegExp(String.raw`(\bsshpass\b[^|;&\n]{0,60}?\s-p(?:=|\s{0,5}))(?:${VALUE})`, "g");
-var MYSQL_P = new RegExp(String.raw`(\b(?:mysql|mysqldump|mysqladmin|mysqlimport|mysqlcheck|mariadb|mariadb-dump)\b[^|;&\n]{0,100}?\s-p)(?!\s)(?:${VALUE})`, "g");
+var anyCase = (word) => word.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`);
+var MYSQL_NAMES = String.raw`(?:${anyCase("mysql")}|${anyCase("mariadb")})\w{0,20}|${anyCase("mycli")}`;
+var MYSQL_P = new RegExp(String.raw`(?<=\b(?:${MYSQL_NAMES})\b[^|;&\n]{0,500}\s["']?-p)(?!\s)(?:${VALUE})`, "g");
+var MYSQL_P_QUOTED = new RegExp(
+  String.raw`(?<=\b(?:${MYSQL_NAMES})\b(?:"[^"]{0,600}"|'[^']{0,600}'|[^|;&\n'"]){0,500}\s["']?-p)(?!\s)(?:${VALUE})`,
+  "g"
+);
+var LONG_FLAG = new RegExp(
+  String.raw`(?!--?(?:[\w.-]{0,60}-stdin|authors?|passthrough|pass-through|passwithnotests|pass-with-no-tests)(?![\w.-]|[=:]))(--?[\w.-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[\w.-]{0,30})([=:\s]\s{0,5})("[^"\n]{0,200}"?|'[^'\n]{0,200}'?|[^\s'")*]+)`,
+  "gi"
+);
 var ASSIGNMENT = new RegExp(String.raw`(^|[\s('"?&:;,])((?=[A-Za-z0-9_]{0,63}?(?:${CREDENTIAL_WORD}))[A-Za-z_][A-Za-z0-9_]{0,63})=("[^"]{0,200}"?|'[^']{0,200}'?|[^\s'")&]+)`, "gi");
 var TOKEN_SHAPES = new RegExp(
   [
@@ -2232,19 +2270,22 @@ var TOKEN_SHAPES = new RegExp(
   ].join("|"),
   "g"
 );
+var noControl = (text) => text.replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g, "?");
 function scrub(text, limit = MAX_SHOWN) {
-  const t = text.length > limit ? `${text.slice(0, limit)}\u2026` : text;
-  return t.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(ASSIGNMENT, "$1$2=\u2022\u2022\u2022").replace(/(--?[A-Za-z-]{0,30}(?:token|key|secret|passw(?:or)?d|pass|auth)[A-Za-z-]{0,30})([=\s]\s{0,5})([^\s'")*]+)/gi, "$1$2\u2022\u2022\u2022").replace(/\blogin\b[^|;&\n]{0,150}/gi, (seg) => seg.replace(LOGIN_P, "$1\u2022\u2022\u2022")).replace(SSHPASS_P, "$1\u2022\u2022\u2022").replace(MYSQL_P, "$1\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]{1,200}@/g, "$1\u2022\u2022\u2022@").replace(/(\/\/)[^/\s@]{1,200}…$/, "$1\u2022\u2022\u2022\u2026").replace(TOKEN_SHAPES, "\u2022\u2022\u2022");
+  const cut = text.length > limit ? `${text.slice(0, limit)}\u2026` : text;
+  const t = noControl(cut);
+  return t.replace(/\b(Authorization|Proxy-Authorization|[A-Za-z-]{0,30}Api-Key|X-[A-Za-z-]{0,30}Token)(\s{0,5}:\s{0,5})[^'")]+/gi, "$1$2\u2022\u2022\u2022").replace(/\b(Bearer|Basic)\s{1,5}[^\s'")]+/gi, "$1 \u2022\u2022\u2022").replace(ASSIGNMENT, "$1$2=\u2022\u2022\u2022").replace(LONG_FLAG, "$1$2\u2022\u2022\u2022").replace(/\blogin\b[^|;&\n]{0,150}/gi, (seg) => seg.replace(LOGIN_P, "$1\u2022\u2022\u2022")).replace(SSHPASS_P, "$1\u2022\u2022\u2022").replace(MYSQL_P, "\u2022\u2022\u2022").replace(MYSQL_P_QUOTED, "\u2022\u2022\u2022").replace(/((?:^|\s)(?:-u|--user)[=\s]\s{0,5}[^\s:'"]{1,100}:)[^\s'")]+/g, "$1\u2022\u2022\u2022").replace(/(\/\/)[^/\s@]{1,200}@/g, "$1\u2022\u2022\u2022@").replace(/(\/\/)[^/\s@]{1,200}…$/, "$1\u2022\u2022\u2022\u2026").replace(TOKEN_SHAPES, "\u2022\u2022\u2022");
 }
 
 // src/checks/util.ts
 var MATCH_LIMIT = 100;
 var FIX_LIMIT = 300;
+var TITLE_LIMIT = 500;
 var make = (check, f5) => ({
   rule: f5.rule,
   check,
   severity: f5.severity,
-  title: f5.title,
+  title: scrub(f5.title, TITLE_LIMIT),
   file: f5.file.display,
   line: f5.line,
   match: f5.masked ? f5.match : scrub(f5.match, MATCH_LIMIT),
@@ -2336,16 +2377,10 @@ function checkDrift(m) {
   for (const key of removedSinceBaseline(m)) {
     if (seen.has(key)) continue;
     const at = key.lastIndexOf("#");
-    m.ctx.notes.push(`MCP server ${key.slice(at + 1)} in ${displayPath(key.slice(0, at), m.ctx.home, m.ctx.project)} was removed since the baseline.`);
+    m.ctx.notes.push(`MCP server ${scrub(key.slice(at + 1))} in ${displayPath(key.slice(0, at), m.ctx.home, m.ctx.project)} was removed since the baseline.`);
   }
   return out;
 }
-
-// src/name.ts
-var TOOL_NAME = "whatsallowed";
-var TOOL_VERSION = "0.2.1";
-var BASELINE_DIR = ".whatsallowed";
-var BASELINE_FILE = "baseline.json";
 
 // src/checks/mode.ts
 var f = (x) => make("MODE", x);
@@ -3921,13 +3956,26 @@ var CHECKS = [checkMode, checkAllow, checkDeny, checkEndpoint, checkHooks, check
 var size = (n) => n < 2 * 1024 * 1024 ? `${n.toLocaleString("en-US")} bytes` : `${(n / (1024 * 1024)).toFixed(1)} MiB`;
 function uncheckedFinding(u) {
   const shared = u.scope === "project" || u.scope === "local" || u.scope === "plugin";
+  if (u.reason === "unopenable") {
+    return make("FILE", {
+      rule: "FILE-002",
+      severity: shared ? "high" : "medium",
+      title: `Couldn't open ${u.display}, so it wasn't checked`,
+      file: u,
+      line: 1,
+      match: `the file is there but could not be opened (${u.error ?? "UNKNOWN"})`,
+      why: "We couldn't open this config file, often because of its permissions, so nothing in it was checked. A file that can't be read can hide risky settings from a check like this.",
+      fix: "Make sure you can read the file, then run the check again. If it isn't yours, ask whoever owns it to look at it."
+    });
+  }
+  const bytes = u.bytes ?? 0;
   return make("FILE", {
     rule: "FILE-001",
     severity: shared ? "high" : "medium",
     title: `${u.display} is too large to check`,
     file: u,
     line: 1,
-    match: `${size(u.bytes)}, limit ${size(MAX_BYTES)}`,
+    match: `${size(bytes)}, limit ${size(MAX_BYTES)}`,
     why: u.kind === "claude-json" ? "We skip config files over 1 MiB, so nothing in this one was checked, including its MCP servers. Claude Code grows this file as you use it, so it may be harmless." : "We skip config files over 1 MiB, so nothing in this one was checked. Real settings files are a few kilobytes. A padded file can hide risky settings from a check like this.",
     fix: u.kind === "claude-json" ? "Check its MCP servers by hand with `claude mcp list`. Claude Code writes this file itself, so don't edit or split it by hand." : "Open the file and find out why it is so big. Remove the padding or split the file, then run the check again."
   });
@@ -4003,11 +4051,13 @@ var DEMO_SCOPE = {
   project: "the made-up shop-app project only (--project-only). None of your files were read.",
   user: "the made-up demo user settings only (--user-only). None of your files were read."
 };
-var DEMO_INTRO = `This is a demo. It checks a made-up setup that comes with ${TOOL_NAME}. None of your own files are read.
-The setup is a project called shop-app and the user settings of someone called demo.
-To check your own setup, run ${TOOL_NAME} without "demo" from a project folder.
+var DEMO_INTRO = "Read-only demo. Made-up findings. None of your files were read.";
 
-`;
+// src/name.ts
+var TOOL_NAME = "whatsallowed";
+var TOOL_VERSION = "0.2.2";
+var BASELINE_DIR = ".whatsallowed";
+var BASELINE_FILE = "baseline.json";
 
 // src/rules.ts
 var RULES2 = [
@@ -4046,7 +4096,8 @@ var RULES2 = [
   { id: "SKILL-001", check: "SKILL", severity: "high", summary: "A skill, plugin or hooks-folder script downloads code and runs it." },
   { id: "SKILL-002", check: "SKILL", severity: "high", summary: "A skill, plugin or hooks-folder script runs an encoded payload." },
   { id: "SKILL-003", check: "SKILL", severity: "high", summary: "A skill, plugin or hooks-folder script opens a reverse shell." },
-  { id: "FILE-001", check: "FILE", severity: "high", summary: "A config file is over 1 MiB, so it wasn't read and nothing in it was checked (high in a repository, local or plugin file; medium in your own)." }
+  { id: "FILE-001", check: "FILE", severity: "high", summary: "A config file is over 1 MiB, so it wasn't read and nothing in it was checked (high in a repository, local or plugin file; medium in your own)." },
+  { id: "FILE-002", check: "FILE", severity: "high", summary: "A config file exists but couldn't be opened (for example, no permission), so nothing in it was checked (high in a repository, local or plugin file; medium in your own)." }
 ];
 var ruleById = new Map(RULES2.map((r) => [r.id, r]));
 
@@ -4084,7 +4135,7 @@ function modeSummary(m, findings) {
     const mode = str(get(p.doc.value, "permissions", "defaultMode")) ?? str(get(p.doc.value, "defaultMode"));
     if (!mode) continue;
     const ignored = (mode === "bypassPermissions" || mode === "auto") && (p.file.scope === "project" || p.file.scope === "local");
-    items.push(`Claude Code defaultMode "${mode}" (${p.file.display})${ignored ? ", ignored in a project file" : ""}`);
+    items.push(`Claude Code defaultMode "${scrub(mode)}" (${p.file.display})${ignored ? ", ignored in a project file" : ""}`);
     if (ignored) ignoredModes++;
     if (!ignored && rankIn(CLAUDE_MODES, mode) > rankIn(CLAUDE_MODES, claude ?? "")) claude = mode;
   }
@@ -4094,11 +4145,11 @@ function modeSummary(m, findings) {
     const s = str(get(v, "sandbox_mode"));
     const a = str(get(v, "approval_policy"));
     if (s) {
-      items.push(`Codex sandbox_mode "${s}" (${where})`);
+      items.push(`Codex sandbox_mode "${scrub(s)}" (${where})`);
       if (rankIn(CODEX_SANDBOX, s) > rankIn(CODEX_SANDBOX, sandbox ?? "")) sandbox = s;
     }
     if (a) {
-      items.push(`Codex approval_policy "${a}" (${where})`);
+      items.push(`Codex approval_policy "${scrub(a)}" (${where})`);
       if (rankIn(CODEX_APPROVAL, a) > rankIn(CODEX_APPROVAL, approval ?? "")) approval = a;
     }
   };
@@ -4304,18 +4355,19 @@ function mcpSummary(m, findings) {
   const items = servers2.map((s) => {
     const url = str(s.def.url) ?? str(s.def.serverUrl) ?? str(s.def.httpUrl);
     const where = `${TOOL_LABEL[s.tool] ?? s.tool}, ${s.file.display}`;
+    const name = scrub(s.name);
     if (url && s.def.command === void 0) {
       remote++;
-      return `"${s.name}" (${where}): remote, ${parseUrl(url)?.host ?? "unreadable address"}`;
+      return `"${name}" (${where}): remote, ${parseUrl(url)?.host ?? "unreadable address"}`;
     }
     const r = findRunner(launchOf(s));
     if (r) {
       packages++;
       if (!r.pinned) unpinned++;
       const pkg = /^[a-z][a-z0-9+.-]*:\/\//i.test(r.pkg) ? `package at ${parseUrl(r.pkg.replace(/^[a-z0-9.-]+\+/i, ""))?.host ?? "an unreadable address"}` : scrub(r.pkg);
-      return `"${s.name}" (${where}): ${r.runner} ${pkg}`;
+      return `"${name}" (${where}): ${r.runner} ${pkg}`;
     }
-    return `"${s.name}" (${where}): local program`;
+    return `"${name}" (${where}): local program`;
   });
   const local = servers2.length - remote;
   const tools = Object.entries(
@@ -4427,16 +4479,16 @@ function exitCodeFor(findings, failOn) {
 }
 var ANSI = { red: "\x1B[31m", yellow: "\x1B[33m", dim: "\x1B[2m", bold: "\x1B[1m", reset: "\x1B[0m", cyan: "\x1B[36m" };
 var TERMS = {
-  MODE: "Permission mode: how often your agent stops to ask before it acts.",
-  ALLOW: "Allow rule: a setting that lets your agent do something without asking you first.",
-  DENY: "Deny rule: a setting that stops your agent reading a file or running a command.",
-  ENDPOINT: "API address: where your agent sends its requests, and the credentials that go with them.",
+  MODE: "Permission mode: how often your AI stops to ask before it acts.",
+  ALLOW: "Allow rule: a setting that lets your AI do something without asking you first.",
+  DENY: "Deny rule: a setting that stops your AI reading a file or running a command.",
+  ENDPOINT: "API address: where your AI sends its requests, and the credentials that go with them.",
   HOOK: "Hook: a command that Claude Code or Codex runs by itself when something happens, such as after a file edit.",
-  HTTPHOOK: "HTTP hook: a hook that sends details of what your agent is doing to a web address.",
-  MCP: "MCP server: a helper program your agent can call to use other tools or services.",
+  HTTPHOOK: "HTTP hook: a hook that sends details of what your AI is doing to a web address.",
+  MCP: "MCP server: a helper program your AI can call to use other tools or services.",
   DRIFT: "Baseline: a saved copy of your MCP server settings, used to spot later changes.",
   SECRET: "Secret: a password, key or token. Anyone who has it can act as you.",
-  SKILL: "Skill or plugin: an add-on that gives your agent extra abilities, often with its own scripts.",
+  SKILL: "Skill or plugin: an add-on that gives your AI extra abilities, often with its own scripts.",
   FILE: "Unchecked file: a config file we skipped, so nothing in it was looked at."
 };
 var plural2 = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -4445,85 +4497,172 @@ var SCOPE_TEXT = {
   project: "this project folder only (--project-only).",
   user: "your user settings only (--user-only)."
 };
-function formatSummary(s, opts) {
-  const c = (code, x) => opts.color ? `${ANSI[code]}${x}${ANSI.reset}` : x;
-  const pad = (label) => `  ${label.padEnd(10)}`;
-  const indent = " ".repeat(12);
-  const lines = [c("bold", `Summary: ${opts.scopeText ?? SCOPE_TEXT[s.scope]}`), ""];
-  const f5 = s.files;
-  const tools = [
-    ["Claude Code", f5.claude],
-    ["Codex", f5.codex],
-    ["Cursor", f5.cursor]
-  ];
-  const found = tools.filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`);
-  if (f5.other) found.push(`other ${f5.other}`);
-  const missing = tools.filter(([, n]) => n === 0).map(([t]) => t);
-  lines.push(
-    `${pad("Files")}${f5.total} read${found.length ? `: ${found.join(", ")}` : ""}.${missing.length ? ` ${missing.length > 1 ? `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}` : missing[0]}: no files found.` : ""}`,
-    c("dim", `${indent}Settings, instruction files, skill scripts, and secrets files such as .env.`)
-  );
-  if (f5.unchecked) lines.push(`${pad("")}${plural2(f5.unchecked, "config file was", "config files were")} too large to check, so ${f5.unchecked === 1 ? "it was" : "they were"} skipped.`);
-  for (const x of s.checks) {
-    lines.push(`${pad(x.check)}${x.text}${x.fix ? ` Run: ${x.fix}` : ""}`, c("dim", `${indent}${x.meaning}`));
-    if (opts.verbose) for (const item of x.items) lines.push(c("dim", `${indent}- ${item}`));
+var AREA_NAMES = {
+  MODE: "Permission modes",
+  ALLOW: "Allowed actions",
+  DENY: "Protected files",
+  ENDPOINT: "Request addresses",
+  HOOK: "Automatic commands",
+  HTTPHOOK: "Web notifications",
+  MCP: "Extra tools",
+  DRIFT: "Changes since baseline",
+  SECRET: "Keys and tokens",
+  SKILL: "Add-on scripts",
+  FILE: "Unchecked files"
+};
+function plainWords(text) {
+  return text.replace(/\bAn allow rule approves\b/g, "A permission allows").replace(/\bshell command\b/g, "command").replace(/\bThe repository (?:pre-)?approves its own MCP servers\b/g, "The project approves its own extra tools").replace(/\bThe repository\b/g, "The project").replace(/\bAn HTTP hook\b/g, "A web notification").replace(/\bA hook\b/g, "An automatic command").replace(/^MCP servers\b/g, "Extra tools").replace(/^MCP server\b/g, "Extra tool").replace(/\bMCP servers\b/g, "extra tools").replace(/\bMCP server\b/g, "extra tool").replace(/\ban unpinned package\b/g, "a package without a fixed version").replace(/\bthe baseline\b/g, "the saved settings").replace(/\bThe agent's\b/g, "The AI's").replace(/\bthe agent\b/g, "the AI").replace(/\bThe agent\b/g, "The AI");
+}
+function shortTitle(f5) {
+  if (f5.rule === "SECRET-002") return "A key or token is written directly in the tool settings";
+  return f5.title.split(/("[^"]*")/).map((part, i) => i % 2 ? part : plainWords(part)).join("");
+}
+function firstStep(fix) {
+  const m = fix.match(/^.*?[.!?](?=\s+[A-Z]|$)/);
+  return (m ? m[0] : fix).trim();
+}
+function shortDestination(f5) {
+  const route = f5.rule === "ENDPOINT-001" ? f5.match.match(/^(?:ANTHROPIC_(?:[A-Z]+_)?BASE_URL|CLAUDE_CODE_(?:[A-Z]+_)?BASE_URL|(?:HTTPS?|ALL)_PROXY)=(.*)$/i)?.[1] : void 0;
+  const download = f5.rule.startsWith("HOOK-") ? f5.match.match(/\bhttps?:\/\/[^\s'"<>`|;)]+/i)?.[0] : void 0;
+  const address = route ?? download ?? (f5.rule === "HTTPHOOK-001" ? f5.match : void 0) ?? (f5.rule === "HTTPHOOK-002" ? `hook://${f5.match.split(" with ")[0]}` : void 0);
+  if (!address) return void 0;
+  try {
+    const value = address.includes("://") ? address : `http://${address}`;
+    const authority = value.split("://")[1]?.split(/[/?#]/)[0]?.split("@").at(-1);
+    if (!authority || /[\s…•$%]/u.test(authority)) return void 0;
+    const url = new URL(value);
+    if (!url.host) return void 0;
+    return `${download ? "Downloads from" : "Sends to"}: ${url.host}`;
+  } catch {
+    return void 0;
   }
-  if (!opts.verbose && s.checks.some((x) => x.items.length)) lines.push("", c("dim", "Add --verbose to list every rule, server, hook and file counted."));
-  lines.push("");
-  return lines;
+}
+function shortSummary(x) {
+  if (!x.checked || x.fix) return x.text;
+  switch (x.check) {
+    case "MODE":
+      return `${plural2(x.count, "setting", "settings")}.`;
+    case "ALLOW":
+      return `${plural2(x.count, "permission rule", "permission rules")}.`;
+    case "DENY":
+      return `${plural2(x.count, "rule blocking access", "rules blocking access")}.`;
+    case "HOOK":
+      return `${plural2(x.count, "automatic command", "automatic commands")}.`;
+    case "HTTPHOOK":
+      return `${plural2(x.count, "web notification", "web notifications")}.`;
+    case "MCP":
+      return `${plural2(x.count, "extra tool", "extra tools")}.`;
+    case "SECRET":
+      return `${plural2(x.count, "file or value checked", "files or values checked")}.`;
+    case "SKILL":
+      return `${plural2(x.count, "script", "scripts")}.`;
+    default:
+      return x.text;
+  }
+}
+function wrap(line, width) {
+  if (!line) return [""];
+  const prefix = line.match(/^(\s*[^:]+: )/)?.[0] ?? line.match(/^\s*/)?.[0] ?? "";
+  const indent = " ".repeat(Math.min(prefix.length, Math.max(0, width - 20)));
+  const result = [];
+  let rest = line;
+  while (Array.from(rest).length > width) {
+    const chars = Array.from(rest);
+    const candidate = chars.slice(0, width + 1).join("");
+    const space = candidate.lastIndexOf(" ");
+    const cut = space > indent.length ? space : width;
+    result.push(chars.slice(0, cut).join(""));
+    rest = indent + chars.slice(cut).join("").trimStart();
+  }
+  result.push(rest);
+  return result;
+}
+function textWidth(opts) {
+  const width = opts.width ?? (process.stdout.isTTY ? process.stdout.columns : 80);
+  return Number.isFinite(width) && width > 0 ? Math.min(90, Math.floor(width)) : 80;
+}
+function writer(opts) {
+  const width = textWidth(opts);
+  return (line, color) => wrap(noControl(line), width).map((part) => opts.color && color && part ? `${ANSI[color]}${part}${ANSI.reset}` : part);
+}
+function formatSummary(s, opts) {
+  const write = writer(opts);
+  const lines = [...write(`Summary: ${opts.scopeText ?? SCOPE_TEXT[s.scope]}`, "bold")];
+  if (opts.details) {
+    const f5 = s.files;
+    const tools = [["Claude Code", f5.claude], ["Codex", f5.codex], ["Cursor", f5.cursor]];
+    const found = tools.filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`);
+    if (f5.other) found.push(`other ${f5.other}`);
+    const missing = tools.filter(([, n]) => !n).map(([t]) => t);
+    lines.push(...write(`  Files: ${f5.total} read.${found.length ? ` ${found.join(", ")}.` : ""}`));
+    if (missing.length) lines.push(...write(`  ${missing.join(", ")}: no files found.`));
+  }
+  const skipped = s.files.unchecked;
+  if (skipped) lines.push(...write(`  ${plural2(skipped, "config file", "config files")} couldn't be checked (too large or couldn't be opened), so ${skipped === 1 ? "it was" : "they were"} skipped.`));
+  const empty = [];
+  for (const x of s.checks) {
+    const hasFindings = Object.values(x.findings).some((n) => n > 0);
+    if ((!x.count || x.check === "ENDPOINT") && !hasFindings && !x.fix && x.checked) {
+      empty.push(AREA_NAMES[x.check].toLowerCase());
+      continue;
+    }
+    const description = opts.details || opts.verbose ? x.text : shortSummary(x);
+    lines.push(...write(`  ${AREA_NAMES[x.check]}: ${description}${x.fix ? ` Run: ${x.fix}` : ""}`));
+    if (opts.details) lines.push(...write(`    ${x.meaning}`, "dim"));
+    if (opts.verbose) for (const item of x.items) lines.push(...write(`    - ${item}`, "dim"));
+  }
+  if (empty.length) lines.push(...write(`Nothing found${skipped ? " in the files read" : ""} for: ${empty.join(", ")}.`, "dim"));
+  return [...lines, ""];
 }
 function formatText(r, opts) {
-  const c = (code, s) => opts.color ? `${ANSI[code]}${s}${ANSI.reset}` : s;
+  const write = writer(opts);
   const lines = [];
   const high = r.findings.filter((f5) => f5.severity === "high");
   const medium = r.findings.filter((f5) => f5.severity === "medium");
   const infos = r.findings.filter((f5) => f5.severity === "info");
-  const alerts = high.length + medium.length;
-  const checked = plural2(r.files.length, "file", "files");
-  lines.push(`${c("bold", TOOL_NAME)} ${TOOL_VERSION}. This is a read-only check: it changes nothing and sends nothing anywhere.`, "");
+  lines.push(...write(`${high.length} high, ${medium.length} medium, ${infos.length} info; ${plural2(r.files.length, "file", "files")} checked.`, "bold"));
+  lines.push(...write(opts.intro ?? "Read-only check. Nothing is changed or sent anywhere.", "dim"), "");
   if (!r.files.length && !r.unchecked.length) {
-    lines.push(c("bold", "Nothing was checked: no agent settings files were found here."));
-    lines.push("Run it from a project folder, or see --help.");
-  } else if (!r.files.length) {
-    lines.push(c(high.length ? "red" : "yellow", `${plural2(alerts, "thing", "things")} to look at. No config file could be checked: ${r.unchecked.length === 1 ? "the one" : "those"} we found ${r.unchecked.length === 1 ? "is" : "are"} too large.`));
-  } else if (!alerts) {
-    lines.push(c("bold", `No high or medium findings in the ${checked} checked.`));
-    lines.push("The summary at the end shows what was checked.");
-  } else if (high.length) {
-    lines.push(c("red", `${plural2(alerts, "thing", "things")} to look at in the ${checked} checked. ${plural2(high.length, "needs", "need")} attention first.`));
-  } else {
-    lines.push(c("yellow", `${plural2(alerts, "thing", "things")} worth a look in the ${checked} checked. Nothing needs urgent attention.`));
+    lines.push(...write("Nothing was checked: no AI settings files were found here."));
+    lines.push(...write("Run it from a project folder, or see --help."), "");
   }
-  lines.push("");
   const seenTerms = /* @__PURE__ */ new Set();
   const show = (f5) => {
-    lines.push(`  ${c("bold", f5.title)}`);
-    if (TERMS[f5.check] && !seenTerms.has(f5.check)) {
-      seenTerms.add(f5.check);
-      lines.push(`    ${c("dim", `(${TERMS[f5.check]})`)}`);
+    lines.push(...write(`  ${opts.details ? f5.title : shortTitle(f5)}`, "bold"));
+    lines.push(...write(`    ${opts.details ? "Where: " : ""}${f5.line > 0 ? `${f5.file}:${f5.line}` : f5.file}`, "cyan"));
+    if (!opts.details) {
+      const destination = shortDestination(f5);
+      if (destination) lines.push(...write(`    ${destination}`));
+      lines.push(...write(`    What to do: ${firstStep(f5.fix)}`));
     }
-    lines.push(`    What this means: ${f5.why}`);
-    lines.push(`    What you could do: ${f5.fix}`);
-    lines.push(`    ${c("dim", "Where:")} ${c("cyan", f5.line > 0 ? `${f5.file}, line ${f5.line}` : f5.file)}  ${c("dim", `Found: ${f5.match}  Rule: ${f5.rule}`)}`);
+    if (opts.details) {
+      lines.push(...write(`    What this means: ${f5.why}`));
+      lines.push(...write(`    What you could do: ${f5.fix}`));
+      lines.push(...write(`    Found: ${f5.match}`, "dim"));
+      lines.push(...write(`    Rule: ${f5.rule}`, "dim"));
+      if (TERMS[f5.check] && !seenTerms.has(f5.check)) {
+        seenTerms.add(f5.check);
+        lines.push(...write(`    ${TERMS[f5.check]}`, "dim"));
+      }
+    }
     lines.push("");
   };
-  const group = (title, note, list, color) => {
+  const group = (title, list, color) => {
     if (!list.length) return;
-    lines.push(c(color, `${title} (${list.length})`) + c("dim", `  ${note}`), "");
+    lines.push(...write(`${title} (${list.length})`, color), "");
     list.forEach(show);
   };
-  group("Look at these first", "High: could let something run or leak without you noticing.", high, "red");
-  group("Worth checking", "Medium: risky in some set-ups, harmless in others.", medium, "yellow");
+  group("Look at these first", high, "red");
+  group("Worth checking", medium, "yellow");
+  if (!opts.details && (high.length || medium.length)) lines.push(...write("Add --details to see why each one matters and more ways to fix it.", "dim"), "");
   if (infos.length) {
-    if (opts.verbose) group("For your information", "Not a problem on its own.", infos, "dim");
-    else lines.push(c("dim", `${plural2(infos.length, "lower-priority note is", "lower-priority notes are")} hidden. Add --verbose to see ${infos.length === 1 ? "it" : "them"}.`), "");
+    if (opts.verbose) group("For your information", infos, "dim");
+    else lines.push(...write(`${plural2(infos.length, "lower-priority note is", "lower-priority notes are")} hidden. Add --verbose to see ${infos.length === 1 ? "it" : "them"}.`, "dim"), "");
   }
-  for (const n of r.notes) lines.push(c("dim", `Note: ${n}`));
+  for (const n of r.notes) lines.push(...write(`Note: ${n}`, "dim"));
   if (r.notes.length) lines.push("");
   if (r.files.length || r.unchecked.length) lines.push(...formatSummary(summarize(r), opts));
-  if (alerts) lines.push('Nothing has been changed. If you decide to act, you make the change yourself; the "What you could do" lines say how.');
-  lines.push(c("dim", "This is a configuration check, not a security assessment. A clean result doesn't mean a setup is safe."));
-  lines.push(c("dim", "Writing a script? Use --format json for the same findings in a stable, machine-readable form."));
+  lines.push(...write("This is not a security assessment. A clean result does not mean it is safe.", "dim"));
   return lines.join("\n") + "\n";
 }
 function formatJson(r) {
@@ -4593,11 +4732,11 @@ function formatInventory(r) {
   if (!r.files.length && !r.unchecked.length) return "No agent config files found.\n";
   const rows = [
     ...r.files.map((f5) => `${f5.scope.padEnd(8)} ${f5.tool.padEnd(7)} ${f5.kind.padEnd(16)} ${f5.display}`),
-    ...r.unchecked.map((f5) => `${f5.scope.padEnd(8)} ${f5.tool.padEnd(7)} ${f5.kind.padEnd(16)} ${f5.display} (too large, not checked)`)
+    ...r.unchecked.map((f5) => `${f5.scope.padEnd(8)} ${f5.tool.padEnd(7)} ${f5.kind.padEnd(16)} ${f5.display} (${f5.reason === "unopenable" ? "couldn't be opened" : "too large"}, not checked)`)
   ];
-  return `${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path
+  return noControl(`${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path
 ${rows.join("\n")}
-`;
+`);
 }
 
 // src/cli.ts
@@ -4618,6 +4757,7 @@ Options:
   --fail-on <level>       Exit 1 if any finding is at or above: high (default), medium, info, never
   --baseline <file>       Baseline file (default ~/${BASELINE_DIR}/${BASELINE_FILE})
   --reset-baseline        With "baseline": replace an existing baseline
+  --details               Show explanations, suggested changes, rules and glossary
   --verbose               Show info notes in text output
   --no-color              No colour (NO_COLOR is also respected)
   --version, --help
@@ -4628,7 +4768,7 @@ This is a configuration check, not a security assessment.
 var UsageError = class extends Error {
 };
 function parseArgs(argv, env) {
-  const a = { command: "scan", mode: "all", format: "text", failOn: "high", reset: false, verbose: false, color: !env.NO_COLOR };
+  const a = { command: "scan", mode: "all", format: "text", failOn: "high", reset: false, verbose: false, details: false, color: !env.NO_COLOR };
   let commandSet = false;
   const value = (i, flag) => {
     const v = argv[i + 1];
@@ -4672,6 +4812,9 @@ function parseArgs(argv, env) {
       case "--reset-baseline":
         a.reset = true;
         break;
+      case "--details":
+        a.details = true;
+        break;
       case "--verbose":
         a.verbose = true;
         break;
@@ -4711,7 +4854,7 @@ Run ${TOOL_NAME} --help for usage.
 `), 2;
     const r = scanDemo(args.mode);
     if (args.format === "json") io.out(JSON.stringify({ demo: true, ...JSON.parse(formatJson(r)) }, null, 2) + "\n");
-    else io.out(DEMO_INTRO + formatText(r, { color: args.color && io.isTty, verbose: args.verbose, scopeText: DEMO_SCOPE[args.mode] }));
+    else io.out(formatText(r, { color: args.color && io.isTty, verbose: args.verbose, details: args.details, width: io.isTty ? io.columns ?? 80 : 80, intro: DEMO_INTRO, scopeText: DEMO_SCOPE[args.mode] }));
     return 0;
   }
   try {
@@ -4741,7 +4884,7 @@ Run ${TOOL_NAME} --help for usage.
     if (args.command === "inventory") return io.out(formatInventory(r)), 0;
     if (args.format === "json") io.out(formatJson(r));
     else if (args.format === "sarif") io.out(formatSarif(r));
-    else io.out(formatText(r, { color: args.color && io.isTty, verbose: args.verbose }));
+    else io.out(formatText(r, { color: args.color && io.isTty, verbose: args.verbose, details: args.details, width: io.isTty ? io.columns ?? 80 : 80 }));
     return exitCodeFor(r.findings, args.failOn);
   } catch (e) {
     io.err(`${TOOL_NAME}: ${e.message}
@@ -4761,7 +4904,8 @@ if (isMain()) {
     home: os.homedir(),
     platform: process.platform,
     env: process.env,
-    isTty: !!process.stdout.isTTY
+    isTty: !!process.stdout.isTTY,
+    columns: process.stdout.columns
   });
   process.exitCode = code;
 }

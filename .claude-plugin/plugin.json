@@ -4,5 +4,6 @@
   "description": "Checks your Claude Code, Codex and Cursor config for risky settings. Reads files only; once installed, no network calls and no telemetry.",
   "author": { "name": "ruddy-dev" },
   "license": "MIT",
+  "icon": "./.claude-plugin/icon.png",
   "keywords": ["config", "mcp", "hooks", "permissions", "lint"]
 }

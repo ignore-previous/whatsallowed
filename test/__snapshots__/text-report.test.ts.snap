@@ -18,6 +18,7 @@ Look at these first (5)
 
   An automatic command downloads code and runs it
     ./.claude/settings.json:15
+    Downloads from: example.com
     What to do: Download and review the script, commit it to the repository or
                 your home folder, and run the local copy.
 

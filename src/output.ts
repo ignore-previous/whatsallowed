@@ -86,6 +86,32 @@ function firstStep(fix: string): string {
   return (m ? m[0] : fix).trim();
 }
 
+/** Read only the address part of a match; never print credentials or URL paths. */
+function shortDestination(f: Finding): string | undefined {
+  const route = f.rule === "ENDPOINT-001"
+    ? f.match.match(/^(?:ANTHROPIC_(?:[A-Z]+_)?BASE_URL|CLAUDE_CODE_(?:[A-Z]+_)?BASE_URL|(?:HTTPS?|ALL)_PROXY)=(.*)$/i)?.[1]
+    : undefined;
+  const download = f.rule.startsWith("HOOK-")
+    ? f.match.match(/\bhttps?:\/\/[^\s'"<>`|;)]+/i)?.[0]
+    : undefined;
+  const address = route ?? download
+    ?? (f.rule === "HTTPHOOK-001" ? f.match : undefined)
+    // This match already contains a normalised host, followed by header names.
+    // Its scheme is unknown, so preserve the port exactly as the check recorded it.
+    ?? (f.rule === "HTTPHOOK-002" ? `hook://${f.match.split(" with ")[0]}` : undefined);
+  if (!address) return undefined;
+  try {
+    const value = address.includes("://") ? address : `http://${address}`;
+    const authority = value.split("://")[1]?.split(/[/?#]/)[0]?.split("@").at(-1);
+    if (!authority || /[\s…•$%]/u.test(authority)) return undefined;
+    const url = new URL(value);
+    if (!url.host) return undefined;
+    return `${download ? "Downloads from" : "Sends to"}: ${url.host}`;
+  } catch {
+    return undefined;
+  }
+}
+
 function shortSummary(x: CheckSummary): string {
   if (!x.checked || x.fix) return x.text;
   switch (x.check) {
@@ -179,7 +205,11 @@ export function formatText(r: ScanResult, opts: TextOptions): string {
   const show = (f: Finding): void => {
     lines.push(...write(`  ${opts.details ? f.title : shortTitle(f)}`, "bold"));
     lines.push(...write(`    ${opts.details ? "Where: " : ""}${f.line > 0 ? `${f.file}:${f.line}` : f.file}`, "cyan"));
-    if (!opts.details) lines.push(...write(`    What to do: ${firstStep(f.fix)}`));
+    if (!opts.details) {
+      const destination = shortDestination(f);
+      if (destination) lines.push(...write(`    ${destination}`));
+      lines.push(...write(`    What to do: ${firstStep(f.fix)}`));
+    }
     if (opts.details) {
       lines.push(...write(`    What this means: ${f.why}`));
       lines.push(...write(`    What you could do: ${f.fix}`));

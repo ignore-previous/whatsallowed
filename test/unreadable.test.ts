@@ -56,7 +56,7 @@ describe("config file over 1 MiB", () => {
     put(".claude/settings.json", padded());
     for (const args of [[], ["--details"]]) {
       const out = cli(args).out.replace(/\s+/g, " ");
-      expect(out, args.join(" ")).toContain("1 config file was too large to check, so it was skipped.");
+      expect(out, args.join(" ")).toContain("1 config file couldn't be checked (too large or couldn't be opened), so it was skipped.");
       expect(out, args.join(" ")).toContain("Nothing found in the files read for:");
       expect(out, args.join(" ")).not.toContain("Nothing found for:");
     }

@@ -6,10 +6,10 @@ import { HOME, PROJECT, toFsMap } from "../eval/run.ts";
 export { HOME, PROJECT };
 
 /** Scan in-memory files. Keys start with ~/ (home) or ./ (project). */
-export function scanFiles(files: Record<string, unknown>, before?: Record<string, unknown>): ScanResult {
+export function scanFiles(files: Record<string, unknown>, before?: Record<string, unknown>, unopenable: string[] = []): ScanResult {
   const base = { home: HOME, project: PROJECT, mode: "all" as const, managedDirs: [] };
   const baseline = before ? recordBaseline(scan({ ...base, fs: memFs(toFsMap(before)) }).model, "2026-01-01T00:00:00.000Z") : undefined;
-  return scan({ ...base, fs: memFs(toFsMap(files)), baseline });
+  return scan({ ...base, fs: memFs(toFsMap(files), { unopenable: Object.keys(toFsMap(Object.fromEntries(unopenable.map((p) => [p, ""])))) }), baseline });
 }
 
 /** 1-based line of the first line containing needle. */

@@ -3,6 +3,7 @@ import { SEVERITY_RANK, type ScanResult } from "./scan.ts";
 import { type CheckSummary, type Summary, summarize } from "./summary.ts";
 import type { ScanMode } from "./discover.ts";
 import { TOOL_NAME, TOOL_VERSION } from "./name.ts";
+import { noControl } from "./scrub.ts";
 import type { CheckId, Finding, Severity } from "./types.ts";
 
 export type FailOn = Severity | "never";
@@ -154,7 +155,7 @@ function textWidth(opts: TextOptions): number {
 
 function writer(opts: TextOptions): (line: string, color?: keyof typeof ANSI) => string[] {
   const width = textWidth(opts);
-  return (line, color) => wrap(line, width).map((part) =>
+  return (line, color) => wrap(noControl(line), width).map((part) =>
     opts.color && color && part ? `${ANSI[color]}${part}${ANSI.reset}` : part);
 }
 
@@ -172,7 +173,7 @@ export function formatSummary(s: Summary, opts: TextOptions): string[] {
     if (missing.length) lines.push(...write(`  ${missing.join(", ")}: no files found.`));
   }
   const skipped = s.files.unchecked;
-  if (skipped) lines.push(...write(`  ${plural(skipped, "config file was", "config files were")} too large to check, so ${skipped === 1 ? "it was" : "they were"} skipped.`));
+  if (skipped) lines.push(...write(`  ${plural(skipped, "config file", "config files")} couldn't be checked (too large or couldn't be opened), so ${skipped === 1 ? "it was" : "they were"} skipped.`));
   const empty: string[] = [];
   for (const x of s.checks) {
     const hasFindings = Object.values(x.findings).some((n) => n > 0);
@@ -319,9 +320,9 @@ export function formatInventory(r: ScanResult): string {
   if (!r.files.length && !r.unchecked.length) return "No agent config files found.\n";
   const rows = [
     ...r.files.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display}`),
-    ...r.unchecked.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display} (too large, not checked)`),
+    ...r.unchecked.map((f) => `${f.scope.padEnd(8)} ${f.tool.padEnd(7)} ${f.kind.padEnd(16)} ${f.display} (${f.reason === "unopenable" ? "couldn't be opened" : "too large"}, not checked)`),
   ];
-  return `${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path\n${rows.join("\n")}\n`;
+  return noControl(`${"scope".padEnd(8)} ${"tool".padEnd(7)} ${"kind".padEnd(16)} path\n${rows.join("\n")}\n`);
 }
 
 export { ruleById };

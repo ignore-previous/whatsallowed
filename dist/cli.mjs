@@ -4521,6 +4521,22 @@ function firstStep(fix) {
   const m = fix.match(/^.*?[.!?](?=\s+[A-Z]|$)/);
   return (m ? m[0] : fix).trim();
 }
+function shortDestination(f5) {
+  const route = f5.rule === "ENDPOINT-001" ? f5.match.match(/^(?:ANTHROPIC_(?:[A-Z]+_)?BASE_URL|CLAUDE_CODE_(?:[A-Z]+_)?BASE_URL|(?:HTTPS?|ALL)_PROXY)=(.*)$/i)?.[1] : void 0;
+  const download = f5.rule.startsWith("HOOK-") ? f5.match.match(/\bhttps?:\/\/[^\s'"<>`|;)]+/i)?.[0] : void 0;
+  const address = route ?? download ?? (f5.rule === "HTTPHOOK-001" ? f5.match : void 0) ?? (f5.rule === "HTTPHOOK-002" ? `hook://${f5.match.split(" with ")[0]}` : void 0);
+  if (!address) return void 0;
+  try {
+    const value = address.includes("://") ? address : `http://${address}`;
+    const authority = value.split("://")[1]?.split(/[/?#]/)[0]?.split("@").at(-1);
+    if (!authority || /[\s…•$%]/u.test(authority)) return void 0;
+    const url = new URL(value);
+    if (!url.host) return void 0;
+    return `${download ? "Downloads from" : "Sends to"}: ${url.host}`;
+  } catch {
+    return void 0;
+  }
+}
 function shortSummary(x) {
   if (!x.checked || x.fix) return x.text;
   switch (x.check) {
@@ -4614,7 +4630,11 @@ function formatText(r, opts) {
   const show = (f5) => {
     lines.push(...write(`  ${opts.details ? f5.title : shortTitle(f5)}`, "bold"));
     lines.push(...write(`    ${opts.details ? "Where: " : ""}${f5.line > 0 ? `${f5.file}:${f5.line}` : f5.file}`, "cyan"));
-    if (!opts.details) lines.push(...write(`    What to do: ${firstStep(f5.fix)}`));
+    if (!opts.details) {
+      const destination = shortDestination(f5);
+      if (destination) lines.push(...write(`    ${destination}`));
+      lines.push(...write(`    What to do: ${firstStep(f5.fix)}`));
+    }
     if (opts.details) {
       lines.push(...write(`    What this means: ${f5.why}`));
       lines.push(...write(`    What you could do: ${f5.fix}`));

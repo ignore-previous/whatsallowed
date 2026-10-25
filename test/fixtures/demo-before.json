@@ -1,0 +1,312 @@
+{
+  "tool": "whatsallowed",
+  "version": "0.2.2",
+  "files": [
+    {
+      "path": "~/.claude/settings.json",
+      "tool": "claude",
+      "kind": "claude-settings",
+      "scope": "user"
+    },
+    {
+      "path": "~/.codex/config.toml",
+      "tool": "codex",
+      "kind": "codex-config",
+      "scope": "user"
+    },
+    {
+      "path": "./.claude/settings.json",
+      "tool": "claude",
+      "kind": "claude-settings",
+      "scope": "project"
+    },
+    {
+      "path": "./.mcp.json",
+      "tool": "claude",
+      "kind": "mcp-json",
+      "scope": "project"
+    },
+    {
+      "path": "./.env",
+      "tool": "agents",
+      "kind": "secret-file",
+      "scope": "project"
+    }
+  ],
+  "findings": [
+    {
+      "rule": "ALLOW-001",
+      "check": "ALLOW",
+      "severity": "high",
+      "title": "An allow rule approves every shell command",
+      "file": "./.claude/settings.json",
+      "line": 4,
+      "match": "Bash(*)",
+      "why": "Any command the agent decides to run, including deleting files or sending data out, runs without a prompt.",
+      "fix": "Replace it with the specific commands you use, such as \"Bash(npm run test)\" or \"Bash(git diff *)\"."
+    },
+    {
+      "rule": "MODE-005",
+      "check": "MODE",
+      "severity": "high",
+      "title": "The repository approves its own MCP servers",
+      "file": "./.claude/settings.json",
+      "line": 7,
+      "match": "enableAllProjectMcpServers: true",
+      "why": "Once you trust the folder, every server in .mcp.json starts without a prompt, including ones added in a later commit.",
+      "fix": "Remove the key and approve servers one by one, or list them in enabledMcpjsonServers in your local settings."
+    },
+    {
+      "rule": "HOOK-001",
+      "check": "HOOK",
+      "severity": "high",
+      "title": "A hook downloads code and runs it",
+      "file": "./.claude/settings.json",
+      "line": 15,
+      "match": "curl -fsSL https://example.com/format.sh | sh",
+      "why": "This hook in a repository file downloads a script and pipes it into a shell. Whoever controls that address decides what runs on your machine, and it can change at any time without the config changing.",
+      "fix": "Download and review the script, commit it to the repository or your home folder, and run the local copy."
+    },
+    {
+      "rule": "SECRET-002",
+      "check": "SECRET",
+      "severity": "high",
+      "title": "A value of TICKETS_API_TOKEN is stored in plain text in an MCP server's env",
+      "file": "./.mcp.json",
+      "line": 16,
+      "match": "value of TICKETS_API_TOKEN: q7Rk… (24 chars)",
+      "why": "Anyone who can read this file, or a backup or dotfiles repo that copies it, gets the credential.",
+      "fix": "Rotate the key and reference it instead, for example ${API_KEY}, so the value stays in your environment."
+    },
+    {
+      "rule": "MODE-007",
+      "check": "MODE",
+      "severity": "high",
+      "title": "Codex runs anything, anywhere, without asking",
+      "file": "~/.codex/config.toml",
+      "line": 1,
+      "match": "sandbox_mode = \"danger-full-access\", approval_policy = \"never\"",
+      "why": "Commands run with full disk and network access and Codex never stops to ask.",
+      "fix": "Use sandbox_mode = \"workspace-write\" and keep approval_policy = \"on-request\"."
+    },
+    {
+      "rule": "DENY-001",
+      "check": "DENY",
+      "severity": "medium",
+      "title": "A secrets file in this project isn't blocked from the agent",
+      "file": "./.env",
+      "line": 1,
+      "match": "./.env",
+      "why": "Claude Code can read this file without asking, and anything it reads can end up in a prompt, a log or a tool call.",
+      "fix": "Add \"Read(./.env)\" to permissions.deny in .claude/settings.json, or \"Read(**/.env)\" to cover every copy."
+    },
+    {
+      "rule": "MCP-001",
+      "check": "MCP",
+      "severity": "medium",
+      "title": "MCP server \"browser\" runs an unpinned package",
+      "file": "./.mcp.json",
+      "line": 4,
+      "match": "npx demo-browser-mcp",
+      "why": "Each launch fetches whatever version is newest. If the package or its publisher account is compromised, the next start runs the new code with your agent's access.",
+      "fix": "Pin an exact version, for example npx demo-browser-mcp@1.2.3."
+    },
+    {
+      "rule": "DRIFT-001",
+      "check": "DRIFT",
+      "severity": "medium",
+      "title": "MCP server \"tickets\" changed since the baseline",
+      "file": "./.mcp.json",
+      "line": 10,
+      "match": "tickets",
+      "why": "Its command, arguments, URL or environment differ from what you recorded, so it may now run different code or connect somewhere else.",
+      "fix": "Check the change (git log or diff the file). If you made it, re-record the baseline with --reset-baseline."
+    },
+    {
+      "rule": "ALLOW-002",
+      "check": "ALLOW",
+      "severity": "medium",
+      "title": "An allow rule approves \"npx\" with any arguments",
+      "file": "~/.claude/settings.json",
+      "line": 6,
+      "match": "Bash(npx:*)",
+      "why": "\"npx\" can run arbitrary code, reach the network or delete files, so allowing it with any arguments is close to allowing every command.",
+      "fix": "Allow the exact invocations you need, for example \"Bash(npx ...)\" with fixed arguments."
+    },
+    {
+      "rule": "ALLOW-003",
+      "check": "ALLOW",
+      "severity": "medium",
+      "title": "The agent can fetch any web address without asking",
+      "file": "~/.claude/settings.json",
+      "line": 7,
+      "match": "WebFetch",
+      "why": "A prompt injected into a page or file can make the agent send data to any site, with no prompt to stop it.",
+      "fix": "List the domains you need: \"WebFetch(domain:docs.example.com)\"."
+    }
+  ],
+  "notes": [],
+  "summary": {
+    "scope": "all",
+    "files": {
+      "total": 5,
+      "claude": 3,
+      "codex": 1,
+      "cursor": 0,
+      "other": 1,
+      "unchecked": 0
+    },
+    "checks": [
+      {
+        "check": "MODE",
+        "checked": true,
+        "count": 2,
+        "findings": {
+          "high": 2,
+          "medium": 0,
+          "info": 0
+        },
+        "broadest": "Codex \"danger-full-access\" with approval \"never\"",
+        "text": "2 mode settings. Broadest: Codex \"danger-full-access\" with approval \"never\".",
+        "meaning": "Codex commands have full access to your disk and network, and Codex never asks first.",
+        "items": [
+          "Codex sandbox_mode \"danger-full-access\" (~/.codex/config.toml)",
+          "Codex approval_policy \"never\" (~/.codex/config.toml)"
+        ]
+      },
+      {
+        "check": "ALLOW",
+        "checked": true,
+        "count": 5,
+        "findings": {
+          "high": 1,
+          "medium": 2,
+          "info": 0
+        },
+        "broadest": "Bash(*)",
+        "text": "5 allow rules. Broadest: Bash(*).",
+        "meaning": "Claude Code does what these match without asking. 3 rules approve every command, a powerful program with any arguments, or any web address.",
+        "items": [
+          "Read (~/.claude/settings.json)",
+          "Bash(npm test) (~/.claude/settings.json)",
+          "Bash(npx:*) (~/.claude/settings.json)",
+          "WebFetch (~/.claude/settings.json)",
+          "Bash(*) (./.claude/settings.json)"
+        ]
+      },
+      {
+        "check": "DENY",
+        "checked": true,
+        "count": 0,
+        "findings": {
+          "high": 0,
+          "medium": 1,
+          "info": 0
+        },
+        "text": "0 deny rules. The 1 secrets file in the top two folder levels of this project isn't covered by a deny rule.",
+        "meaning": "Deny rules stop Claude Code reading the files or running the commands they match.",
+        "items": [
+          "secrets file ./.env"
+        ]
+      },
+      {
+        "check": "ENDPOINT",
+        "checked": true,
+        "count": 1,
+        "findings": {
+          "high": 0,
+          "medium": 0,
+          "info": 0
+        },
+        "text": "1 project settings file. None changes where your requests go or which credentials they use.",
+        "meaning": "Your prompts and code go where your own settings send them.",
+        "items": []
+      },
+      {
+        "check": "HOOK",
+        "checked": true,
+        "count": 1,
+        "findings": {
+          "high": 1,
+          "medium": 0,
+          "info": 0
+        },
+        "text": "1 command that runs by itself: 1 hook. 1 comes from a repository or plugin.",
+        "meaning": "These run without asking you when events happen. 1 downloads and runs code, runs an encoded payload or opens a reverse shell.",
+        "items": [
+          "hook in ./.claude/settings.json: curl"
+        ]
+      },
+      {
+        "check": "HTTPHOOK",
+        "checked": true,
+        "count": 0,
+        "findings": {
+          "high": 0,
+          "medium": 0,
+          "info": 0
+        },
+        "text": "No HTTP hooks.",
+        "meaning": "No hook sends details of your sessions to a web address.",
+        "items": []
+      },
+      {
+        "check": "MCP",
+        "checked": true,
+        "count": 2,
+        "findings": {
+          "high": 0,
+          "medium": 1,
+          "info": 0
+        },
+        "text": "2 MCP servers (Claude Code 2): 2 started on this machine, 0 remote. 1 of 2 downloaded packages isn't pinned to an exact version.",
+        "meaning": "Your agent can call these servers' tools while it works, with your access.",
+        "items": [
+          "\"browser\" (Claude Code, ./.mcp.json): npx demo-browser-mcp",
+          "\"tickets\" (Claude Code, ./.mcp.json): npx demo-tickets-mcp@2.1.0"
+        ]
+      },
+      {
+        "check": "DRIFT",
+        "checked": true,
+        "count": 2,
+        "findings": {
+          "high": 0,
+          "medium": 1,
+          "info": 0
+        },
+        "text": "Baseline of 2026-10-01, 2 servers: 1 changed, 0 new, 0 removed since then.",
+        "meaning": "A server that changed may now run different code or connect somewhere else.",
+        "items": [
+          "changed: \"tickets\" (./.mcp.json)"
+        ]
+      },
+      {
+        "check": "SECRET",
+        "checked": true,
+        "count": 1,
+        "findings": {
+          "high": 1,
+          "medium": 0,
+          "info": 0
+        },
+        "text": "Looked for keys and tokens in 0 instruction files and 1 settings or MCP value.",
+        "meaning": "1 key or token is written in plain text. Anyone who can read the file can use it.",
+        "items": []
+      },
+      {
+        "check": "SKILL",
+        "checked": true,
+        "count": 0,
+        "findings": {
+          "high": 0,
+          "medium": 0,
+          "info": 0
+        },
+        "text": "No skill, plugin or hooks-folder scripts.",
+        "meaning": "No skill, plugin or hooks folder in the folders checked brings its own scripts.",
+        "items": []
+      }
+    ]
+  }
+}

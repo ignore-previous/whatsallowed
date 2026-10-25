@@ -41,7 +41,7 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 describe("config file over 1 MiB", () => {
   it("is reported as FILE-001, not as a clean scan", () => {
     put(".claude/settings.json", padded());
-    const r = cli([]);
+    const r = cli(["--details"]);
     expect(r.code).toBe(1);
     expect(r.out).toContain("FILE-001");
     expect(r.out).toContain(".claude/settings.json");
@@ -51,6 +51,15 @@ describe("config file over 1 MiB", () => {
     expect(r.out).not.toContain("read: .");
     expect(r.out).not.toContain("Nothing was checked");
     expect(r.out).not.toContain("No high or medium findings");
+  });
+  it("says so in the summary, and doesn't call the skipped areas empty", () => {
+    put(".claude/settings.json", padded());
+    for (const args of [[], ["--details"]]) {
+      const out = cli(args).out.replace(/\s+/g, " ");
+      expect(out, args.join(" ")).toContain("1 config file couldn't be checked (too large or couldn't be opened), so it was skipped.");
+      expect(out, args.join(" ")).toContain("Nothing found in the files read for:");
+      expect(out, args.join(" ")).not.toContain("Nothing found for:");
+    }
   });
   it("fails --fail-on at the levels a normal finding would", () => {
     put(".claude/settings.json", padded());

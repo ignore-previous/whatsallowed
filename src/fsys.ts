@@ -11,6 +11,8 @@ export interface Fs {
   readText(path: string): string | undefined;
   /** The size in bytes of a file that is over the read limit, so readText skipped it. Undefined for any other file. */
   oversize(path: string): number | undefined;
+  /** For a regular file within the size limit that exists but could not be opened (for example, no permission): a short error code. Undefined for any other path. */
+  openError(path: string): string | undefined;
   list(dir: string): DirEntry[] | undefined;
 }
 
@@ -70,6 +72,27 @@ export const nodeFs: Fs = {
       return undefined;
     }
   },
+  openError(path) {
+    const codeOf = (e: unknown): string => {
+      const code = (e as { code?: unknown } | null)?.code;
+      return typeof code === "string" && /^[A-Z0-9_]{2,20}$/.test(code) ? code : "UNKNOWN";
+    };
+    try {
+      const st = fs.statSync(path);
+      if (!st.isFile() || st.size > MAX_BYTES) return undefined;
+    } catch (e) {
+      // Missing is normal. Anything else (a folder we may not enter, a symlink loop) means we can't tell
+      // whether the file is there, so it must not read as "nothing here".
+      const code = codeOf(e);
+      return code === "ENOENT" || code === "ENOTDIR" ? undefined : code;
+    }
+    try {
+      decodeText(fs.readFileSync(path));
+      return undefined;
+    } catch (e) {
+      return codeOf(e);
+    }
+  },
   list(dir) {
     try {
       return fs
@@ -82,14 +105,17 @@ export const nodeFs: Fs = {
 };
 
 /** In-memory file system for tests and the eval harness. Keys are absolute posix paths. */
-export function memFs(files: Record<string, string>): Fs {
+export function memFs(files: Record<string, string>, opts: { unopenable?: string[] } = {}): Fs {
   const norm: Record<string, string> = {};
   for (const [k, v] of Object.entries(files)) norm[toPosix(k)] = v;
+  // Files that exist but can't be opened. They have no text in `files`.
+  const blocked = new Set((opts.unopenable ?? []).map(toPosix));
   return {
     readText: (p) => {
       const t = norm[toPosix(p)];
       return t !== undefined && t.length > MAX_BYTES ? undefined : t;
     },
+    openError: (p) => (blocked.has(toPosix(p)) ? "EACCES" : undefined),
     oversize: (p) => {
       const t = norm[toPosix(p)];
       return t !== undefined && t.length > MAX_BYTES ? t.length : undefined;

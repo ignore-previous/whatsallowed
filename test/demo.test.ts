@@ -36,7 +36,7 @@ describe("demo", () => {
       const r = cli(args);
       expect(r.out).not.toContain(TOKEN);
     }
-    expect(cli(["demo"]).out).toContain("q7Rk");
+    expect(cli(["demo", "--details"]).out).toContain("q7Rk");
   });
 
   it("gives parseable JSON marked as a demo, without the intro", () => {
@@ -53,7 +53,7 @@ describe("demo", () => {
   });
 
   it("says in the summary that the setup is made up", () => {
-    expect(cli(["demo"]).out).toContain("Summary: the made-up shop-app project and demo user settings. None of your files were read.");
+    expect(cli(["demo"]).out).toContain("Summary: the made-up shop-app project and demo user settings. None of your files\n         were read.");
     expect(cli(["demo", "--project-only"]).out).toContain("Summary: the made-up shop-app project only");
     expect(cli(["demo"]).out).not.toContain("this project folder");
   });

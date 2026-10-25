@@ -1,6 +1,6 @@
 # What's Allowed
 
-What's Allowed reads your Claude Code, Codex and Cursor config and flags risky settings, each with the file, the line and a rule ID.
+What's Allowed reads your Claude Code, Codex and Cursor config and flags risky settings, each with the file and line. Add `--details` for explanations and rule IDs.
 
 Examples: a hook that pipes `curl` into `sh`, an MCP server run with `npx` and no version, a repository that sets `ANTHROPIC_BASE_URL`, or a `.env` file the agent can read without asking.
 
@@ -18,46 +18,91 @@ You need Node.js 20 or later. In the folder of a project you work on with an age
 npx whatsallowed
 ```
 
-To see a full report first, we recommend `npx whatsallowed demo`. It scans a made-up project with risky settings and reads none of your files.
+To see an example, run `npx whatsallowed demo`. It scans a made-up project with risky settings and reads none of your files.
 
-It checks the project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). A scan only reads files and changes nothing. It prints a one-line verdict first, then any findings, most important first. Each finding says what it means and what you could do about it. You make any change yourself. A summary at the end shows what each of the ten checks looked at, including those that found nothing.
+It checks the project and your own user config (`~/.claude`, `~/.claude.json`, `~/.codex`, `~/.cursor`). A scan only reads files and changes nothing. The short report starts with counts by level and files checked. Findings show what is wrong, where to look and a first step to fix it. The summary names the areas checked and groups empty areas together.
 
+<!-- demo-output -->
 ```
-whatsallowed 0.2.1. This is a read-only check: it changes nothing and sends nothing anywhere.
+5 high, 5 medium, 0 info; 5 files checked.
+Read-only demo. Made-up findings. None of your files were read.
 
-2 things to look at in the 2 files checked. 1 needs attention first.
+Look at these first (5)
 
-Look at these first (1)  High: could let something run or leak without you noticing.
+  A permission allows every command
+    ./.claude/settings.json:4
+    What to do: Replace it with the specific commands you use, such as "Bash(npm
+                run test)" or "Bash(git diff *)".
 
-  A hook downloads code and runs it
-    (Hook: a command that Claude Code or Codex runs by itself when something happens, such as after a file edit.)
-    What this means: This hook in a repository file downloads a script and pipes it into a shell. ...
-    What you could do: Download and review the script, commit it to the repository or your home folder, and run the local copy.
-    Where: ./.claude/settings.json, line 3  Found: curl -s https://get.example.dev/bootstrap | sh  Rule: HOOK-001
+  The project approves its own extra tools
+    ./.claude/settings.json:7
+    What to do: Remove the key and approve servers one by one, or list them in
+                enabledMcpjsonServers in your local settings.
 
-Worth checking (1)  Medium: risky in some set-ups, harmless in others.
+  An automatic command downloads code and runs it
+    ./.claude/settings.json:15
+    What to do: Download and review the script, commit it to the repository or
+                your home folder, and run the local copy.
 
-  MCP server "a" runs an unpinned package
-    ...
+  A key or token is written directly in the tool settings
+    ./.mcp.json:16
+    What to do: Rotate the key and reference it instead, for example ${API_KEY},
+                so the value stays in your environment.
 
-Summary: this project folder and your user settings. Other projects on this machine aren't read.
+  Codex runs anything, anywhere, without asking
+    ~/.codex/config.toml:1
+    What to do: Use sandbox_mode = "workspace-write" and keep approval_policy =
+                "on-request".
 
-  Files     2 read: Claude Code 2. Codex or Cursor: no files found.
-  ...
-  HOOK      1 command that runs by itself: 1 hook. 1 comes from a repository or plugin.
-            These run without asking you when events happen. 1 downloads and runs code, runs an encoded payload or opens a reverse shell.
-  ...
-  MCP       1 MCP server (Claude Code 1): 1 started on this machine, 0 remote. The downloaded package isn't pinned to an exact version.
-  ...
-  DRIFT     Not checked yet: no baseline recorded. Run: npx whatsallowed baseline
-  ...
+Worth checking (5)
+
+  A secrets file in this project isn't blocked from the AI
+    ./.env:1
+    What to do: Add "Read(./.env)" to permissions.deny in .claude/settings.json,
+                or "Read(**/.env)" to cover every copy.
+
+  Extra tool "browser" runs a package without a fixed version
+    ./.mcp.json:4
+    What to do: Pin an exact version, for example npx demo-browser-mcp@1.2.3.
+
+  Extra tool "tickets" changed since the saved settings
+    ./.mcp.json:10
+    What to do: Check the change (git log or diff the file).
+
+  A permission allows "npx" with any arguments
+    ~/.claude/settings.json:6
+    What to do: Allow the exact invocations you need, for example "Bash(npx
+                ...)" with fixed arguments.
+
+  The AI can fetch any web address without asking
+    ~/.claude/settings.json:7
+    What to do: List the domains you need: "WebFetch(domain:docs.example.com)".
+
+Add --details to see why each one matters and more ways to fix it.
+
+Summary: the made-up shop-app project and demo user settings. None of your files
+         were read.
+  Permission modes: 2 settings.
+  Allowed actions: 5 permission rules.
+  Protected files: 0 rules blocking access.
+  Automatic commands: 1 automatic command.
+  Extra tools: 2 extra tools.
+  Changes since baseline: Baseline of 2026-10-01, 2 servers: 1 changed, 0 new, 0
+                          removed since then.
+  Keys and tokens: 1 file or value checked.
+Nothing found for: request addresses, web notifications, add-on scripts.
+
+This is not a security assessment. A clean result does not mean it is safe.
 ```
+<!-- /demo-output -->
 
-The file, line and rule ID are on each finding's last line, for when you want to look it up. The summary has one row per check, with a count and what it means. Lower-priority notes and the full list behind each summary count are hidden unless you add `--verbose`. For scripts and other tools, `--format json` gives the same findings in a stable, machine-readable form (and `--format sarif` for GitHub code scanning).
+Add `--details` for what each finding means, what you could do, the matched text, rule IDs and a glossary. Add `--verbose` to show lower-priority notes and the items behind summary counts. You can use both flags together. You make any changes yourself.
+
+Text wraps to the terminal width, up to 90 columns. Redirected output uses 80 columns. Continuation lines stay under their labels. For scripts and other tools, `--format json` gives the same findings in a stable, machine-readable form. Use `--format sarif` for GitHub code scanning. These formats are unchanged by `--details` and `--verbose`.
 
 Exit code 0 means nothing at or above the `--fail-on` level (default `high`). 1 means findings at or above the `--fail-on` level, and 2 means the tool couldn't run.
 
-A config file over 1 MiB isn't read. It is reported as `FILE-001` (high in a repository, local or plugin file; medium in your own), so it counts toward the exit code and never reads as clean. A file we can read only in part, or not at all because it is binary, nested too deeply or the wrong shape, is named in a note instead. UTF-16 files are read as text.
+A config file over 1 MiB isn't read. It is reported as `FILE-001` (high in a repository, local or plugin file; medium in your own), so it counts toward the exit code and never reads as clean. A file we can read only in part, or not at all because it is binary, nested too deeply or the wrong shape, is named in a note instead. A file that is there but can't be opened, for example because of its permissions, is reported as `FILE-002` and counts the same way. UTF-16 files are read as text.
 
 ## Commands
 
@@ -76,6 +121,7 @@ A config file over 1 MiB isn't read. It is reported as `FILE-001` (high in a rep
 | `--fail-on high\|medium\|info\|never` | Exit 1 when a finding is at or above this level |
 | `--baseline <file>` | Use another baseline file |
 | `--reset-baseline` | With `baseline`: replace an existing baseline |
+| `--details` | Show explanations, suggested changes, matched text, rule IDs and glossary |
 | `--verbose` | Also show lower-priority notes, and list every rule, server, hook and file behind the summary counts |
 | `--no-color` | No colour (`NO_COLOR` also works) |
 
@@ -100,7 +146,7 @@ Then ask Claude to "check my agent config". The plugin runs the same bundled CLI
 
 ## What it checks
 
-Ten checks, 36 rules: [docs/checks.md](docs/checks.md). One rule, `FILE-001`, isn't tied to a check: it flags a config file over 1 MiB that we couldn't read. The vendor docs each check relies on: [docs/config-surface.md](docs/config-surface.md).
+Ten checks, 37 rules: [docs/checks.md](docs/checks.md). Two rules, `FILE-001` and `FILE-002`, aren't tied to a check: they flag a config file we couldn't read, because it is over 1 MiB or couldn't be opened. The vendor docs each check relies on: [docs/config-surface.md](docs/config-surface.md).
 
 | Check | Looks for |
 |---|---|

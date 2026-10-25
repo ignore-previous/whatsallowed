@@ -45,6 +45,7 @@ export const RULES: RuleInfo[] = [
   { id: "SKILL-002", check: "SKILL", severity: "high", summary: "A skill, plugin or hooks-folder script runs an encoded payload." },
   { id: "SKILL-003", check: "SKILL", severity: "high", summary: "A skill, plugin or hooks-folder script opens a reverse shell." },
   { id: "FILE-001", check: "FILE", severity: "high", summary: "A config file is over 1 MiB, so it wasn't read and nothing in it was checked (high in a repository, local or plugin file; medium in your own)." },
+  { id: "FILE-002", check: "FILE", severity: "high", summary: "A config file exists but couldn't be opened (for example, no permission), so nothing in it was checked (high in a repository, local or plugin file; medium in your own)." },
 ];
 
 export const ruleById = new Map(RULES.map((r) => [r.id, r]));

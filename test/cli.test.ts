@@ -31,11 +31,18 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("exit codes", () => {
+  it.each([false, true])("snapshots a clean CLI run, details=%s", (details) => {
+    put(project, ".claude/settings.json", { permissions: { allow: ["Bash(npm test)"] } });
+    const result = cli(details ? ["--details"] : []);
+    expect(result.code).toBe(0);
+    expect(result.err).toBe("");
+    expect(result.out).toMatchSnapshot();
+  });
   it("0 on a clean setup", () => {
     put(project, ".claude/settings.json", { permissions: { allow: ["Bash(npm test)"] } });
     const r = cli([]);
     expect(r.code).toBe(0);
-    expect(r.out).toContain("No high or medium findings in the 1 file checked.");
+    expect(r.out).toContain("0 high, 0 medium, 0 info; 1 file checked.");
     expect(r.out).toContain("Summary: this project folder and your user settings.");
     expect(r.out).toContain("not a security assessment");
   });
@@ -67,6 +74,10 @@ describe("formats", () => {
   beforeEach(() => {
     put(project, ".claude/settings.json", { permissions: { allow: ["Bash(*)"] } });
     put(home, ".claude/settings.json", { permissions: { defaultMode: "bypassPermissions" } });
+  });
+  it.each(["json", "sarif"])("text flags leave %s bytes unchanged", (format) => {
+    const plain = cli(["--format", format]);
+    expect(cli(["--format", format, "--details", "--verbose"])).toEqual(plain);
   });
   it("json lists findings with rule, file and line", () => {
     const j = JSON.parse(cli(["--format", "json"]).out);
@@ -110,32 +121,31 @@ describe("formats", () => {
 describe("beginner-first text output", () => {
   it("leads with a plain verdict, then groups by priority, with detail kept but secondary", () => {
     put(project, ".claude/settings.json", { permissions: { allow: ["Bash(*)", "Bash(curl *)"] } });
-    const lines = cli([]).out.split("\n");
-    expect(lines[0]).toContain("read-only check");
-    expect(lines[2]).toBe("2 things to look at in the 1 file checked. 1 needs attention first.");
+    const lines = cli(["--details"]).out.split("\n");
+    expect(lines[1]).toContain("Read-only check");
+    expect(lines[0]).toBe("1 high, 1 medium, 0 info; 1 file checked.");
     const out = lines.join("\n");
     expect(out.indexOf("Look at these first (1)")).toBeGreaterThan(-1);
     expect(out.indexOf("Look at these first (1)")).toBeLessThan(out.indexOf("Worth checking (1)"));
     expect(out).toContain("What this means:");
     expect(out).toContain("What you could do:");
-    expect(out).toContain("Where: ./.claude/settings.json, line 4");
+    expect(out).toContain("./.claude/settings.json:4");
     expect(out).toContain("Rule: ALLOW-001");
     expect(out).toContain("Rule: ALLOW-002");
-    expect(out).toContain("Nothing has been changed.");
-    expect(out).toContain("--format json");
+    expect(out).toContain("Nothing is changed");
     // Rule IDs and file paths come after the plain title, not before it.
     expect(out.indexOf("An allow rule approves every shell command")).toBeLessThan(out.indexOf("ALLOW-001"));
   });
   it("explains each kind of setting once, the first time it appears", () => {
     put(project, ".claude/settings.json", { permissions: { allow: ["Bash(curl *)", "Bash(wget *)"] } });
-    const out = cli([]).out;
-    expect(out.split("Allow rule: a setting that lets your agent").length - 1).toBe(1);
+    const out = cli(["--details"]).out;
+    expect(out.split("Allow rule: a setting that lets your AI").length - 1).toBe(1);
     expect(out).not.toContain("Hook: a command");
   });
   it("says nothing needs urgent attention when only medium findings exist", () => {
     put(project, ".mcp.json", { mcpServers: { a: { command: "npx", args: ["pkg"] } } });
     const out = cli([]).out;
-    expect(out).toContain("1 thing worth a look in the 1 file checked. Nothing needs urgent attention.");
+    expect(out).toContain("0 high, 1 medium, 0 info; 1 file checked.");
     expect(out).not.toContain("Look at these first");
   });
   it("keeps --verbose working: info notes are hidden by default and shown with it", () => {
@@ -145,7 +155,9 @@ describe("beginner-first text output", () => {
     expect(hidden).not.toContain("For your information");
     const shown = cli(["--verbose"]).out;
     expect(shown).toContain("For your information (1)");
-    expect(shown).toContain("Rule: MODE-004");
+    expect(shown).not.toContain("Rule:");
+    expect(cli(["--details", "--verbose"]).out).toContain("Rule: MODE-004");
+    expect(cli(["--details"]).out).not.toContain("Rule: MODE-004");
     expect(shown).not.toContain("hidden");
   });
   it("uses colour only on a terminal and never changes the words", () => {
@@ -186,7 +198,7 @@ describe("baseline", () => {
     put(project, ".mcp.json", { mcpServers: { keep: { command: "npx", args: ["k@1.0.0"] } } });
     const text = cli(["--baseline", bl, "--verbose"]).out;
     expect(text).toContain("MCP server gone in ./.mcp.json was removed since the baseline.");
-    expect(text).toContain("1 removed since then");
+    expect(text.replace(/\s+/g, " ")).toContain("1 removed since then");
     expect(text.match(/\bgone\b/g)).toHaveLength(1);
     expect(text).not.toContain(root);
     const j = JSON.parse(cli(["--format", "json", "--baseline", bl]).out);

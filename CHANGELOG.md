@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The Claude Code plugin now has an icon, the side-eye robot on yellow. It is not part of the npm package.
+
 ## 0.2.1
 
 Fixes. Nothing here changes what the ten checks look for, and the accuracy figures are the same.

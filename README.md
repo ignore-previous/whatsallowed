@@ -177,6 +177,10 @@ AI models wrote and labelled the test set, so the figures show how well each che
 
 More in [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
+## How we build this
+
+What's Allowed is built with AI coding agents (Claude Code and Codex). Every change is reviewed before it ships.
+
 ## Licence
 
 Code: MIT ([LICENSE](LICENSE)). Labelled cases in `eval/cases`: CC BY 4.0 ([LICENSE-DATA](LICENSE-DATA)).
